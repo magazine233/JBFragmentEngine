@@ -65,7 +65,7 @@ class MyGovScraper {
         console.log(`Found ${sitemapUrls.length} URLs from sitemap`);
         // Crawl sitemap URLs with higher priority
         await Promise.all(
-          sitemapUrls.slice(0, 100).map(url => 
+          sitemapUrls.slice(0, this.cfg.maxPages).map(url => 
             this.limit(() => this.crawl(browser, url, robots, 0))
           )
         );

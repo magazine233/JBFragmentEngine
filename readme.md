@@ -56,10 +56,15 @@ docker-compose run --rm -e MAX_DEPTH=2 -e TARGET_URL=https://example.gov.au scra
 ```
 
 ### API Examples
+# Check if API is running
+docker-compose up -d api
+
+# Get collection stats
+curl http://localhost:3000/api/fragments/stats/overview
 
 #### Search for content
 ```bash
-curl "http://localhost:3000/api/fragments/search?q=medicare&life_event=Having%20a%20baby&state=VIC"
+curl "http://localhost:3000/api/fragments/search?q=medicare"
 ```
 
 #### Get available facets

@@ -1,4 +1,4 @@
-# MyGov Content Extractor
+# FragmentEngine Content Extractor
 
 A Typesense-powered content extraction and search system for government websites. This system crawls websites, extracts structured content fragments, enriches them with taxonomies, and provides a powerful search API.
 
@@ -22,7 +22,7 @@ A Typesense-powered content extraction and search system for government websites
 
 1. Clone the repository:
 ```bash
-git clone [your-repo-url]
+git clone https://github.com/p0ss/FragmentEngine
 cd mygov-content-extractor
 ```
 
@@ -190,8 +190,4 @@ curl http://localhost:8108/metrics.json
 
 ## License
 
-[Your License]
-
-## Contributing
-
-[Your Contributing Guidelines]
+MIT

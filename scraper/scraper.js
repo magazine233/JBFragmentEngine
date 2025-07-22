@@ -7,11 +7,11 @@ const robotsParser = require('robots-parser');
 const Typesense = require('typesense');
 const { extractFragment } = require('./extractors');
 const { enrichWithTaxonomy } = require('./taxonomies');
-const { contentFragmentSchema } = require('../config/typesense-schema');
+const { contentFragmentSchema } = require('/config/typesense-schema');
 const { fetchSitemapUrls } = require('./sitemap');
 const ScraperMonitor = require('./monitor');
 
-const CRAWL_VERSION = Date.now();
+const CRAWL_VERSION = Math.floor(Date.now() / 1000); // Unix timestamp in seconds, fits in int32
 const CONCURRENCY = parseInt(process.env.CONCURRENCY) || 5;
 const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -181,6 +181,7 @@ class MyGovScraper {
       }
     } catch (e) {
       console.error(`Crawl error (${retries} retries left)`, url, e.message);
+      console.error('Stack trace:', e.stack);
       this.monitor.recordCrawl(url, false, Date.now() - crawlStart);
       
       if (retries > 0) {
@@ -200,97 +201,108 @@ class MyGovScraper {
 
   async extractFragments($, url, page) {
     const fragments = [];
-    const pageTitle = $('title').text() || '';
-    const breadcrumbs = this.extractBreadcrumbs($);
     
-    // Extract main content area
-    const mainSelectors = ['main', '#main-content', '.main-content', 'article'];
-    let $main = null;
+    try {
+      const pageTitle = $('title').text() || '';
+      const breadcrumbs = this.extractBreadcrumbs($);
     
-    for (const selector of mainSelectors) {
-      if ($(selector).length) {
-        $main = $(selector).first();
-        break;
-      }
-    }
-    
-    if (!$main) {
-      $main = $('body');
-    }
-
-    // Find all headings and their content
-    const headings = $main.find('h1, h2, h3, h4').toArray();
-    
-    for (let i = 0; i < headings.length; i++) {
-      const heading = headings[i];
-      const $heading = $(heading);
-      const nextHeading = headings[i + 1];
+      // Extract main content area
+      const mainSelectors = ['main', '#main-content', '.main-content', 'article'];
+      let $main = null;
       
-      // Get content between this heading and the next
-      const $content = $heading.nextUntil(
-        nextHeading ? $(nextHeading) : undefined,
-        'p, ul, ol, div.content, .info-box, table, form'
-      );
-      
-      if ($content.length === 0 && $heading.parent().is('div, section, article')) {
-        // Try getting siblings within the same container
-        const $container = $heading.parent();
-        $content.push(...$container.children().not('h1, h2, h3, h4').toArray());
-      }
-
-      if ($content.length > 0 || $heading.is('h1')) {
-        const fragment = await extractFragment({
-          $heading,
-          $content,
-          $,
-          url,
-          breadcrumbs,
-          pageTitle,
-          page
-        });
-        
-        if (fragment) {
-          // Enrich with taxonomy
-          const enrichedFragment = await enrichWithTaxonomy(fragment);
-          
-          // Add versioning fields
-          const finalFragment = {
-            ...enrichedFragment,
-            crawl_version: CRAWL_VERSION,
-            last_seen_at: Date.now(),
-            popularity_sort: 100 - (enrichedFragment.popularity_score || 0)
-          };
-          
-          fragments.push(finalFragment);
+      for (const selector of mainSelectors) {
+        if ($(selector).length) {
+          $main = $(selector).first();
+          break;
         }
       }
-    }
+      
+      if (!$main) {
+        $main = $('body');
+      }
 
-    // Also extract any standalone important sections
-    const standaloneSelectors = [
-      '.alert', '.warning-box', '.info-panel',
-      '[role="alert"]', '.checklist', '.step-list'
-    ];
-    
-    for (const selector of standaloneSelectors) {
-      $main.find(selector).each((i, elem) => {
-        const $elem = $(elem);
-        if (!$elem.closest(headings.map(h => $(h)).join(', ')).length) {
-          const fragment = this.extractStandaloneFragment($elem, url, breadcrumbs);
+      // Find all headings and their content
+      const headings = $main.find('h1, h2, h3, h4').toArray();
+      
+      for (let i = 0; i < headings.length; i++) {
+        const heading = headings[i];
+        const $heading = $(heading);
+        const nextHeading = headings[i + 1];
+        
+        // Get content between this heading and the next
+        let $content = $heading.nextUntil(
+          nextHeading ? $(nextHeading) : undefined,
+          'p, ul, ol, div.content, .info-box, table, form'
+        );
+        
+        if ($content.length === 0 && $heading.parent().is('div, section, article')) {
+          // Try getting siblings within the same container
+          const $container = $heading.parent();
+          const siblings = $container.children().not('h1, h2, h3, h4').toArray();
+          siblings.forEach(elem => {
+            $content = $content.add(elem);
+          });
+        }
+
+        if ($content.length > 0 || $heading.is('h1')) {
+          const fragment = await extractFragment({
+            $heading,
+            $content,
+            $,
+            url,
+            breadcrumbs,
+            pageTitle,
+            page
+          });
+          
           if (fragment) {
-            const enrichedFragment = enrichWithTaxonomy(fragment);
-            fragments.push({
+            // Enrich with taxonomy
+            const enrichedFragment = await enrichWithTaxonomy(fragment);
+            
+            // Add versioning fields
+            const finalFragment = {
               ...enrichedFragment,
               crawl_version: CRAWL_VERSION,
               last_seen_at: Date.now(),
               popularity_sort: 100 - (enrichedFragment.popularity_score || 0)
-            });
+            };
+            
+            fragments.push(finalFragment);
           }
         }
-      });
-    }
+      }
 
-    return fragments;
+      // Also extract any standalone important sections
+      const standaloneSelectors = [
+        '.alert', '.warning-box', '.info-panel',
+        '[role="alert"]', '.checklist', '.step-list'
+      ];
+      
+      for (const selector of standaloneSelectors) {
+        const elements = $main.find(selector).toArray();
+        for (const elem of elements) {
+          const $elem = $(elem);
+          if (!$elem.closest(headings.map(h => $(h)).join(', ')).length) {
+            const fragment = this.extractStandaloneFragment($elem, url, breadcrumbs);
+            if (fragment) {
+              const enrichedFragment = await enrichWithTaxonomy(fragment);
+              fragments.push({
+                ...enrichedFragment,
+                crawl_version: CRAWL_VERSION,
+                last_seen_at: Date.now(),
+                popularity_sort: 100 - (enrichedFragment.popularity_score || 0)
+              });
+            }
+          }
+        }
+      }
+
+      return fragments;
+    } catch (error) {
+      console.error(`Error in extractFragments for ${url}:`, error.message);
+      console.error('Stack:', error.stack);
+      return fragments; // Return what we have so far
+    }
   }
 
   extractBreadcrumbs($) {
@@ -321,6 +333,7 @@ class MyGovScraper {
   }
 
   extractStandaloneFragment($elem, url, breadcrumbs) {
+    const crypto = require('crypto');
     const id = crypto.createHash('md5')
       .update(url + $elem.text())
       .digest('hex');
@@ -405,7 +418,7 @@ class MyGovScraper {
 
 // Run the scraper
 if (require.main === module) {
-  const cfg = require('../config/scraper-config');
+  const cfg = require('/config/scraper-config');
   const scraper = new MyGovScraper(cfg);
   const startUrl = process.env.TARGET_URL || 'https://my.gov.au';
   

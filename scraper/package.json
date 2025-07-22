@@ -1,0 +1,23 @@
+{
+  "name": "mygov-content-scraper",
+  "version": "1.0.0",
+  "description": "Content extraction scraper for government websites",
+  "main": "scraper.js",
+  "scripts": {
+    "start": "node scraper.js",
+    "dev": "nodemon scraper.js"
+  },
+  "dependencies": {
+    "puppeteer": "^21.0.0",
+    "cheerio": "^1.0.0-rc.12",
+    "typesense": "^1.7.1",
+    "p-limit": "^3.1.0",
+    "robots-parser": "^3.0.0",
+    "syllable": "^5.0.0",
+    "cssesc": "^3.0.0",
+    "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}

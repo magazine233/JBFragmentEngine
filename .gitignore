@@ -1,0 +1,16 @@
+# .gitignore
+node_modules/
+*.log
+.env
+.DS_Store
+typesense-data/
+*.pid
+*.seed
+*.pid.lock
+dist/
+build/
+.npm
+.eslintcache
+.node_repl_history
+.yarn-integrity
+.cache/

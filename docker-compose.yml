@@ -1,0 +1,58 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  typesense:
+    image: typesense/typesense:0.25.1
+    restart: unless-stopped
+    ports:
+      - "8108:8108"
+    volumes:
+      - typesense-data:/data   # durable named volume
+    environment:
+      - TYPESENSE_DATA_DIR=/data
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz123abc}
+      - TYPESENSE_ENABLE_CORS=true
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+          cpus: "1.0"
+
+  scraper:
+    build: ./scraper
+    depends_on:
+      - typesense
+    environment:
+      - TYPESENSE_HOST=typesense
+      - TYPESENSE_PORT=8108
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz123abc}
+      - TARGET_URL=${TARGET_URL:-https://my.gov.au}
+      - MAX_DEPTH=${MAX_DEPTH:-3}
+      - MAX_LINKS_PER_PAGE=${MAX_LINKS_PER_PAGE:-10}
+      - CONCURRENCY=${CONCURRENCY:-5}
+    volumes:
+      - ./scraper:/app
+      - ./data:/data
+
+  api:
+    build: ./api
+    ports:
+      - "3000:3000"
+    depends_on:
+      - typesense
+    environment:
+      - TYPESENSE_HOST=typesense
+      - TYPESENSE_PORT=8108
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz123abc}
+      - PORT=${PORT:-3000}
+      - CORS_ORIGIN=${CORS_ORIGIN:-*}
+    volumes:
+      - ./api:/app
+
+volumes:
+  typesense-data:
+
+networks:
+  default:
+    name: mygov-net

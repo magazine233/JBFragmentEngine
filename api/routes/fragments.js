@@ -221,6 +221,140 @@ router.post('/batch', async (req, res) => {
   }
 });
 
+
+router.get('/export', async (req, res) => {
+  try {
+    const typesense = req.app.locals.typesense;
+    const format = req.query.format || 'json'; // json or csv
+    const limit = parseInt(req.query.limit) || 10000; // max records
+    
+    // Fetch all documents (or up to limit)
+    const searchParameters = {
+      q: '*',
+      query_by: 'title',
+      per_page: 250, // Max per request
+      page: 1
+    };
+    
+    let allDocuments = [];
+    let hasMore = true;
+    
+    while (hasMore && allDocuments.length < limit) {
+      const results = await typesense
+        .collections('content_fragments')
+        .documents()
+        .search(searchParameters);
+      
+      allDocuments = allDocuments.concat(results.hits.map(hit => hit.document));
+      
+      if (results.found <= searchParameters.page * searchParameters.per_page) {
+        hasMore = false;
+      } else {
+        searchParameters.page++;
+      }
+    }
+    
+    // Limit to requested number
+    allDocuments = allDocuments.slice(0, limit);
+    
+    if (format === 'csv') {
+      // Convert to CSV
+      const Papa = require('papaparse');
+      const csv = Papa.unparse(allDocuments, {
+        header: true,
+        skipEmptyLines: true
+      });
+      
+      res.setHeader('Content-Type', 'text/csv');
+      res.setHeader('Content-Disposition', 'attachment; filename="fragments_export.csv"');
+      res.send(csv);
+    } else {
+      // Return as JSON
+      res.json({
+        total: allDocuments.length,
+        documents: allDocuments
+      });
+    }
+    
+  } catch (error) {
+    console.error('Export error:', error);
+    res.status(500).json({ error: 'Export failed', message: error.message });
+  }
+});
+
+// Alternative: Stream large exports
+router.get('/export/stream', async (req, res) => {
+  try {
+    const typesense = req.app.locals.typesense;
+    const format = req.query.format || 'json';
+    
+    res.setHeader('Content-Type', format === 'csv' ? 'text/csv' : 'application/json');
+    res.setHeader('Content-Disposition', `attachment; filename="fragments_export.${format}"`);
+    
+    if (format === 'json') {
+      res.write('['); // Start JSON array
+    }
+    
+    let page = 1;
+    let first = true;
+    let hasMore = true;
+    
+    while (hasMore) {
+      const results = await typesense
+        .collections('content_fragments')
+        .documents()
+        .search({
+          q: '*',
+          query_by: 'title',
+          per_page: 250,
+          page: page
+        });
+      
+      if (format === 'csv' && page === 1) {
+        // Write CSV header
+        const Papa = require('papaparse');
+        const header = Papa.unparse([results.hits[0].document], {
+          header: true,
+          skipEmptyLines: true
+        }).split('\n')[0];
+        res.write(header + '\n');
+      }
+      
+      results.hits.forEach(hit => {
+        if (format === 'json') {
+          if (!first) res.write(',');
+          res.write(JSON.stringify(hit.document));
+          first = false;
+        } else {
+          // CSV format
+          const Papa = require('papaparse');
+          const row = Papa.unparse([hit.document], {
+            header: false,
+            skipEmptyLines: true
+          });
+          res.write(row + '\n');
+        }
+      });
+      
+      if (results.found <= page * 250) {
+        hasMore = false;
+      } else {
+        page++;
+      }
+    }
+    
+    if (format === 'json') {
+      res.write(']'); // End JSON array
+    }
+    
+    res.end();
+    
+  } catch (error) {
+    console.error('Stream export error:', error);
+    res.status(500).json({ error: 'Export failed', message: error.message });
+  }
+});
+
 // Get collection stats
 router.get('/stats/overview', async (req, res) => {
   try {

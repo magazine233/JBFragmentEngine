@@ -77,6 +77,11 @@ curl "http://localhost:3000/api/fragments/facets"
 curl "http://localhost:3000/api/fragments/[fragment-id]"
 ```
 
+#### Get a bulk export
+```bash
+curl "http://localhost:3000/api/fragments/export"
+```
+
 ### Integration Example
 
 ```javascript

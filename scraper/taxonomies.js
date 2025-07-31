@@ -167,8 +167,26 @@ function detectStageVariant(content, variants) {
   return 'No';
 }
 
+
+// Also fix the detectProvider function to better identify federal services
 function detectProvider(url, content, providersData) {
-  // Check URL patterns first
+  // Medicare, Centrelink, etc. are federal Services Australia
+  const servicesAustraliaKeywords = [
+    'medicare', 'centrelink', 'child support', 'mygov', 'my.gov.au',
+    'services australia', 'express plus'
+  ];
+  
+  const urlLower = url.toLowerCase();
+  const contentLower = content.toLowerCase();
+  
+  // Check for Services Australia content first
+  if (servicesAustraliaKeywords.some(keyword => 
+    urlLower.includes(keyword) || contentLower.includes(keyword)
+  )) {
+    return { governance: 'Federal Government', provider: 'Services Australia' };
+  }
+  
+  // Continue with existing provider detection logic...
   for (const [governance, providers] of Object.entries(providersData)) {
     for (const [provider, patterns] of Object.entries(providers)) {
       if (patterns.some(pattern => url.includes(pattern) || content.includes(pattern))) {
@@ -193,31 +211,68 @@ function detectProvider(url, content, providersData) {
   return { governance: 'Non-Government', provider: 'External Provider' };
 }
 
+
 function detectStates(url, content, siteHierarchy) {
   const states = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'];
   const detectedStates = [];
   
-  // Check URL and hierarchy
+  // First check URL and hierarchy for state-specific content
   const urlAndHierarchy = url + ' ' + siteHierarchy.join(' ');
+  
+  // Look for state government domains (more reliable)
   states.forEach(state => {
-    if (urlAndHierarchy.includes(state.toLowerCase()) || 
-        urlAndHierarchy.includes(getStateName(state).toLowerCase())) {
+    const stateGovPattern = new RegExp(`\\.${state.toLowerCase()}\\.gov\\.au`, 'i');
+    if (stateGovPattern.test(url)) {
+      detectedStates.push(state);
+      return; // This is definitely state-specific
+    }
+  });
+  
+  // If it's a federal government site, it's likely national
+  if (url.includes('.gov.au') && !detectedStates.length) {
+    // Check if it's NOT a state government site
+    const isFederal = url.includes('australia.gov.au') || 
+                      url.includes('my.gov.au') ||
+                      url.includes('servicesaustralia.gov.au') ||
+                      url.includes('ato.gov.au') ||
+                      url.includes('health.gov.au') ||
+                      url.includes('education.gov.au');
+    
+    if (isFederal) {
+      return ['National']; // Federal content is national
+    }
+  }
+  
+  // For non-government sites, be more careful about state detection
+  // Only tag as state-specific if there are strong indicators
+  states.forEach(state => {
+    const stateName = getStateName(state);
+    
+    // Look for explicit state-specific phrases
+    const stateSpecificPhrases = [
+      `${state} residents`,
+      `${state} government`,
+      `${stateName} residents`,
+      `${stateName} government`,
+      `in ${state}`,
+      `in ${stateName}`,
+      `${state} only`,
+      `${stateName} only`
+    ];
+    
+    const hasExplicitStateReference = stateSpecificPhrases.some(phrase => 
+      content.toLowerCase().includes(phrase.toLowerCase())
+    );
+    
+    if (hasExplicitStateReference && !detectedStates.includes(state)) {
       detectedStates.push(state);
     }
   });
   
-  // Check content for state mentions
-  states.forEach(state => {
-    const statePattern = new RegExp(`\\b${state}\\b|\\b${getStateName(state)}\\b`, 'i');
-    if (statePattern.test(content)) {
-      if (!detectedStates.includes(state)) {
-        detectedStates.push(state);
-      }
-    }
-  });
-  
+  // Default to National if no specific states detected
   return detectedStates.length > 0 ? detectedStates : ['National'];
 }
+
 
 function getStateName(code) {
   const stateNames = {

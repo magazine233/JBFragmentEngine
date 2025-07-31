@@ -1,1540 +1,2000 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>myGov - Checklist</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
-         
-    <!-- print to docx includes -->
-    <script src="https://unpkg.com/filesaver.js@1.3.4/FileSaver.js"></script>
-    <script src="js/html-to-docx.umd.js"></script> 
-
-<style>
-    /* --- START OF COMPLETE STYLE SECTION (FROM "BROKEN" FILE) --- */
-    @import url('https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap');
-
-    :root {
-      --mygov-font-sans: "Roboto", sans-serif;
-      --mygov-color-black: #000;
-      --mygov-color-white: #fff;
-      --mygov-text-color-primary: var(--mygov-color-black);
-      --mygov-text-color-muted: #666767;
-      --mygov-link-text-color: #1b365d;
-      --mygov-background-color-selected-light: #ccf0f9;
-      --mygov-border-color-selected: #0091b5;
-      --mygov-border-color-neutral: #bbbcbc;
-      --mygov-background-color-neutral-light: #f0f0f0;
-      --mygov-focus-ring-color: var(--mygov-color-black);
-      --mygov-separator-color: #eee;
-      --mygov-color-accent-button: #0091b5;
-      --mygov-color-accent-button-hover: #006d88;
-      --mygov-step-background-odd: #f7f7f9;
-
-      --accordion-button-padding-y: 1rem;
-      --accordion-button-padding-x: 1.25rem;
-      --list-item-padding-y: 1.25rem;
-      --list-item-padding-x: 1.25rem;
-
-      --mygov-color-progress-complete: #28a745;
-      --mygov-color-progress-inprogress: #17a2b8;
-      --mygov-color-progress-notstarted: #6c757d;
-    }
-
-    body {
-        font-family: var(--mygov-font-sans);
-        background-color: #f8f9fa;
-        color: var(--mygov-text-color-primary);
-        font-size: 1rem;
-        line-height: 1.5;
-    }
-
-    .mygov-header {
-        background-color: #0079c1;
-        color: white;
-        padding: 1rem;
-        text-align: center;
-        margin-bottom: 2rem;
-    }
-
-    /* Footer styling */
-    .mygov-footer {
-        background-color: #000;
-        color: white;
-        padding: 3rem 0 2rem;
-    }
-
-    .footer-content {
-        max-width: 1200px;
-        margin: 0 auto;
-        padding: 0 2rem;
-    }
-
-    .footer-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-        gap: 2rem;
-        margin-bottom: 2rem;
-    }
-
-    .footer-section h4 {
-        font-size: 1rem;
-        font-weight: 600;
-        margin-bottom: 1rem;
-        color: white;
-    }
-
-    .footer-section ul {
-        list-style: none;
-        padding: 0;
-        margin: 0;
-    }
-
-    .footer-section li {
-        margin-bottom: 0.5rem;
-    }
-
-    .footer-section a {
-        color: #ccc;
-        text-decoration: none;
-        font-size: 0.9rem;
-    }
-
-    .footer-section a:hover {
-        color: white;
-        text-decoration: underline;
-    }
-
-    .footer-bottom {
-        border-top: 1px solid #333;
-        padding-top: 2rem;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-    }
-
-    .footer-links {
-        display: flex;
-        gap: 2rem;
-        flex-wrap: wrap;
-    }
-
-    .footer-links a {
-        color: #ccc;
-        text-decoration: none;
-        font-size: 0.9rem;
-    }
-
-    .footer-social {
-        display: flex;
-        gap: 1rem;
-    }
-
-    .footer-social a {
-        color: #ccc;
-        font-size: 1.2rem;
-    }
-
-    .footer-brand {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        margin-top: 1rem;
-    }
-
-    .container.checklist-tool {
-        max-width: 800px;
-        background-color: var(--mygov-color-white);
-        padding: 30px;
-        border-radius: 8px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        margin-top: 0;
-    }
-
-    h1 { font-size: 2.25rem; font-weight: 400; margin-bottom: 0.5rem; }
-    .lead { font-size: 1.125rem; font-weight: 400; color: var(--mygov-text-color-primary); margin-bottom: 2rem; }
-    h3 { font-size: 1.75rem; font-weight: 400; margin-bottom: 1rem; }
-    h5 { font-size: 1.25rem; font-weight: 500; margin-bottom: 0.75rem; }
-    p.small { color: var(--mygov-text-color-muted); font-size: 0.9rem; margin-bottom: 1rem; }
-
-    .question-step {
-        margin-bottom: 30px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid var(--mygov-separator-color);
-        display: none;
-        border-radius: 5px;
-    }
-    .question-step.active {
-        display: block;
-        padding-left: 20px;
-        padding-right: 20px;
-        padding-top: 15px;
-    }
-    #guidedForm > .question-step.active:nth-child(odd) {
-         background-color: var(--mygov-step-background-odd);
-    }
-     #guidedForm > .question-step.active:nth-child(even) {
-         background-color: var(--mygov-color-white);
-    }
-
-    .question-step:last-of-type { border-bottom: none; }
-
-    .option-container {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-        gap: 15px;
-    }
-
-    .option-label {
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        border: 2px solid var(--mygov-border-color-neutral); border-radius: 8px;
-        padding: 20px 15px; text-align: center; cursor: pointer;
-        transition: all 0.2s ease-in-out; background-color: var(--mygov-color-white);
-        color: var(--mygov-text-color-primary); min-height: 120px;
-        position: relative; font-weight: 500;
-    }
-    .option-icon { font-size: 2rem; margin-bottom: 0.75rem; color: var(--mygov-color-accent-button); }
-    .option-icon img {
-        max-width: 40px;
-        max-height: 40px;
-        object-fit: contain;
-        margin: 4px;
-    }
-    .option-text { font-size: 1rem; line-height: 1.3; }
-
-    .option-label:hover { border-color: var(--mygov-border-color-selected); background-color: #e9f7fb; }
-    .option-input { display: none; }
-
-    .option-input:checked + .option-label {
-        border-color: var(--mygov-border-color-selected);
-        background-color: var(--mygov-background-color-selected-light);
-        box-shadow: 0 0 0 2px var(--mygov-border-color-selected); font-weight: 700;
-    }
-    .option-input:focus-visible + .option-label { outline: 3px solid var(--mygov-focus-ring-color); outline-offset: 2px; }
-
-    .option-input:checked + .option-label::before {
-        content: "\F26E"; font-family: "bootstrap-icons"; font-size: 1.5rem;
-        color: var(--mygov-border-color-selected); position: absolute; top: 10px; right: 10px;
-    }
-
-    #showResultsBtn {
-        background-color: var(--mygov-color-accent-button); color: var(--mygov-color-white);
-        border: none; font-size: 1.1rem; font-weight: 500; padding: 0.85rem 1.75rem;
-        border-radius: 4px; display: none; margin-top: 20px; transition: background-color 0.2s ease-in-out;
-    }
-    #showResultsBtn:hover:not(:disabled) { background-color: var(--mygov-color-accent-button-hover); }
-    #showResultsBtn:disabled { background-color: var(--mygov-border-color-neutral); cursor: not-allowed; }
-
-    #resultsArea { margin-top: 2.5rem; }
-    #resultsArea hr { margin-top: 0; margin-bottom: 1.5rem; border-color: var(--mygov-separator-color); }
-    #resultsTitle { margin-bottom: 0.5rem; }
-
-    #overallProgressContainer { margin-bottom: 1.5rem; }
-    #overallProgressText { font-size: 0.9rem; color: var(--mygov-text-color-muted); margin-bottom: 0.25rem; }
-    .progress { height: 10px; border-radius: 5px; }
-    #overallProgressBar { background-color: var(--mygov-color-accent-button); }
-
-    #resultsCount p { color: var(--mygov-text-color-muted); margin-bottom: 1.5rem; font-size: 0.9rem; }
-    .accordion {
-        --bs-accordion-border-width: 0; --bs-accordion-border-radius: 0; --bs-accordion-inner-border-radius: 0;
-        --bs-accordion-btn-padding-x: var(--accordion-button-padding-x); --bs-accordion-btn-padding-y: var(--accordion-button-padding-y);
-        --bs-accordion-btn-color: var(--mygov-text-color-primary); --bs-accordion-btn-bg: var(--mygov-color-white);
-        --bs-accordion-btn-focus-border-color: transparent; 
-        --bs-accordion-btn-focus-box-shadow: 0 0 0 0.125rem var(--mygov-focus-ring-color);
-        --bs-accordion-body-padding-x: 0; --bs-accordion-body-padding-y: 0;
-        --bs-accordion-active-color: var(--mygov-text-color-primary); 
-        --bs-accordion-active-bg: var(--mygov-background-color-selected-light);
-         border: 1px solid var(--mygov-border-color-neutral); border-radius: 4px; overflow: hidden;
-    }
-
-    .accordion-item { margin-bottom: 0; border-bottom: 1px solid var(--mygov-border-color-neutral); background-color: var(--mygov-color-white); }
-    .accordion-item:first-of-type { border-top: none; border-top-left-radius: 4px; border-top-right-radius: 4px; }
-    .accordion-item:last-of-type { border-bottom: none; border-bottom-left-radius: 4px; border-bottom-right-radius: 4px; }
-    .accordion-item:last-of-type .accordion-button.collapsed { border-bottom-left-radius: 0; border-bottom-right-radius: 0; }
-
-    .accordion-button { font-weight: 500; font-size: 1.125rem; border-top: none; border-radius: 0; display: flex; align-items: center; }
-    .accordion-button .activity-title { flex-grow: 1; }
-    .accordion-button .badge { margin-left: auto; font-size: 0.75rem; padding: 0.3em 0.6em; }
-    .accordion-button .badge.bg-complete { background-color: var(--mygov-color-progress-complete) !important; }
-    .accordion-button .badge.bg-inprogress { background-color: var(--mygov-color-progress-inprogress) !important; }
-    .accordion-button .badge.bg-notstarted { background-color: var(--mygov-color-progress-notstarted) !important; color: white !important; }
-
-    .accordion-button:not(.collapsed) { box-shadow: none; }
-    .accordion-button::after {
-      flex-shrink: 0; width: 1.25rem; height: 1.25rem; margin-left: 1rem; content: "";
-      background-image: var(--bs-accordion-btn-icon); background-repeat: no-repeat; background-size: 1.25rem;
-      transition: var(--bs-accordion-btn-icon-transition);
-    }
-    .accordion-button:not(.collapsed)::after { background-image: var(--bs-accordion-btn-active-icon); transform: var(--bs-accordion-btn-icon-transform); }
-
-    #resultsAccordion .list-group-item {
-        display: flex; align-items: flex-start; border: none; padding: var(--list-item-padding-y) var(--list-item-padding-x);
-        border-bottom: 1px solid var(--mygov-separator-color); background-color: var(--mygov-color-white);
-    }
-    .accordion-body .list-group-item:last-child { border-bottom: none; }
-
-    .task-checkbox { margin-top: 0.2em; margin-right: 15px; flex-shrink: 0; width: 1.35em; height: 1.35em; }
-
-    .task-link-wrapper {
-        flex-grow: 1; text-decoration: none; color: inherit; display: flex; justify-content: space-between;
-        align-items: flex-start; padding: 0; border-radius: 3px; cursor: pointer;
-        transition: background-color 0.15s ease-in-out;
-    }
-    #resultsAccordion .list-group-item:hover h6.task-title { text-decoration: underline; }
-    #resultsAccordion .list-group-item .task-link-wrapper:hover {
-         background-color: var(--mygov-background-color-neutral-light);
-    }
-
-    #resultsAccordion {
-        position: relative;
-        z-index: 1;
-    }
-
-    .accordion-item {
-        position: relative;
-        z-index: 1;
-    }
-
-    .dropdown-menu.show {
-        z-index: 1050 !important;
-    }
-    .task-content-inner { flex-grow: 1; padding-right: 0.5rem; }
-    h6.task-title {
-        font-weight: 400; margin-bottom: 0.35rem; font-size: 1rem; color: var(--mygov-link-text-color);
-        line-height: 1.4; display: inline;
-    }
-    .task-link-wrapper:hover h6.task-title {
-        text-decoration: underline;
-    }
-
-    p.task-description { margin-bottom: 0.6rem; font-size: 1rem; line-height: 1.5; color: var(--mygov-text-color-primary); }
-    small.task-meta { font-size: 0.875rem; color: var(--mygov-text-color-muted); display: block; }
-    .badge { font-size: 0.75rem; font-weight: 500; vertical-align: baseline; margin-left: 0.5rem; padding: 0.25em 0.5em; }
-    h6.task-title .badge { background-color: var(--mygov-text-color-muted); color: var(--mygov-color-white); }
-
-    .offsite-icon {
-        color: var(--mygov-link-text-color); font-size: 1rem; margin-left: 1rem; flex-shrink: 0;
-        align-self: flex-start; margin-top: 0.1em;
-        transition: transform 0.2s ease-in-out;
-    }
-    .task-link-wrapper:hover .offsite-icon {
-        transform: translateX(3px);
-    }
-
-    .task-completed .task-link-wrapper h6.task-title,
-    .task-completed .task-link-wrapper p.task-description,
-    .task-completed .task-content-inner small.task-meta { text-decoration: line-through; color: var(--mygov-text-color-muted); opacity: 0.8; }
-    .task-completed .task-link-wrapper h6.task-title { text-decoration: line-through !important; }
-    .task-completed .task-link-wrapper .offsite-icon { opacity: 0.6; color: var(--mygov-text-color-muted); }
-    #resultsAccordion .task-completed:hover h6.task-title { text-decoration: line-through; }
-
-    #exportControls {
-        display: flex;
-        flex-direction: column;
-        gap: 0.5rem;
-        margin-bottom: 1.5rem;
-    }
-
-    @media (min-width: 768px) {
-        #resultsContainer {
-            display: grid;
-            grid-template-columns: 1fr 200px;
-            gap: 2rem;
-            align-items: start;
-        }
-        
-        #exportControls {
-            position: sticky;
-            top: 20px;
-            flex-direction: column;
-            order: 2;
-        }
-        
-        #mainResults {
-            order: 1;
-        }
-    }
-
-    #exportControls .dropdown-menu {
-        z-index: 1050;
-    }
-
-    #exportControls .dropdown {
-        position: relative;
-    }
-
-    #exportControls .dropdown.show .dropdown-menu {
-        z-index: 1050 !important;
-    }
-
-    @media (min-width: 768px) {
-        #exportControls .dropdown-menu {
-            transform: translateY(-100%);
-            top: auto;
-            bottom: 100%;
-            margin-bottom: 2px;
-        }
-    }
-
-    #exportControls .btn { font-size: 0.9rem; }
-    #exportControls .btn .bi { margin-right: 0.3rem; }
-    
-    #pinNotification {
-        display: none;
-        position: fixed;
-        bottom: 20px;
-        right: 20px;
-        z-index: 1050;
-        min-width: 300px;
-        box-shadow: 0 0.5rem 1rem rgba(0,0,0,0.15);
-    }
-    #startOverBtn {
-        margin-top: 30px; border: 1px solid var(--mygov-border-color-neutral); color: var(--mygov-text-color-primary);
-        font-weight: 500; padding: 0.75rem 1.5rem; background-color: var(--mygov-color-white); border-radius: 4px;
-    }
-    #startOverBtn:hover { background-color: var(--mygov-background-color-neutral-light); border-color: var(--mygov-border-color-neutral); }
-
-    /* API Loading States */
-    .api-loading {
-        text-align: center;
-        padding: 2rem;
-        color: var(--mygov-text-color-muted);
-    }
-    
-    .api-error {
-        background-color: #f8d7da;
-        color: #721c24;
-        padding: 1rem;
-        border-radius: 4px;
-        margin-bottom: 1rem;
-    }
-
-    /* Fragment content styling - to handle API HTML */
-    .fragment-content {
-        margin-top: 0.5rem;
-    }
-    
-    .fragment-content h1,
-    .fragment-content h2,
-    .fragment-content h3,
-    .fragment-content h4,
-    .fragment-content h5,
-    .fragment-content h6 {
-        font-size: 1rem;
-        font-weight: 500;
-        margin-top: 0.5rem;
-        margin-bottom: 0.5rem;
-        color: var(--mygov-text-color-primary);
-    }
-    
-    .fragment-content p {
-        margin-bottom: 0.5rem;
-    }
-    
-    .fragment-content ul,
-    .fragment-content ol {
-        margin-left: 1.5rem;
-        margin-bottom: 0.5rem;
-    }
-
-    @media print {
-        body > .mygov-header, 
-        body > .mygov-footer,
-        .container.checklist-tool > h1,
-        .container.checklist-tool > .lead,
-        #guidedForm,
-        .container.checklist-tool > .text-center,
-        #startOverBtn,
-        #exportControls,
-        #overallProgressContainer,
-        #pinNotification,
-        .task-checkbox,
-        .accordion-button .badge,
-        h6.task-title .badge,
-        .offsite-icon,
-        #resultsArea > hr,
-        #resultsCount p
-        {
-            display: none !important;
-        }
-
-        body {
-            background-color: #fff !important;
-            color: #000 !important;
-            font-size: 11pt;
-            margin: 1in;
-            padding: 0;
-        }
-
-        .container.checklist-tool, 
-        #resultsArea {
-            width: 100% !important;
-            max-width: 100% !important;
-            margin: 0 !important;
-            padding: 0 !important;
-            border: none !important;
-            box-shadow: none !important;
-            background-color: #fff !important;
-        }
-
-        #resultsAccordion {
-            border: none !important;
-        }
-
-        #resultsAccordion .list-group-item {
-            display: grid;
-            grid-template-columns: 40px 1fr 30px;
-            gap: 1rem;
-            align-items: start;
-            padding: 1rem;
-        }
-
-        .task-checkbox {
-            margin: 0;
-            justify-self: center;
-            align-self: start;
-            margin-top: 0.2rem;
-        }
-
-        .task-content-wrapper {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-        }
-
-        .task-link-wrapper {
-            display: block;
-            text-decoration: none;
-            color: inherit;
-            padding: 0;
-        }
-
-        .task-link-wrapper:hover {
-            background-color: transparent;
-        }
-
-        .task-link-wrapper:hover h6.task-title {
-            text-decoration: underline;
-        }
-
-        .accordion-item {
-            border: none !important;
-            page-break-inside: avoid;
-            margin-bottom: 1em;
-        }
-        
-        .accordion-button {
-            background-color: #fff !important;
-            color: #000 !important;
-            border-bottom: 1px solid #999 !important;
-            padding: 0.5em 0 !important;
-            font-weight: bold !important;
-            font-size: 13pt !important;
-        }
-
-        .accordion-button::after {
-            display: none !important;
-        }
-
-        .accordion-collapse {
-            display: block !important;
-            visibility: visible !important;
-            height: auto !important;
-        }
-        .accordion-collapse.collapse { 
-            display: block !important;
-        }
-
-        .accordion-body {
-            padding: 0 !important;
-        }
-
-        #resultsAccordion .list-group-item {
-            border-bottom: 1px dotted #ccc !important;
-            padding: 0.3em 0 !important;
-            page-break-inside: avoid;
-        }
-        #resultsAccordion .list-group-item:last-child {
-            border-bottom: none !important;
-        }
-        
-        .task-link-wrapper {
-            text-decoration: none !important; 
-            color: #000 !important;
-        }
-        #resultsAccordion .list-group-item .task-link-wrapper:hover {
-             background-color: transparent !important;
-        }
-        .task-link-wrapper:hover h6.task-title {
-            text-decoration: none !important;
-        }
-
-        h6.task-title {
-            color: #000 !important;
-            font-size: 11pt !important;
-            margin-bottom: 0.2em !important;
-            font-weight: 500 !important;
-        }
-
-        p.task-description {
-            color: #222 !important;
-            font-size: 10pt !important;
-            margin-bottom: 0.2em !important;
-        }
-        small.task-meta {
-            color: #444 !important;
-            font-size: 9pt !important;
-        }
-
-        .task-link-wrapper::after {
-            content: " (URL: " attr(href) ")";
-            display: block;
-            font-size: 9pt;
-            color: #555;
-            word-break: break-all;
-            margin-top: 0.2em;
-        }
-
-        .task-completed .task-link-wrapper h6.task-title,
-        .task-completed .task-link-wrapper p.task-description,
-        .task-completed .task-content-inner small.task-meta {
-            text-decoration: none !important;
-            color: #000 !important; 
-            opacity: 1 !important;
-        }
-        .task-completed .task-link-wrapper h6.task-title {
-             text-decoration: none !important;
-        }
-
-        #resultsTitle {
-            font-size: 18pt !important;
-            text-align: center !important;
-            margin-bottom: 1.5em !important;
-            font-weight: bold !important;
-        }
-    }
-
-    .mygov-header {
-        background-color: #66D3EE;
-        color: #333;
-        padding: 0;
-        margin-bottom: 2rem;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-    }
-
-    .mygov-header-content {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 0.75rem 2rem;
-        max-width: 1200px;
-        margin: 0 auto;
-    }
-
-    .mygov-logo {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .mygov-brand {
-        font-size: 1.5rem;
-        font-weight: 500;
-        color: #333;
-        text-decoration: none;
-    }
-
-    .mygov-nav {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-    }
-
-    .mygov-nav-links {
-        display: flex;
-        align-items: center;
-        gap: 2rem;
-        list-style: none;
-        margin: 0;
-        padding: 0;
-    }
-
-    .mygov-nav-links a {
-        color: #333;
-        text-decoration: none;
-        font-weight: 500;
-        padding: 0.5rem 0;
-        border-bottom: 2px solid transparent;
-        transition: border-color 0.2s ease;
-    }
-
-    .mygov-nav-links a:hover,
-    .mygov-nav-links a.active {
-        border-bottom-color: #333;
-    }
-
-    .mygov-search-btn {
-        background: none;
-        border: none;
-        color: #333;
-        font-size: 1rem;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.5rem;
-    }
-
-    .mygov-signin-btn {
-        background-color: #333;
-        color: white;
-        border: none;
-        padding: 0.5rem 1rem;
-        border-radius: 4px;
-        font-weight: 500;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        text-decoration: none;
-    }
-
-    .mygov-signin-btn:hover {
-        background-color: #222;
-        color: white;
-    }
-
-    .mygov-account-links {
-        display: flex;
-        gap: 1rem;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-        margin-left: auto;
-    }
-
-    .mygov-account-links a {
-        color: #333;
-        text-decoration: underline;
-    }
-
-</style>
-    
-</head>
-<body>
-<header class="mygov-header">
-    <div class="mygov-header-content">
-        <div class="mygov-logo" style="height:419px width:146px">
-                <img src="img/logo.png"/>
-            <span class="mygov-brand"></span>
-        </div>
-        
-        <div class="mygov-nav">
-            <ul class="mygov-nav-links">
-                <li><a href="#" class="active">Home</a></li>
-                <li><a href="#">Browse</a></li>
-            </ul>
-            
-            <button class="mygov-search-btn">
-                <span>Search</span>
-                <i class="bi bi-search"></i>
-            </button>
-            
-            <a href="#" class="mygov-signin-btn">
-                <span>Sign in</span>
-                <i class="bi bi-box-arrow-in-right"></i>
-            </a>
-        </div>
-    </div>
-    
-</header>
-    <div class="container checklist-tool mt-4 mb-4">
-        <h1>myGov checklist</h1>
-        <p class="lead mb-4">Find tasks and information relevant to having a baby, tailored to your situation.</p>
-
-        <form id="guidedForm">
-            <!-- Step 1: State -->
-            <div class="question-step" id="step1">
-                <h5>Which state or territory do you live in?</h5>
-                <p class="small">This will help us show you government services that may be applicable to your location. Select 'National' if you prefer not to say.</p>
-                <div class="option-container" id="stateOptions">
-                     <div class="option-item"> 
-                        <input type="radio" id="state-national" name="state" value="National" class="option-input">
-                        <label for="state-national" class="option-label">
-                            <span class="option-text">National / Prefer not to say</span>
-                        </label>
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>myGov - Checklist</title>
+        <link
+            href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+            rel="stylesheet"
+        />
+        <link
+            rel="stylesheet"
+            href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+        />
+
+        <!-- print to docx includes -->
+        <script src="https://unpkg.com/filesaver.js@1.3.4/FileSaver.js"></script>
+        <script src="js/html-to-docx.umd.js"></script>
+
+        <style>
+            @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+
+            :root {
+                --mygov-font-sans: "Roboto", sans-serif;
+                --mygov-color-black: #000;
+                --mygov-color-white: #fff;
+                --mygov-text-color-primary: var(--mygov-color-black);
+                --mygov-text-color-muted: #666767;
+                --mygov-link-text-color: #1b365d;
+                --mygov-background-color-selected-light: #ccf0f9;
+                --mygov-border-color-selected: #0091b5;
+                --mygov-border-color-neutral: #bbbcbc;
+                --mygov-background-color-neutral-light: #f0f0f0;
+                --mygov-focus-ring-color: var(--mygov-color-black);
+                --mygov-separator-color: #eee;
+                --mygov-color-accent-button: #0091b5;
+                --mygov-color-accent-button-hover: #006d88;
+                --mygov-step-background-odd: #f7f7f9;
+
+                --accordion-button-padding-y: 1rem;
+                --accordion-button-padding-x: 1.25rem;
+                --list-item-padding-y: 1.25rem;
+                --list-item-padding-x: 1.25rem;
+
+                --mygov-color-progress-complete: #28a745;
+                --mygov-color-progress-inprogress: #17a2b8;
+                --mygov-color-progress-notstarted: #6c757d;
+            }
+
+            body {
+                font-family: var(--mygov-font-sans);
+                background-color: #f8f9fa;
+                color: var(--mygov-text-color-primary);
+                font-size: 1rem;
+                line-height: 1.5;
+            }
+
+            .mygov-header {
+                background-color: #0079c1;
+                color: white;
+                padding: 1rem;
+                text-align: center;
+                margin-bottom: 2rem;
+            }
+
+            /* Footer styling */
+            .mygov-footer {
+                background-color: #000;
+                color: white;
+                padding: 3rem 0 2rem;
+            }
+
+            .footer-content {
+                max-width: 1200px;
+                margin: 0 auto;
+                padding: 0 2rem;
+            }
+
+            .footer-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+                gap: 2rem;
+                margin-bottom: 2rem;
+            }
+
+            .footer-section h4 {
+                font-size: 1rem;
+                font-weight: 600;
+                margin-bottom: 1rem;
+                color: white;
+            }
+
+            .footer-section ul {
+                list-style: none;
+                padding: 0;
+                margin: 0;
+            }
+
+            .footer-section li {
+                margin-bottom: 0.5rem;
+            }
+
+            .footer-section a {
+                color: #ccc;
+                text-decoration: none;
+                font-size: 0.9rem;
+            }
+
+            .footer-section a:hover {
+                color: white;
+                text-decoration: underline;
+            }
+
+            .footer-bottom {
+                border-top: 1px solid #333;
+                padding-top: 2rem;
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+            .footer-links {
+                display: flex;
+                gap: 2rem;
+                flex-wrap: wrap;
+            }
+
+            .footer-links a {
+                color: #ccc;
+                text-decoration: none;
+                font-size: 0.9rem;
+            }
+
+            .footer-social {
+                display: flex;
+                gap: 1rem;
+            }
+
+            .footer-social a {
+                color: #ccc;
+                font-size: 1.2rem;
+            }
+
+            .footer-brand {
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                margin-top: 1rem;
+            }
+
+            .container.checklist-tool {
+                max-width: 800px;
+                background-color: var(--mygov-color-white);
+                padding: 30px;
+                border-radius: 8px;
+                box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+                margin-top: 0;
+            }
+
+            h1 {
+                font-size: 2.25rem;
+                font-weight: 400;
+                margin-bottom: 0.5rem;
+            }
+            .lead {
+                font-size: 1.125rem;
+                font-weight: 400;
+                color: var(--mygov-text-color-primary);
+                margin-bottom: 2rem;
+            }
+            h3 {
+                font-size: 1.75rem;
+                font-weight: 400;
+                margin-bottom: 1rem;
+            }
+            h5 {
+                font-size: 1.25rem;
+                font-weight: 500;
+                margin-bottom: 0.75rem;
+            }
+            p.small {
+                color: var(--mygov-text-color-muted);
+                font-size: 0.9rem;
+                margin-bottom: 1rem;
+            }
+
+            .question-step {
+                margin-bottom: 30px;
+                padding-bottom: 20px;
+                border-bottom: 1px solid var(--mygov-separator-color);
+                display: none;
+                border-radius: 5px;
+            }
+            .question-step.active {
+                display: block;
+                padding-left: 20px;
+                padding-right: 20px;
+                padding-top: 15px;
+            }
+            #guidedForm > .question-step.active:nth-child(odd) {
+                background-color: var(--mygov-step-background-odd);
+            }
+            #guidedForm > .question-step.active:nth-child(even) {
+                background-color: var(--mygov-color-white);
+            }
+
+            .question-step:last-of-type {
+                border-bottom: none;
+            }
+
+            .option-container {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+                gap: 15px;
+            }
+
+            .option-label {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                border: 2px solid var(--mygov-border-color-neutral);
+                border-radius: 8px;
+                padding: 20px 15px;
+                text-align: center;
+                cursor: pointer;
+                transition: all 0.2s ease-in-out;
+                background-color: var(--mygov-color-white);
+                color: var(--mygov-text-color-primary);
+                min-height: 120px;
+                position: relative;
+                font-weight: 500;
+            }
+            .option-icon {
+                font-size: 2rem;
+                margin-bottom: 0.75rem;
+                color: var(--mygov-color-accent-button);
+            }
+            .option-icon img {
+                max-width: 40px;
+                max-height: 40px;
+                object-fit: contain;
+                margin: 4px;
+            }
+            .option-text {
+                font-size: 1rem;
+                line-height: 1.3;
+            }
+
+            .option-label:hover {
+                border-color: var(--mygov-border-color-selected);
+                background-color: #e9f7fb;
+            }
+            .option-input {
+                display: none;
+            }
+
+            .option-input:checked + .option-label {
+                border-color: var(--mygov-border-color-selected);
+                background-color: var(--mygov-background-color-selected-light);
+                box-shadow: 0 0 0 2px var(--mygov-border-color-selected);
+                font-weight: 700;
+            }
+            .option-input:focus-visible + .option-label {
+                outline: 3px solid var(--mygov-focus-ring-color);
+                outline-offset: 2px;
+            }
+
+            .option-input:checked + .option-label::before {
+                content: "\F26E";
+                font-family: "bootstrap-icons";
+                font-size: 1.5rem;
+                color: var(--mygov-border-color-selected);
+                position: absolute;
+                top: 10px;
+                right: 10px;
+            }
+
+            #showResultsBtn {
+                background-color: var(--mygov-color-accent-button);
+                color: var(--mygov-color-white);
+                border: none;
+                font-size: 1.1rem;
+                font-weight: 500;
+                padding: 0.85rem 1.75rem;
+                border-radius: 4px;
+                display: none;
+                margin-top: 20px;
+                transition: background-color 0.2s ease-in-out;
+            }
+            #showResultsBtn:hover:not(:disabled) {
+                background-color: var(--mygov-color-accent-button-hover);
+            }
+            #showResultsBtn:disabled {
+                background-color: var(--mygov-border-color-neutral);
+                cursor: not-allowed;
+            }
+
+            #resultsArea {
+                margin-top: 2.5rem;
+            }
+            #resultsArea hr {
+                margin-top: 0;
+                margin-bottom: 1.5rem;
+                border-color: var(--mygov-separator-color);
+            }
+            #resultsTitle {
+                margin-bottom: 0.5rem;
+            }
+
+            #overallProgressContainer {
+                margin-bottom: 1.5rem;
+            }
+            #overallProgressText {
+                font-size: 0.9rem;
+                color: var(--mygov-text-color-muted);
+                margin-bottom: 0.25rem;
+            }
+            .progress {
+                height: 10px;
+                border-radius: 5px;
+            }
+            #overallProgressBar {
+                background-color: var(--mygov-color-accent-button);
+            }
+
+            #resultsCount p {
+                color: var(--mygov-text-color-muted);
+                margin-bottom: 1.5rem;
+                font-size: 0.9rem;
+            }
+            .accordion {
+                --bs-accordion-border-width: 0;
+                --bs-accordion-border-radius: 0;
+                --bs-accordion-inner-border-radius: 0;
+                --bs-accordion-btn-padding-x: var(--accordion-button-padding-x);
+                --bs-accordion-btn-padding-y: var(--accordion-button-padding-y);
+                --bs-accordion-btn-color: var(--mygov-text-color-primary);
+                --bs-accordion-btn-bg: var(--mygov-color-white);
+                --bs-accordion-btn-focus-border-color: transparent;
+                --bs-accordion-btn-focus-box-shadow: 0 0 0 0.125rem
+                    var(--mygov-focus-ring-color);
+                --bs-accordion-body-padding-x: 0;
+                --bs-accordion-body-padding-y: 0;
+                --bs-accordion-active-color: var(--mygov-text-color-primary);
+                --bs-accordion-active-bg: var(
+                    --mygov-background-color-selected-light
+                );
+                border: 1px solid var(--mygov-border-color-neutral);
+                border-radius: 4px;
+                overflow: hidden;
+            }
+
+            .accordion-item {
+                margin-bottom: 0;
+                border-bottom: 1px solid var(--mygov-border-color-neutral);
+                background-color: var(--mygov-color-white);
+            }
+            .accordion-item:first-of-type {
+                border-top: none;
+                border-top-left-radius: 4px;
+                border-top-right-radius: 4px;
+            }
+            .accordion-item:last-of-type {
+                border-bottom: none;
+                border-bottom-left-radius: 4px;
+                border-bottom-right-radius: 4px;
+            }
+            .accordion-item:last-of-type .accordion-button.collapsed {
+                border-bottom-left-radius: 0;
+                border-bottom-right-radius: 0;
+            }
+
+            .accordion-button {
+                font-weight: 500;
+                font-size: 1.125rem;
+                border-top: none;
+                border-radius: 0;
+                display: flex;
+                align-items: center;
+            }
+            .accordion-button .activity-title {
+                flex-grow: 1;
+            }
+            .accordion-button .badge {
+                margin-left: auto;
+                font-size: 0.75rem;
+                padding: 0.3em 0.6em;
+            }
+            .accordion-button .badge.bg-complete {
+                background-color: var(
+                    --mygov-color-progress-complete
+                ) !important;
+            }
+            .accordion-button .badge.bg-inprogress {
+                background-color: var(
+                    --mygov-color-progress-inprogress
+                ) !important;
+            }
+            .accordion-button .badge.bg-notstarted {
+                background-color: var(
+                    --mygov-color-progress-notstarted
+                ) !important;
+                color: white !important;
+            }
+
+            .accordion-button:not(.collapsed) {
+                box-shadow: none;
+            }
+            .accordion-button::after {
+                flex-shrink: 0;
+                width: 1.25rem;
+                height: 1.25rem;
+                margin-left: 1rem;
+                content: "";
+                background-image: var(--bs-accordion-btn-icon);
+                background-repeat: no-repeat;
+                background-size: 1.25rem;
+                transition: var(--bs-accordion-btn-icon-transition);
+            }
+            .accordion-button:not(.collapsed)::after {
+                background-image: var(--bs-accordion-btn-active-icon);
+                transform: var(--bs-accordion-btn-icon-transform);
+            }
+
+            #resultsAccordion .list-group-item {
+                display: flex;
+                align-items: flex-start;
+                border: none;
+                padding: var(--list-item-padding-y) var(--list-item-padding-x);
+                border-bottom: 1px solid var(--mygov-separator-color);
+                background-color: var(--mygov-color-white);
+            }
+            .accordion-body .list-group-item:last-child {
+                border-bottom: none;
+            }
+
+            .task-checkbox {
+                margin-top: 0.2em;
+                margin-right: 15px;
+                flex-shrink: 0;
+                width: 1.35em;
+                height: 1.35em;
+            }
+
+            .task-link-wrapper {
+                flex-grow: 1;
+                text-decoration: none;
+                color: inherit;
+                display: flex;
+                justify-content: space-between;
+                align-items: flex-start;
+                padding: 0;
+                border-radius: 3px;
+                cursor: pointer;
+                transition: background-color 0.15s ease-in-out;
+            }
+            #resultsAccordion .list-group-item:hover h6.task-title {
+                text-decoration: underline;
+            }
+            #resultsAccordion .list-group-item .task-link-wrapper:hover {
+                background-color: var(--mygov-background-color-neutral-light);
+            }
+
+            #resultsAccordion {
+                position: relative;
+                z-index: 1;
+            }
+
+            .accordion-item {
+                position: relative;
+                z-index: 1;
+            }
+
+            .dropdown-menu.show {
+                z-index: 1050 !important;
+            }
+            .task-content-inner {
+                flex-grow: 1;
+                padding-right: 0.5rem;
+            }
+            h6.task-title {
+                font-weight: 400;
+                margin-bottom: 0.35rem;
+                font-size: 1rem;
+                color: var(--mygov-link-text-color);
+                line-height: 1.4;
+                display: inline;
+            }
+            .task-link-wrapper:hover h6.task-title {
+                text-decoration: underline;
+            }
+
+            p.task-description {
+                margin-bottom: 0.6rem;
+                font-size: 1rem;
+                line-height: 1.5;
+                color: var(--mygov-text-color-primary);
+            }
+            small.task-meta {
+                font-size: 0.875rem;
+                color: var(--mygov-text-color-muted);
+                display: block;
+            }
+            .badge {
+                font-size: 0.75rem;
+                font-weight: 500;
+                vertical-align: baseline;
+                margin-left: 0.5rem;
+                padding: 0.25em 0.5em;
+            }
+            h6.task-title .badge {
+                background-color: var(--mygov-text-color-muted);
+                color: var(--mygov-color-white);
+            }
+
+            .offsite-icon {
+                color: var(--mygov-link-text-color);
+                font-size: 1rem;
+                margin-left: 1rem;
+                flex-shrink: 0;
+                align-self: flex-start;
+                margin-top: 0.1em;
+                transition: transform 0.2s ease-in-out;
+            }
+            .task-link-wrapper:hover .offsite-icon {
+                transform: translateX(3px);
+            }
+
+            .task-completed .task-link-wrapper h6.task-title,
+            .task-completed .task-link-wrapper p.task-description,
+            .task-completed .task-content-inner small.task-meta {
+                text-decoration: line-through;
+                color: var(--mygov-text-color-muted);
+                opacity: 0.8;
+            }
+            .task-completed .task-link-wrapper h6.task-title {
+                text-decoration: line-through !important;
+            }
+            .task-completed .task-link-wrapper .offsite-icon {
+                opacity: 0.6;
+                color: var(--mygov-text-color-muted);
+            }
+            #resultsAccordion .task-completed:hover h6.task-title {
+                text-decoration: line-through;
+            }
+
+            #exportControls {
+                display: flex;
+                flex-direction: column;
+                gap: 0.5rem;
+                margin-bottom: 1.5rem;
+            }
+
+            @media (min-width: 768px) {
+                #resultsContainer {
+                    display: grid;
+                    grid-template-columns: 1fr 200px;
+                    gap: 2rem;
+                    align-items: start;
+                }
+
+                #exportControls {
+                    position: sticky;
+                    top: 20px;
+                    flex-direction: column;
+                    order: 2;
+                }
+
+                #mainResults {
+                    order: 1;
+                }
+            }
+
+            #exportControls .dropdown-menu {
+                z-index: 1050;
+            }
+
+            #exportControls .dropdown {
+                position: relative;
+            }
+
+            #exportControls .dropdown.show .dropdown-menu {
+                z-index: 1050 !important;
+            }
+
+            @media (min-width: 768px) {
+                #exportControls .dropdown-menu {
+                    transform: translateY(-100%);
+                    top: auto;
+                    bottom: 100%;
+                    margin-bottom: 2px;
+                }
+            }
+
+            #exportControls .btn {
+                font-size: 0.9rem;
+            }
+            #exportControls .btn .bi {
+                margin-right: 0.3rem;
+            }
+
+            #pinNotification {
+                display: none;
+                position: fixed;
+                bottom: 20px;
+                right: 20px;
+                z-index: 1050;
+                min-width: 300px;
+                box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+            }
+            #startOverBtn {
+                margin-top: 30px;
+                border: 1px solid var(--mygov-border-color-neutral);
+                color: var(--mygov-text-color-primary);
+                font-weight: 500;
+                padding: 0.75rem 1.5rem;
+                background-color: var(--mygov-color-white);
+                border-radius: 4px;
+            }
+            #startOverBtn:hover {
+                background-color: var(--mygov-background-color-neutral-light);
+                border-color: var(--mygov-border-color-neutral);
+            }
+
+            /* API Loading States */
+            .api-loading {
+                text-align: center;
+                padding: 2rem;
+                color: var(--mygov-text-color-muted);
+            }
+
+            .api-error {
+                background-color: #f8d7da;
+                color: #721c24;
+                padding: 1rem;
+                border-radius: 4px;
+                margin-bottom: 1rem;
+            }
+
+            /* Fragment content styling - to handle API HTML */
+            .fragment-content {
+                margin-top: 0.5rem;
+            }
+
+            .fragment-content h1,
+            .fragment-content h2,
+            .fragment-content h3,
+            .fragment-content h4,
+            .fragment-content h5,
+            .fragment-content h6 {
+                font-size: 1rem;
+                font-weight: 500;
+                margin-top: 0.5rem;
+                margin-bottom: 0.5rem;
+                color: var(--mygov-text-color-primary);
+            }
+
+            .fragment-content p {
+                margin-bottom: 0.5rem;
+            }
+
+            .fragment-content ul,
+            .fragment-content ol {
+                margin-left: 1.5rem;
+                margin-bottom: 0.5rem;
+            }
+
+            @media print {
+                body > .mygov-header,
+                body > .mygov-footer,
+                .container.checklist-tool > h1,
+                .container.checklist-tool > .lead,
+                #guidedForm,
+                .container.checklist-tool > .text-center,
+                #startOverBtn,
+                #exportControls,
+                #overallProgressContainer,
+                #pinNotification,
+                .task-checkbox,
+                .accordion-button .badge,
+                h6.task-title .badge,
+                .offsite-icon,
+                #resultsArea > hr,
+                #resultsCount p {
+                    display: none !important;
+                }
+
+                body {
+                    background-color: #fff !important;
+                    color: #000 !important;
+                    font-size: 11pt;
+                    margin: 1in;
+                    padding: 0;
+                }
+
+                .container.checklist-tool,
+                #resultsArea {
+                    width: 100% !important;
+                    max-width: 100% !important;
+                    margin: 0 !important;
+                    padding: 0 !important;
+                    border: none !important;
+                    box-shadow: none !important;
+                    background-color: #fff !important;
+                }
+
+                #resultsAccordion {
+                    border: none !important;
+                }
+
+                #resultsAccordion .list-group-item {
+                    display: grid;
+                    grid-template-columns: 40px 1fr 30px;
+                    gap: 1rem;
+                    align-items: start;
+                    padding: 1rem;
+                }
+
+                .task-checkbox {
+                    margin: 0;
+                    justify-self: center;
+                    align-self: start;
+                    margin-top: 0.2rem;
+                }
+
+                .task-content-wrapper {
+                    display: flex;
+                    flex-direction: column;
+                    gap: 0.5rem;
+                }
+
+                .task-link-wrapper {
+                    display: block;
+                    text-decoration: none;
+                    color: inherit;
+                    padding: 0;
+                }
+
+                .task-link-wrapper:hover {
+                    background-color: transparent;
+                }
+
+                .task-link-wrapper:hover h6.task-title {
+                    text-decoration: underline;
+                }
+
+                .accordion-item {
+                    border: none !important;
+                    page-break-inside: avoid;
+                    margin-bottom: 1em;
+                }
+
+                .accordion-button {
+                    background-color: #fff !important;
+                    color: #000 !important;
+                    border-bottom: 1px solid #999 !important;
+                    padding: 0.5em 0 !important;
+                    font-weight: bold !important;
+                    font-size: 13pt !important;
+                }
+
+                .accordion-button::after {
+                    display: none !important;
+                }
+
+                .accordion-collapse {
+                    display: block !important;
+                    visibility: visible !important;
+                    height: auto !important;
+                }
+                .accordion-collapse.collapse {
+                    display: block !important;
+                }
+
+                .accordion-body {
+                    padding: 0 !important;
+                }
+
+                #resultsAccordion .list-group-item {
+                    border-bottom: 1px dotted #ccc !important;
+                    padding: 0.3em 0 !important;
+                    page-break-inside: avoid;
+                }
+                #resultsAccordion .list-group-item:last-child {
+                    border-bottom: none !important;
+                }
+
+                .task-link-wrapper {
+                    text-decoration: none !important;
+                    color: #000 !important;
+                }
+                #resultsAccordion .list-group-item .task-link-wrapper:hover {
+                    background-color: transparent !important;
+                }
+                .task-link-wrapper:hover h6.task-title {
+                    text-decoration: none !important;
+                }
+
+                h6.task-title {
+                    color: #000 !important;
+                    font-size: 11pt !important;
+                    margin-bottom: 0.2em !important;
+                    font-weight: 500 !important;
+                }
+
+                p.task-description {
+                    color: #222 !important;
+                    font-size: 10pt !important;
+                    margin-bottom: 0.2em !important;
+                }
+                small.task-meta {
+                    color: #444 !important;
+                    font-size: 9pt !important;
+                }
+
+                .task-link-wrapper::after {
+                    content: " (URL: " attr(href) ")";
+                    display: block;
+                    font-size: 9pt;
+                    color: #555;
+                    word-break: break-all;
+                    margin-top: 0.2em;
+                }
+
+                .task-completed .task-link-wrapper h6.task-title,
+                .task-completed .task-link-wrapper p.task-description,
+                .task-completed .task-content-inner small.task-meta {
+                    text-decoration: none !important;
+                    color: #000 !important;
+                    opacity: 1 !important;
+                }
+                .task-completed .task-link-wrapper h6.task-title {
+                    text-decoration: none !important;
+                }
+
+                #resultsTitle {
+                    font-size: 18pt !important;
+                    text-align: center !important;
+                    margin-bottom: 1.5em !important;
+                    font-weight: bold !important;
+                }
+            }
+
+            .mygov-header {
+                background-color: #66d3ee;
+                color: #333;
+                padding: 0;
+                margin-bottom: 2rem;
+                box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+            }
+
+            .mygov-header-content {
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                padding: 0.75rem 2rem;
+                max-width: 1200px;
+                margin: 0 auto;
+            }
+
+            .mygov-logo {
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+            }
+
+            .mygov-brand {
+                font-size: 1.5rem;
+                font-weight: 500;
+                color: #333;
+                text-decoration: none;
+            }
+
+            .mygov-nav {
+                display: flex;
+                align-items: center;
+                gap: 2rem;
+            }
+
+            .mygov-nav-links {
+                display: flex;
+                align-items: center;
+                gap: 2rem;
+                list-style: none;
+                margin: 0;
+                padding: 0;
+            }
+
+            .mygov-nav-links a {
+                color: #333;
+                text-decoration: none;
+                font-weight: 500;
+                padding: 0.5rem 0;
+                border-bottom: 2px solid transparent;
+                transition: border-color 0.2s ease;
+            }
+
+            .mygov-nav-links a:hover,
+            .mygov-nav-links a.active {
+                border-bottom-color: #333;
+            }
+
+            .mygov-search-btn {
+                background: none;
+                border: none;
+                color: #333;
+                font-size: 1rem;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                padding: 0.5rem;
+            }
+
+            .mygov-signin-btn {
+                background-color: #333;
+                color: white;
+                border: none;
+                padding: 0.5rem 1rem;
+                border-radius: 4px;
+                font-weight: 500;
+                cursor: pointer;
+                display: flex;
+                align-items: center;
+                gap: 0.5rem;
+                text-decoration: none;
+            }
+
+            .mygov-signin-btn:hover {
+                background-color: #222;
+                color: white;
+            }
+
+            .mygov-account-links {
+                display: flex;
+                gap: 1rem;
+                margin-top: 0.5rem;
+                font-size: 0.9rem;
+                margin-left: auto;
+            }
+
+            .mygov-account-links a {
+                color: #333;
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <header class="mygov-header">
+            <div class="mygov-header-content">
+                <div class="mygov-logo" style="height:419px width:146px">
+                    <img src="img/logo.png" />
+                    <span class="mygov-brand"></span>
+                </div>
+
+                <div class="mygov-nav">
+                    <ul class="mygov-nav-links">
+                        <li><a href="#" class="active">Home</a></li>
+                        <li><a href="#">Browse</a></li>
+                    </ul>
+
+                    <button class="mygov-search-btn">
+                        <span>Search</span>
+                        <i class="bi bi-search"></i>
+                    </button>
+
+                    <a href="#" class="mygov-signin-btn">
+                        <span>Sign in</span>
+                        <i class="bi bi-box-arrow-in-right"></i>
+                    </a>
+                </div>
+            </div>
+        </header>
+        <div class="container checklist-tool mt-4 mb-4">
+            <h1>myGov checklist</h1>
+            <p class="lead mb-4">
+                Find government services and information tailored to your
+                situation.
+            </p>
+
+            <form id="guidedForm">
+                <!-- Step 1: Category -->
+                <div class="question-step" id="step1">
+                    <h5>What area do you need help with?</h5>
+                    <p class="small">
+                        Choose the category that best describes what you're
+                        looking for.
+                    </p>
+                    <div class="option-container" id="categoryOptions">
+                        <!-- Category options populated by JS -->
                     </div>
                 </div>
-            </div>
 
-            <!-- Step 2: Stage -->
-            <div class="question-step" id="step2">
-                <h5>What stage of the process would you like information on?</h5>
-                 <p class="small">Select the stage that best describes your current situation.</p>
-                <div class="option-container" id="stageOptions">
-                    <!-- Stage options populated by JS -->
+                <!-- Step 2: Life Event -->
+                <div class="question-step" id="step2">
+                    <h5>What life event or situation applies to you?</h5>
+                    <p class="small">
+                        Select the specific life event or situation you need
+                        information about.
+                    </p>
+                    <div class="option-container" id="lifeEventOptions">
+                        <!-- Life event options populated by JS -->
+                    </div>
                 </div>
-            </div>
 
-            <!-- Step 3: Stage Variant -->
-            <div class="question-step" id="step3">
-                <h5 id="step3Title">Are any of these specific situations relevant?</h5>
-                 <p class="small">Select 'No' if none apply, otherwise choose the most relevant situation.</p>
-                <div class="option-container" id="stageVariantOptions">
-                    <!-- Stage Variant options populated by JS -->
+                <!-- Step 3: Provider -->
+                <div class="question-step" id="step3">
+                    <h5>
+                        Which service provider would you like information from?
+                    </h5>
+                    <p class="small">
+                        Choose a specific provider or select 'All providers' to
+                        see everything.
+                    </p>
+                    <div class="option-container" id="providerOptions">
+                        <!-- Provider options populated by JS -->
+                    </div>
                 </div>
-            </div>
-        </form>
+            </form>
 
-        <div class="text-center">
-             <button class="btn" id="showResultsBtn" type="button">Show 0 results</button>
-        </div>
-
-         <!-- Results Area -->
-        <div id="resultsArea" class="mt-5" style="display: none;">
-             <hr>
-             <h3 id="resultsTitle">Your to-do list</h3>
-             <div id="overallProgressContainer" style="display:none;">
-                <p id="overallProgressText" class="text-end"></p>
-                <div class="progress mb-2">
-                    <div id="overallProgressBar" class="progress-bar" role="progressbar" style="width: 0%;" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"></div>
-                </div>
-             </div>
-             <div id="resultsCount" class="mb-3"></div>
-      
-        <div id="exportControls" class="mt-3 mb-3 text-end" style="display:none;">
-            <!-- "Pin to dashboard" Button -->
-            <button class="btn btn-outline-secondary btn-sm me-1" id="pinBtn"><i class="bi bi-pin-angle"></i> Pin to dashboard</button>
-            
-            <!-- Share Button with Dropdown -->
-                
-                <button class="btn btn-outline-secondary btn-sm" type="button" id="shareBtnTrigger" data-bs-toggle="dropdown" aria-expanded="false">
-                    <i class="bi bi-share"></i> Share
+            <div class="text-center">
+                <button class="btn" id="showResultsBtn" type="button">
+                    Show 0 results
                 </button>
-                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="shareBtnTrigger">
-                    <li><a class="dropdown-item" href="#" id="shareTwitter"><i class="bi bi-twitter me-2"></i>Twitter / X</a></li>
-                    <li><a class="dropdown-item" href="#" id="shareBluesky"><i class="bi bi-cloud me-2"></i>Bluesky</a></li>
-                    <li><a class="dropdown-item" href="#" id="shareFacebook"><i class="bi bi-facebook me-2"></i>Facebook</a></li>
-                    <li><a class="dropdown-item" href="#" id="shareThreads"><i class="bi bi-threads me-2"></i>Threads</a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item" href="#" id="shareEmail"><i class="bi bi-envelope me-2"></i>Email</a></li>
-                </ul>
-
-            
-            <button class="btn btn-outline-secondary btn-sm me-1" id="downloadPdfBtn"><i class="bi bi-download"></i> Download PDF</button>
-            <button class="btn btn-outline-secondary btn-sm me-1" id="downloadDocxBtn"><i class="bi bi-file-earmark-word"></i> Download DOCX</button>
-            <button class="btn btn-outline-secondary btn-sm" id="printBtn"><i class="bi bi-printer"></i> Print</button>
-        </div>
-
-            <!-- Pin Notification Area (Initially Hidden) -->
-            <div id="pinNotification" class="alert alert-info alert-dismissible fade" role="alert" style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 1050; min-width: 300px;">
-                This checklist is saved locally on your device to protect your privacy. You can return to your dashboard on this device at any time to continue.
-                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
             </div>
 
-    
-             <div class="accordion" id="resultsAccordion">
-                <!-- Accordion items will be populated here -->
-             </div>
-             <button class="btn w-100" id="startOverBtn">Start Over</button>
-        </div>
-    </div>
+            <!-- Results Area -->
+            <div id="resultsArea" class="mt-5" style="display: none">
+                <hr />
+                <h3 id="resultsTitle">Your checklist</h3>
+                <div id="overallProgressContainer" style="display: none">
+                    <p id="overallProgressText" class="text-end"></p>
+                    <div class="progress mb-2">
+                        <div
+                            id="overallProgressBar"
+                            class="progress-bar"
+                            role="progressbar"
+                            style="width: 0%"
+                            aria-valuenow="0"
+                            aria-valuemin="0"
+                            aria-valuemax="100"
+                        ></div>
+                    </div>
+                </div>
+                <div id="resultsCount" class="mb-3"></div>
 
-<footer class="mygov-footer">
-    <div class="footer-content">
-        <div class="footer-grid">
-            <div class="footer-section">
-                <h4>About this site</h4>
-                <ul>
-                    <li><a href="#">About myGov</a></li>
-                    <li><a href="#">Help using myGov</a></li>
-                    <li><a href="#">Contact us</a></li>
-                    <li><a href="#">Give feedback</a></li>
-                    <li><a href="#">myGov user guide</a></li>
-                </ul>
-            </div>
-            <div class="footer-section">
-                <h4>Browse</h4>
-                <ul>
-                    <li><a href="#">Raising kids</a></li>
-                    <li><a href="#">Living arrangements</a></li>
-                    <li><a href="#">Ageing</a></li>
-                    <li><a href="#">Work</a></li>
-                    <li><a href="#">Education</a></li>
-                    <li><a href="#">Health and disability</a></li>
-                </ul>
+                <div
+                    id="exportControls"
+                    class="mt-3 mb-3 text-end"
+                    style="display: none"
+                >
+                    <!-- "Pin to dashboard" Button -->
+                    <button
+                        class="btn btn-outline-secondary btn-sm me-1"
+                        id="pinBtn"
+                    >
+                        <i class="bi bi-pin-angle"></i> Pin to dashboard
+                    </button>
+
+                    <!-- Share Button with Dropdown -->
+
+                    <button
+                        class="btn btn-outline-secondary btn-sm"
+                        type="button"
+                        id="shareBtnTrigger"
+                        data-bs-toggle="dropdown"
+                        aria-expanded="false"
+                    >
+                        <i class="bi bi-share"></i> Share
+                    </button>
+                    <ul
+                        class="dropdown-menu dropdown-menu-end"
+                        aria-labelledby="shareBtnTrigger"
+                    >
+                        <li>
+                            <a class="dropdown-item" href="#" id="shareTwitter"
+                                ><i class="bi bi-twitter me-2"></i>Twitter /
+                                X</a
+                            >
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="shareBluesky"
+                                ><i class="bi bi-cloud me-2"></i>Bluesky</a
+                            >
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="shareFacebook"
+                                ><i class="bi bi-facebook me-2"></i>Facebook</a
+                            >
+                        </li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="shareThreads"
+                                ><i class="bi bi-threads me-2"></i>Threads</a
+                            >
+                        </li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li>
+                            <a class="dropdown-item" href="#" id="shareEmail"
+                                ><i class="bi bi-envelope me-2"></i>Email</a
+                            >
+                        </li>
+                    </ul>
+
+                    <button
+                        class="btn btn-outline-secondary btn-sm me-1"
+                        id="downloadPdfBtn"
+                    >
+                        <i class="bi bi-download"></i> Download PDF
+                    </button>
+                    <button
+                        class="btn btn-outline-secondary btn-sm me-1"
+                        id="downloadDocxBtn"
+                    >
+                        <i class="bi bi-file-earmark-word"></i> Download DOCX
+                    </button>
+                    <button
+                        class="btn btn-outline-secondary btn-sm"
+                        id="printBtn"
+                    >
+                        <i class="bi bi-printer"></i> Print
+                    </button>
+                </div>
+
+                <!-- Pin Notification Area (Initially Hidden) -->
+                <div
+                    id="pinNotification"
+                    class="alert alert-info alert-dismissible fade"
+                    role="alert"
+                    style="
+                        display: none;
+                        position: fixed;
+                        bottom: 20px;
+                        right: 20px;
+                        z-index: 1050;
+                        min-width: 300px;
+                    "
+                >
+                    This checklist is saved locally on your device to protect
+                    your privacy. You can return to your dashboard on this
+                    device at any time to continue.
+                    <button
+                        type="button"
+                        class="btn-close"
+                        data-bs-dismiss="alert"
+                        aria-label="Close"
+                    ></button>
+                </div>
+
+                <div class="accordion" id="resultsAccordion">
+                    <!-- Accordion items will be populated here -->
+                </div>
+                <button class="btn w-100" id="startOverBtn">Start Over</button>
             </div>
         </div>
-        
-        <div class="footer-bottom">
-            <div class="footer-links">
-                <a href="#">Terms of use</a>
-                <a href="#">Privacy and security</a>
-                <a href="#">Copyright</a>
-                <a href="#">Accessibility</a>
-                <a href="#">Languages</a>
+
+        <footer class="mygov-footer">
+            <div class="footer-content">
+                <div class="footer-grid">
+                    <div class="footer-section">
+                        <h4>About this site</h4>
+                        <ul>
+                            <li><a href="#">About myGov</a></li>
+                            <li><a href="#">Help using myGov</a></li>
+                            <li><a href="#">Contact us</a></li>
+                            <li><a href="#">Give feedback</a></li>
+                            <li><a href="#">myGov user guide</a></li>
+                        </ul>
+                    </div>
+                    <div class="footer-section">
+                        <h4>Browse</h4>
+                        <ul>
+                            <li><a href="#">Raising kids</a></li>
+                            <li><a href="#">Living arrangements</a></li>
+                            <li><a href="#">Ageing</a></li>
+                            <li><a href="#">Work</a></li>
+                            <li><a href="#">Education</a></li>
+                            <li><a href="#">Health and disability</a></li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="footer-bottom">
+                    <div class="footer-links">
+                        <a href="#">Terms of use</a>
+                        <a href="#">Privacy and security</a>
+                        <a href="#">Copyright</a>
+                        <a href="#">Accessibility</a>
+                        <a href="#">Languages</a>
+                    </div>
+                    <div class="footer-social">
+                        <a href="#" aria-label="Twitter"
+                            ><i class="bi bi-twitter"></i
+                        ></a>
+                        <a href="#" aria-label="YouTube"
+                            ><i class="bi bi-youtube"></i
+                        ></a>
+                    </div>
+                </div>
+
+                <div class="footer-brand">
+                    <span
+                        >We acknowledge the Traditional Custodians of the lands
+                        we live on. We pay our respects to all Aboriginal and
+                        Torres Strait Islander peoples.</span
+                    >
+                </div>
             </div>
-            <div class="footer-social">
-                <a href="#" aria-label="Twitter"><i class="bi bi-twitter"></i></a>
-                <a href="#" aria-label="YouTube"><i class="bi bi-youtube"></i></a>
-            </div>
-        </div>
-        
-        <div class="footer-brand">
-            <span>We acknowledge the Traditional Custodians of the lands we live on. We pay our respects to all Aboriginal and Torres Strait Islander peoples.</span>
-        </div>
-    </div>
-</footer>
-    <script>
-        // API Configuration
-        const API_BASE_URL = 'http://localhost:3000';
-        const API_ENDPOINTS = {
-            search: `${API_BASE_URL}/api/fragments/search`,
-            facets: `${API_BASE_URL}/api/fragments/facets`
-        };
+        </footer>
+        <script>
+            // API Configuration
+            const API_BASE_URL = "http://localhost:3000";
+            const API_ENDPOINTS = {
+                search: `${API_BASE_URL}/api/fragments/search`,
+                facets: `${API_BASE_URL}/api/fragments/facets`,
+            };
 
-        // DOM elements
-        const step1 = document.getElementById('step1');
-        const step2 = document.getElementById('step2');
-        const step3 = document.getElementById('step3');
-        const stateOptionsContainer = document.getElementById('stateOptions');
-        const stageOptionsContainer = document.getElementById('stageOptions');
-        const stageVariantOptionsContainer = document.getElementById('stageVariantOptions');
-        const showResultsBtn = document.getElementById('showResultsBtn');
-        const resultsArea = document.getElementById('resultsArea');
-        const resultsAccordion = document.getElementById('resultsAccordion');
-        const resultsCount = document.getElementById('resultsCount');
-        const startOverBtn = document.getElementById('startOverBtn');
-        const guidedForm = document.getElementById('guidedForm');
-        const step3Title = document.getElementById('step3Title');
+            // DOM elements
+            const step1 = document.getElementById("step1");
+            const step2 = document.getElementById("step2");
+            const step3 = document.getElementById("step3");
+            const categoryOptionsContainer =
+                document.getElementById("categoryOptions");
+            const lifeEventOptionsContainer =
+                document.getElementById("lifeEventOptions");
+            const providerOptionsContainer =
+                document.getElementById("providerOptions");
+            const showResultsBtn = document.getElementById("showResultsBtn");
+            const resultsArea = document.getElementById("resultsArea");
+            const resultsAccordion =
+                document.getElementById("resultsAccordion");
+            const resultsCount = document.getElementById("resultsCount");
+            const startOverBtn = document.getElementById("startOverBtn");
+            const guidedForm = document.getElementById("guidedForm");
 
-        const overallProgressContainer = document.getElementById('overallProgressContainer');
-        const overallProgressText = document.getElementById('overallProgressText');
-        const overallProgressBar = document.getElementById('overallProgressBar');
-        const exportControls = document.getElementById('exportControls');
-        const pinBtn = document.getElementById('pinBtn');
-        const pinNotification = document.getElementById('pinNotification');
-        const shareTwitter = document.getElementById('shareTwitter');
-        const shareBluesky = document.getElementById('shareBluesky');
-        const shareFacebook = document.getElementById('shareFacebook');
-        const shareThreads = document.getElementById('shareThreads');
-        const shareEmail = document.getElementById('shareEmail');
-        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
-        const downloadDocxBtn = document.getElementById('downloadDocxBtn');
-        const printBtn = document.getElementById('printBtn');
-    
-        let allResults = []; 
-        let facetsData = null;
-        let selections = {
-            state: null,
-            stage: null,
-            stageVariant: null
-        };
-        const COMPLETED_TASKS_KEY = 'completedChecklistTasks';
-        
-        const stateMap = {
-            "ACT": "Australian Capital Territory", "NSW": "New South Wales", "NT": "Northern Territory",
-            "QLD": "Queensland", "SA": "South Australia", "Tas": "Tasmania",
-            "Vic": "Victoria", "WA": "Western Australia", "National": "National / Prefer not to say"
-        };
-        
-        const iconMap = {
-            "Before your baby arrives": "img/BeforeBirth.png",
-            "When your baby arrives": "img/WhenBabyArrives.png",
-            "As your baby grows": "img/AsBabyGrows.png",
-            "Adopting a child": "img/Baby.png",
-            "Stillborn baby": "img/Health.png",
-            "Disability": "img/Health.png",
-            "ACT": "", "NSW": "", "NT": "",
-            "QLD": "", "SA": "", "Tas": "",
-            "Vic": "", "WA": "", 
-            "National": "", 
-            "No": "",
-            "default": ""
-        };
+            const overallProgressContainer = document.getElementById(
+                "overallProgressContainer",
+            );
+            const overallProgressText = document.getElementById(
+                "overallProgressText",
+            );
+            const overallProgressBar =
+                document.getElementById("overallProgressBar");
+            const exportControls = document.getElementById("exportControls");
+            const pinBtn = document.getElementById("pinBtn");
+            const pinNotification = document.getElementById("pinNotification");
+            const shareTwitter = document.getElementById("shareTwitter");
+            const shareBluesky = document.getElementById("shareBluesky");
+            const shareFacebook = document.getElementById("shareFacebook");
+            const shareThreads = document.getElementById("shareThreads");
+            const shareEmail = document.getElementById("shareEmail");
+            const downloadPdfBtn = document.getElementById("downloadPdfBtn");
+            const downloadDocxBtn = document.getElementById("downloadDocxBtn");
+            const printBtn = document.getElementById("printBtn");
 
-        // API Functions
-        async function fetchFacets() {
-            console.log('Fetching facets from:', API_ENDPOINTS.facets);
-            try {
-                const response = await fetch(API_ENDPOINTS.facets);
-                console.log('Facets response status:', response.status);
-                if (!response.ok) throw new Error(`Failed to fetch facets: ${response.status}`);
-                const data = await response.json();
-                console.log('Facets data received:', data);
-                // The API returns the facets directly, not wrapped in a 'facets' property
-                return data;
-            } catch (error) {
-                console.error('Error fetching facets:', error);
-                // Return mock data for testing if API fails
-                console.log('Using fallback data for testing');
-                return {
-                    states: [
-                        { value: 'NSW', count: 10 },
-                        { value: 'VIC', count: 10 },
-                        { value: 'QLD', count: 10 },
-                        { value: 'National', count: 10 }
-                    ],
-                    stage: [
-                        { value: 'Before your baby arrives', count: 10 },
-                        { value: 'When your baby arrives', count: 10 },
-                        { value: 'As your baby grows', count: 10 }
-                    ],
-                    stage_variant: [
-                        { value: 'No', count: 10 },
-                        { value: 'Adopting a child', count: 5 },
-                        { value: 'IVF', count: 5 }
-                    ]
-                };
+            let allResults = [];
+            let facetsData = null;
+            let selections = {
+                category: null,
+                lifeEvent: null,
+                provider: null,
+            };
+            const COMPLETED_TASKS_KEY = "completedChecklistTasks";
+
+            const iconMap = {
+                // Categories
+                "Health and caring": "bi-heart-pulse",
+                "Family and relationships": "bi-people",
+                "Work and money": "bi-currency-dollar",
+                "Housing and travel": "bi-house",
+                "Disasters and crime": "bi-shield-exclamation",
+                "Education and identity": "bi-mortarboard",
+
+                // Life events
+                "Having a baby": "img/Baby.png",
+                "Growing up": "img/AsBabyGrows.png",
+                "Child health": "img/Health.png",
+                "Relationship changes": "bi-heart",
+                "Domestic violence": "bi-exclamation-triangle",
+                Work: "bi-briefcase",
+                Ageing: "bi-person-walking",
+                Education: "bi-book",
+
+                // Providers
+                "All providers": "bi-globe",
+                "Services Australia": "bi-building",
+                "Australian Taxation Office": "bi-receipt",
+                "Department of Health": "bi-hospital",
+                "Department of Education": "bi-backpack",
+                "State Government": "bi-geo-alt",
+                "Non-Government": "bi-building-check",
+
+                default: "bi-circle",
+            };
+
+            // API Functions
+            async function fetchFacets() {
+                console.log("Fetching facets from:", API_ENDPOINTS.facets);
+                try {
+                    const response = await fetch(API_ENDPOINTS.facets);
+                    console.log("Facets response status:", response.status);
+                    if (!response.ok)
+                        throw new Error(
+                            `Failed to fetch facets: ${response.status}`,
+                        );
+                    const data = await response.json();
+                    console.log("Facets data received:", data);
+                    return data;
+                } catch (error) {
+                    console.error("Error fetching facets:", error);
+                    showError(
+                        "Failed to load options. Please check if the API is running.",
+                    );
+                    return null;
+                }
             }
-        }
 
-        async function searchFragments(params) {
-            try {
-                const queryParams = new URLSearchParams({
-                    q: '*',
-                    life_event: 'Having a baby',
-                    include_html: 'true',
-                    per_page: '100',
-                    ...params
+            async function searchFragments(params) {
+                try {
+                    const queryParams = new URLSearchParams({
+                        q: "*",
+                        include_html: "true",
+                        per_page: "100",
+                        ...params,
+                    });
+
+                    const response = await fetch(
+                        `${API_ENDPOINTS.search}?${queryParams}`,
+                    );
+                    if (!response.ok)
+                        throw new Error("Failed to search fragments");
+                    const data = await response.json();
+                    return data.results;
+                } catch (error) {
+                    console.error("Error searching fragments:", error);
+                    showError(
+                        "Failed to search for content. Please try again.",
+                    );
+                    return [];
+                }
+            }
+
+            // Transform API data to match original structure
+            function transformAPIResults(hits) {
+                return hits.map((hit, index) => {
+                    const doc = hit.document;
+                    return {
+                        ID: doc.id,
+                        url: doc.url,
+                        title: doc.title,
+                        description: doc.content_text,
+                        content_html: doc.content_html,
+                        myGov_category: doc.categories
+                            ? doc.categories[0]
+                            : "General",
+                        mygov_life_event: doc.life_events
+                            ? doc.life_events[0]
+                            : "General",
+                        stage: doc.stage || "",
+                        "stage variant": doc.stage_variant || "No",
+                        activity: extractActivityFromHierarchy(doc),
+                        task: doc.title,
+                        "task order": doc.task_order || index + 1,
+                        governance: doc.governance || "Federal Government",
+                        provider: doc.provider || "Services Australia",
+                        state: doc.states ? doc.states[0] : "National",
+                    };
                 });
-
-                const response = await fetch(`${API_ENDPOINTS.search}?${queryParams}`);
-                if (!response.ok) throw new Error('Failed to search fragments');
-                const data = await response.json();
-                return data.results;
-            } catch (error) {
-                console.error('Error searching fragments:', error);
-                showError('Failed to search for content. Please try again.');
-                return [];
             }
-        }
 
-        // Transform API data to match original structure
-        function transformAPIResults(hits) {
-            return hits.map((hit, index) => {
-                const doc = hit.document;
-                return {
-                    ID: doc.id,
-                    url: doc.url,
-                    title: doc.title,
-                    description: doc.content_text,
-                    content_html: doc.content_html,
-                    myGov_category: doc.categories ? doc.categories[0] : "Raising Kids",
-                    mygov_life_event: doc.life_events ? doc.life_events[0] : "Having a baby",
-                    stage: doc.stage || "",
-                    "stage variant": doc.stage_variant || "No",
-                    activity: extractActivityFromHierarchy(doc),
-                    task: doc.title,
-                    "task order": doc.task_order || index + 1,
-                    governance: doc.governance || "Federal Government",
-                    provider: doc.provider || "Services Australia",
-                    state: doc.states ? doc.states[0] : "National"
-                };
-            });
-        }
-
-        function extractActivityFromHierarchy(doc) {
-            // Try to extract activity from hierarchy levels
-            if (doc.hierarchy_lvl1) return doc.hierarchy_lvl1;
-            if (doc.hierarchy_lvl0) return doc.hierarchy_lvl0;
-            if (doc.page_hierarchy && doc.page_hierarchy.length > 1) {
-                return doc.page_hierarchy[doc.page_hierarchy.length - 2];
-            }
-            return "General Information";
-        }
-
-        function showError(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.className = 'api-error';
-            errorDiv.textContent = message;
-            guidedForm.parentNode.insertBefore(errorDiv, guidedForm);
-            setTimeout(() => errorDiv.remove(), 5000);
-        }
-
-        function showLoading(container) {
-            container.innerHTML = '<div class="api-loading"><i class="bi bi-arrow-clockwise"></i> Loading...</div>';
-        }
-        
-        function loadCompletedTasks() {
-            try {
-                const storedTasks = localStorage.getItem(COMPLETED_TASKS_KEY);
-                return storedTasks ? JSON.parse(storedTasks) : [];
-            } catch (e) {
-                console.error("Error loading completed tasks from localStorage:", e);
-                return [];
-            }
-        }
-
-        function saveCompletedTasks(completedIds) {
-            try {
-                const validIds = Array.from(new Set(completedIds.map(String).filter(id => id !== 'null' && id !== 'undefined')));
-                localStorage.setItem(COMPLETED_TASKS_KEY, JSON.stringify(validIds));
-            } catch (e) {
-                console.error("Error saving completed tasks to localStorage:", e);
-            }
-        }
-
-        async function loadData() {
-            try {
-                // Fetch facets on page load
-                facetsData = await fetchFacets();
-                if (!facetsData) {
-                    console.error("Failed to load facets data");
-                    return;
+            function extractActivityFromHierarchy(doc) {
+                if (doc.hierarchy_lvl1) return doc.hierarchy_lvl1;
+                if (doc.hierarchy_lvl0) return doc.hierarchy_lvl0;
+                if (doc.page_hierarchy && doc.page_hierarchy.length > 1) {
+                    return doc.page_hierarchy[doc.page_hierarchy.length - 2];
                 }
-                console.log("Facets loaded successfully:", facetsData);
-            } catch (error) {
-                console.error("Error in loadData:", error);
-                facetsData = null;
+                return "General Information";
             }
-        }
 
-        function createOptionHTML(name, value, labelText, iconKey, isChecked = false) {
-            const id = `${name}-${value.toLowerCase().replace(/[^a-z0-9]/g, '-')}`;
-            
-            const actualIconKey = iconKey || value; 
-            const iconValue = iconMap[actualIconKey] || iconMap["default"];
-            let iconHTML = ''; 
+            function showError(message) {
+                const errorDiv = document.createElement("div");
+                errorDiv.className = "api-error";
+                errorDiv.textContent = message;
+                guidedForm.parentNode.insertBefore(errorDiv, guidedForm);
+                setTimeout(() => errorDiv.remove(), 5000);
+            }
 
-            if (iconValue) {
-                if (typeof iconValue === 'string' && /\.(png|jpg|jpeg|gif|svg)$/i.test(iconValue)) {
-                    iconHTML = `<img src="${iconValue}" alt="${labelText} icon" class="option-icon">`;
-                } else {
-                    iconHTML = `<span class="option-icon">${iconValue}</span>`;
+            function showLoading(container) {
+                container.innerHTML =
+                    '<div class="api-loading"><i class="bi bi-arrow-clockwise"></i> Loading...</div>';
+            }
+
+            function loadCompletedTasks() {
+                try {
+                    const storedTasks =
+                        localStorage.getItem(COMPLETED_TASKS_KEY);
+                    return storedTasks ? JSON.parse(storedTasks) : [];
+                } catch (e) {
+                    console.error(
+                        "Error loading completed tasks from localStorage:",
+                        e,
+                    );
+                    return [];
                 }
             }
 
-            return `
+            function saveCompletedTasks(completedIds) {
+                try {
+                    const validIds = Array.from(
+                        new Set(
+                            completedIds
+                                .map(String)
+                                .filter(
+                                    (id) => id !== "null" && id !== "undefined",
+                                ),
+                        ),
+                    );
+                    localStorage.setItem(
+                        COMPLETED_TASKS_KEY,
+                        JSON.stringify(validIds),
+                    );
+                } catch (e) {
+                    console.error(
+                        "Error saving completed tasks to localStorage:",
+                        e,
+                    );
+                }
+            }
+
+            async function loadData() {
+                try {
+                    facetsData = await fetchFacets();
+                    if (!facetsData) {
+                        console.error("Failed to load facets data");
+                        return;
+                    }
+                    console.log("Facets loaded successfully:", facetsData);
+                } catch (error) {
+                    console.error("Error in loadData:", error);
+                    facetsData = null;
+                }
+            }
+
+            function createOptionHTML(
+                name,
+                value,
+                labelText,
+                iconKey,
+                isChecked = false,
+            ) {
+                const id = `${name}-${value.toLowerCase().replace(/[^a-z0-9]/g, "-")}`;
+
+                const actualIconKey = iconKey || value;
+                const iconValue = iconMap[actualIconKey] || iconMap["default"];
+                let iconHTML = "";
+
+                if (iconValue) {
+                    if (
+                        typeof iconValue === "string" &&
+                        /\.(png|jpg|jpeg|gif|svg)$/i.test(iconValue)
+                    ) {
+                        iconHTML = `<img src="${iconValue}" alt="${labelText} icon" class="option-icon">`;
+                    } else {
+                        iconHTML = `<span class="option-icon"><i class="${iconValue}"></i></span>`;
+                    }
+                }
+
+                return `
                 <div class="option-item">
-                    <input type="radio" id="${id}" name="${name}" value="${value}" class="option-input" ${isChecked ? 'checked' : ''}>
+                    <input type="radio" id="${id}" name="${name}" value="${value}" class="option-input" ${isChecked ? "checked" : ""}>
                     <label for="${id}" class="option-label">
                         ${iconHTML}
                         <span class="option-text">${labelText}</span>
                     </label>
                 </div>`;
-        }
+            }
 
-        async function populateStateOptions() {
-            console.log('Populating state options, facetsData:', facetsData);
-            
-            // First check if we have facets data
-            if (!facetsData || !facetsData.states) {
-                console.warn('No facets data available, using static states');
-                // Use static state list as fallback
-                const staticStates = ['NSW', 'VIC', 'QLD', 'WA', 'SA', 'TAS', 'ACT', 'NT'];
-                
-                const dynamicOptionsContainer = stateOptionsContainer.querySelectorAll('.option-item:not(:last-child)');
-                dynamicOptionsContainer.forEach(opt => opt.remove());
-                
-                const nationalOptionElement = stateOptionsContainer.querySelector('.option-item:last-child'); 
-                let optionsHTML = '';
-                staticStates.forEach(state => {
-                    optionsHTML += createOptionHTML('state', state, stateMap[state] || state, state);
-                });
-                
-                if (nationalOptionElement) {
-                    nationalOptionElement.insertAdjacentHTML('beforebegin', optionsHTML);
-                } else { 
-                    stateOptionsContainer.innerHTML = optionsHTML + createOptionHTML('state', 'National', stateMap['National'], 'National');
+            async function populateCategoryOptions() {
+                console.log(
+                    "Populating category options, facetsData:",
+                    facetsData,
+                );
+
+                if (!facetsData || !facetsData.categories) {
+                    console.warn("No category facets data available");
+                    showError(
+                        "Failed to load categories. Please refresh the page.",
+                    );
+                    return;
                 }
-            } else {
-                // Use facets data
-                const states = facetsData.states
-                    .filter(s => s.value !== 'National')
-                    .sort((a, b) => {
-                        const labelA = stateMap[a.value] || a.value;
-                        const labelB = stateMap[b.value] || b.value;
-                        return labelA.localeCompare(labelB);
-                    });
 
-                const dynamicOptionsContainer = stateOptionsContainer.querySelectorAll('.option-item:not(:last-child)');
-                dynamicOptionsContainer.forEach(opt => opt.remove());
-                
-                const nationalOptionElement = stateOptionsContainer.querySelector('.option-item:last-child'); 
-                let optionsHTML = '';
-                states.forEach(state => {
-                    optionsHTML += createOptionHTML('state', state.value, stateMap[state.value] || state.value, state.value);
+                const categories = facetsData.categories
+                    .filter((c) => c.count > 0)
+                    .sort((a, b) => b.count - a.count);
+
+                categoryOptionsContainer.innerHTML = "";
+                let optionsHTML = "";
+
+                categories.forEach((cat) => {
+                    optionsHTML += createOptionHTML(
+                        "category",
+                        cat.value,
+                        cat.value,
+                        cat.value,
+                    );
                 });
-                
-                if (nationalOptionElement) {
-                    nationalOptionElement.insertAdjacentHTML('beforebegin', optionsHTML);
-                } else { 
-                    stateOptionsContainer.innerHTML = optionsHTML + createOptionHTML('state', 'National', stateMap['National'], 'National');
+
+                categoryOptionsContainer.innerHTML = optionsHTML;
+                step1.classList.add("active");
+                console.log("Category options populated successfully");
+            }
+
+            async function populateLifeEventOptions(selectedCategory) {
+                console.log(
+                    "Populating life event options for category:",
+                    selectedCategory,
+                );
+
+                if (!facetsData || !facetsData.life_events) {
+                    console.warn("No life event facets data available");
+                    return;
+                }
+
+                // Get all life events and filter if needed based on selected category
+                const lifeEvents = facetsData.life_events
+                    .filter((le) => le.count > 0)
+                    .sort((a, b) => b.count - a.count);
+
+                lifeEventOptionsContainer.innerHTML = "";
+
+                if (lifeEvents.length === 0) {
+                    step2.classList.remove("active");
+                    return;
+                }
+
+                let optionsHTML = "";
+                lifeEvents.forEach((event) => {
+                    optionsHTML += createOptionHTML(
+                        "lifeEvent",
+                        event.value,
+                        event.value,
+                        event.value,
+                    );
+                });
+
+                lifeEventOptionsContainer.innerHTML = optionsHTML;
+                step2.classList.add("active");
+                console.log("Life event options populated");
+            }
+
+            async function populateProviderOptions(
+                selectedCategory,
+                selectedLifeEvent,
+            ) {
+                console.log("Populating provider options");
+
+                if (!facetsData || !facetsData.provider) {
+                    console.warn("No provider facets data available");
+                    return;
+                }
+
+                const providers = facetsData.provider
+                    .filter((p) => p.count > 0)
+                    .sort((a, b) => b.count - a.count);
+
+                providerOptionsContainer.innerHTML = "";
+
+                // Add "All providers" option first
+                let optionsHTML = createOptionHTML(
+                    "provider",
+                    "All providers",
+                    "All providers",
+                    "All providers",
+                );
+
+                // Add individual providers
+                providers.forEach((provider) => {
+                    optionsHTML += createOptionHTML(
+                        "provider",
+                        provider.value,
+                        provider.value,
+                        provider.value,
+                    );
+                });
+
+                providerOptionsContainer.innerHTML = optionsHTML;
+                step3.classList.add("active");
+                console.log("Provider options populated");
+            }
+
+            function handleSelection(event) {
+                console.log(
+                    "Selection changed:",
+                    event.target.name,
+                    event.target.value,
+                );
+                const input = event.target;
+                if (!input.matches(".option-input")) return;
+
+                const stepDiv = input.closest(".question-step");
+                if (!stepDiv) return;
+                const stepId = stepDiv.id;
+                console.log("Step ID:", stepId);
+
+                hideResults();
+
+                if (stepId === "step1") {
+                    selections.category = input.value;
+                    selections.lifeEvent = null;
+                    selections.provider = null;
+                    clearRadioSelection("lifeEvent");
+                    clearRadioSelection("provider");
+                    step2.classList.remove("active");
+                    lifeEventOptionsContainer.innerHTML = "";
+                    step3.classList.remove("active");
+                    providerOptionsContainer.innerHTML = "";
+                    showResultsBtn.style.display = "none";
+                    populateLifeEventOptions(selections.category);
+
+                    setTimeout(() => {
+                        if (step2.classList.contains("active")) {
+                            step2.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                            });
+                        }
+                    }, 100);
+                } else if (stepId === "step2") {
+                    selections.lifeEvent = input.value;
+                    selections.provider = null;
+                    clearRadioSelection("provider");
+                    step3.classList.remove("active");
+                    providerOptionsContainer.innerHTML = "";
+                    showResultsBtn.style.display = "none";
+                    populateProviderOptions(
+                        selections.category,
+                        selections.lifeEvent,
+                    );
+
+                    setTimeout(() => {
+                        if (step3.classList.contains("active")) {
+                            step3.scrollIntoView({
+                                behavior: "smooth",
+                                block: "start",
+                            });
+                        }
+                    }, 100);
+                } else if (stepId === "step3") {
+                    selections.provider = input.value;
+                    updateResultsButton();
+
+                    setTimeout(() => {
+                        showResultsBtn.scrollIntoView({
+                            behavior: "smooth",
+                            block: "center",
+                        });
+                    }, 100);
                 }
             }
-            
-            step1.classList.add('active');
-            console.log('State options populated successfully');
-        }
 
-        async function populateStageOptions(selectedState) {
-            console.log('Populating stage options for state:', selectedState);
-            
-            if (!facetsData || !facetsData.stage) {
-                console.warn('No stage facets data available, using defaults');
-                // Use default stages
-                const defaultStages = [
-                    { value: "Before your baby arrives" },
-                    { value: "When your baby arrives" },
-                    { value: "As your baby grows" }
-                ];
-                
-                stageOptionsContainer.innerHTML = ''; 
-                let optionsHTML = '';
-                defaultStages.forEach(stage => {
-                    optionsHTML += createOptionHTML('stage', stage.value, stage.value, stage.value);
-                });
-                stageOptionsContainer.innerHTML = optionsHTML;
-                step2.classList.add('active');
-                return;
-            }
-            
-            const stages = facetsData.stage;
-            
-            stageOptionsContainer.innerHTML = ''; 
-            if (stages.length === 0) {
-                step2.classList.remove('active');
-                return;
-            }
-            
-            const stageOrder = ["Before your baby arrives", "When your baby arrives", "As your baby grows"];
-            const sortedStages = stages.sort((a, b) => {
-                const indexA = stageOrder.indexOf(a.value);
-                const indexB = stageOrder.indexOf(b.value);
-                if (indexA === -1 && indexB === -1) return 0;
-                if (indexA === -1) return 1;
-                if (indexB === -1) return -1;
-                return indexA - indexB;
-            });
-            
-            let optionsHTML = '';
-            sortedStages.forEach(stage => {
-                optionsHTML += createOptionHTML('stage', stage.value, stage.value, stage.value);
-            });
-            stageOptionsContainer.innerHTML = optionsHTML;
-            step2.classList.add('active');
-            console.log('Stage options populated');
-        }
-
-        async function populateStageVariantOptions(selectedState, selectedStage) {
-            console.log('Populating stage variant options for:', selectedState, selectedStage);
-            
-            if (!facetsData || !facetsData.stage_variant) {
-                console.warn('No stage variant facets data available, using defaults');
-                // Use default with just "No"
-                selections.stageVariant = 'No';
-                step3.classList.remove('active'); 
-                updateResultsButton();
-                return;
-            }
-            
-            const variants = facetsData.stage_variant;
-            
-            stageVariantOptionsContainer.innerHTML = '';
-            const hasOnlyNo = variants.length === 0 || (variants.length === 1 && variants[0].value === 'No');
-
-            if (hasOnlyNo) {
-                selections.stageVariant = 'No';
-                step3.classList.remove('active'); 
-                updateResultsButton();
-                return;
-            }
-            
-            const sortedVariants = variants.sort((a, b) => {
-                if (a.value === 'No') return -1; 
-                if (b.value === 'No') return 1;
-                return a.value.localeCompare(b.value);
-            });
-            
-            let optionsHTML = '';
-            sortedVariants.forEach(variant => {
-                optionsHTML += createOptionHTML('stageVariant', variant.value, variant.value, variant.value);
-            });
-            stageVariantOptionsContainer.innerHTML = optionsHTML;
-            step3.classList.add('active');
-            console.log('Stage variant options populated');
-        }
-
-        function handleSelection(event) {
-            console.log('Selection changed:', event.target.name, event.target.value);
-            const input = event.target;
-            if (!input.matches('.option-input')) return;
-
-            const stepDiv = input.closest('.question-step');
-            if (!stepDiv) return;
-            const stepId = stepDiv.id;
-            console.log('Step ID:', stepId);
-
-            hideResults(); 
-
-            if (stepId === 'step1') {
-                selections.state = input.value;
-                selections.stage = null; selections.stageVariant = null;
-                clearRadioSelection('stage'); clearRadioSelection('stageVariant');
-                step2.classList.remove('active'); stageOptionsContainer.innerHTML = '';
-                step3.classList.remove('active'); stageVariantOptionsContainer.innerHTML = '';
-                showResultsBtn.style.display = 'none';
-                populateStageOptions(selections.state);
-                
-                setTimeout(() => {
-                    if (step2.classList.contains('active')) {
-                        step2.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }
-                }, 100);
-                
-            } else if (stepId === 'step2') {
-                selections.stage = input.value;
-                selections.stageVariant = null;
-                clearRadioSelection('stageVariant');
-                step3.classList.remove('active'); stageVariantOptionsContainer.innerHTML = '';
-                showResultsBtn.style.display = 'none';
-                populateStageVariantOptions(selections.state, selections.stage);
-                
-                setTimeout(() => {
-                    if (step3.classList.contains('active')) {
-                        step3.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    } else {
-                        showResultsBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 100);
-                
-            } else if (stepId === 'step3') {
-                selections.stageVariant = input.value;
-                updateResultsButton();
-                
-                setTimeout(() => {
-                    showResultsBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                }, 100);
-            }
-        }
-
-        function clearRadioSelection(name) {
-             document.querySelectorAll(`input[name="${name}"]`).forEach(rb => rb.checked = false);
-        }
-
-        async function filterResults() {
-            if (selections.state === null || selections.stage === null || selections.stageVariant === null) {
-                return [];
+            function clearRadioSelection(name) {
+                document
+                    .querySelectorAll(`input[name="${name}"]`)
+                    .forEach((rb) => (rb.checked = false));
             }
 
-            // Build search parameters
-            const searchParams = {
-                state: selections.state,
-                stage: selections.stage,
-                stage_variant: selections.stageVariant
-            };
+            async function filterResults() {
+                if (
+                    selections.category === null ||
+                    selections.lifeEvent === null ||
+                    selections.provider === null
+                ) {
+                    return [];
+                }
 
-            // Fetch from API
-            const hits = await searchFragments(searchParams);
-            
-            // Transform results to match original structure
-            allResults = transformAPIResults(hits);
-            return allResults;
-        }
+                // Build search parameters
+                const searchParams = {
+                    category: selections.category,
+                    life_event: selections.lifeEvent,
+                };
 
-        async function updateResultsButton() {
-            if (selections.state === null || selections.stage === null || selections.stageVariant === null) {
-                showResultsBtn.style.display = 'none';
-                return;
+                // Only add provider filter if not "All providers"
+                if (selections.provider !== "All providers") {
+                    searchParams.provider = selections.provider;
+                }
+
+                // Fetch from API
+                const hits = await searchFragments(searchParams);
+
+                // Transform results to match original structure
+                allResults = transformAPIResults(hits);
+                return allResults;
             }
-            
-            showResultsBtn.disabled = true;
-            showResultsBtn.textContent = 'Checking...';
-            showResultsBtn.style.display = 'inline-block';
-            
-            const filtered = await filterResults();
-            const count = filtered.length;
-            showResultsBtn.textContent = `Show ${count} result${count !== 1 ? 's' : ''}`;
-            showResultsBtn.disabled = count === 0;
-        }
 
-        async function displayFinalResults() {
-            resultsAccordion.innerHTML = '<div class="api-loading"><i class="bi bi-arrow-clockwise"></i> Loading results...</div>';
-            resultsArea.style.display = 'block';
-            
-            const filteredItems = await filterResults();
-            const userCompletedTasks = loadCompletedTasks().map(String);
+            async function updateResultsButton() {
+                if (
+                    selections.category === null ||
+                    selections.lifeEvent === null ||
+                    selections.provider === null
+                ) {
+                    showResultsBtn.style.display = "none";
+                    return;
+                }
 
-            resultsCount.innerHTML = `<p>Found ${filteredItems.length} checklist item${filteredItems.length !== 1 ? 's' : ''} based on your selections.</p>`;
-            resultsAccordion.innerHTML = '';
+                showResultsBtn.disabled = true;
+                showResultsBtn.textContent = "Checking...";
+                showResultsBtn.style.display = "inline-block";
 
-            if (filteredItems.length === 0) {
-                resultsAccordion.innerHTML = '<div class="alert alert-warning">No checklist items found matching your selections. Try changing your options or starting over.</div>';
-                overallProgressContainer.style.display = 'none';
-                exportControls.style.display = 'none';
-            } else {
-                const groupedByActivity = filteredItems.reduce((acc, item) => {
-                    if (!item || typeof item !== 'object') return acc;
-                    const activity = item.activity || 'Other';
-                    if (!acc[activity]) acc[activity] = [];
-                    acc[activity].push(item);
-                    return acc;
-                }, {});
+                const filtered = await filterResults();
+                const count = filtered.length;
+                showResultsBtn.textContent = `Show ${count} result${count !== 1 ? "s" : ""}`;
+                showResultsBtn.disabled = count === 0;
+            }
 
-                const activitiesWithMinOrder = Object.keys(groupedByActivity).map(activity => ({
-                    activity: activity,
-                    minOrder: groupedByActivity[activity].reduce((min, item) => Math.min(min, parseInt(item['task order'], 10) || Infinity), Infinity)
-                })).sort((a, b) => a.minOrder - b.minOrder);
-                
-                let accordionHTML = '';
-                let totalTasksInResults = 0;
-                let completedTasksInResults = 0;
+            async function displayFinalResults() {
+                resultsAccordion.innerHTML =
+                    '<div class="api-loading"><i class="bi bi-arrow-clockwise"></i> Loading results...</div>';
+                resultsArea.style.display = "block";
 
-                activitiesWithMinOrder.forEach(({ activity }, index) => {
-                    const items = groupedByActivity[activity].sort((a, b) => (parseInt(a['task order'], 10) || Infinity) - (parseInt(b['task order'], 10) || Infinity));
-                    totalTasksInResults += items.length;
-                    
-                    const tasksInGroup = items.length;
-                    const completedInGroup = items.filter(item => userCompletedTasks.includes(String(item.ID))).length;
-                    completedTasksInResults += completedInGroup;
+                const filteredItems = await filterResults();
+                const userCompletedTasks = loadCompletedTasks().map(String);
 
-                    let badgeClass = 'bg-notstarted', badgeText = 'Not started';
-                    if (tasksInGroup > 0 && completedInGroup === tasksInGroup) {
-                        badgeClass = 'bg-complete'; badgeText = 'Complete';
-                    } else if (completedInGroup > 0) {
-                        badgeClass = 'bg-inprogress'; badgeText = 'In progress';
-                    }
+                resultsCount.innerHTML = `<p>Found ${filteredItems.length} checklist item${filteredItems.length !== 1 ? "s" : ""} based on your selections.</p>`;
+                resultsAccordion.innerHTML = "";
 
-                    const accordionId = `activity-${index}`;
-                    const collapseId = `collapse-${index}`;
-                    const isFirstGroup = index === 0;
+                if (filteredItems.length === 0) {
+                    resultsAccordion.innerHTML =
+                        '<div class="alert alert-warning">No checklist items found matching your selections. Try changing your options or starting over.</div>';
+                    overallProgressContainer.style.display = "none";
+                    exportControls.style.display = "none";
+                } else {
+                    const groupedByActivity = filteredItems.reduce(
+                        (acc, item) => {
+                            if (!item || typeof item !== "object") return acc;
+                            const activity = item.activity || "Other";
+                            if (!acc[activity]) acc[activity] = [];
+                            acc[activity].push(item);
+                            return acc;
+                        },
+                        {},
+                    );
 
-                    accordionHTML += `
+                    const activitiesWithMinOrder = Object.keys(
+                        groupedByActivity,
+                    )
+                        .map((activity) => ({
+                            activity: activity,
+                            minOrder: groupedByActivity[activity].reduce(
+                                (min, item) =>
+                                    Math.min(
+                                        min,
+                                        parseInt(item["task order"], 10) ||
+                                            Infinity,
+                                    ),
+                                Infinity,
+                            ),
+                        }))
+                        .sort((a, b) => a.minOrder - b.minOrder);
+
+                    let accordionHTML = "";
+                    let totalTasksInResults = 0;
+                    let completedTasksInResults = 0;
+
+                    activitiesWithMinOrder.forEach(({ activity }, index) => {
+                        const items = groupedByActivity[activity].sort(
+                            (a, b) =>
+                                (parseInt(a["task order"], 10) || Infinity) -
+                                (parseInt(b["task order"], 10) || Infinity),
+                        );
+                        totalTasksInResults += items.length;
+
+                        const tasksInGroup = items.length;
+                        const completedInGroup = items.filter((item) =>
+                            userCompletedTasks.includes(String(item.ID)),
+                        ).length;
+                        completedTasksInResults += completedInGroup;
+
+                        let badgeClass = "bg-notstarted",
+                            badgeText = "Not started";
+                        if (
+                            tasksInGroup > 0 &&
+                            completedInGroup === tasksInGroup
+                        ) {
+                            badgeClass = "bg-complete";
+                            badgeText = "Complete";
+                        } else if (completedInGroup > 0) {
+                            badgeClass = "bg-inprogress";
+                            badgeText = "In progress";
+                        }
+
+                        const accordionId = `activity-${index}`;
+                        const collapseId = `collapse-${index}`;
+                        const isFirstGroup = index === 0;
+
+                        accordionHTML += `
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="heading-${accordionId}">
-                                <button class="accordion-button ${!isFirstGroup ? 'collapsed' : ''}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${isFirstGroup}" aria-controls="${collapseId}">
+                                <button class="accordion-button ${!isFirstGroup ? "collapsed" : ""}" type="button" data-bs-toggle="collapse" data-bs-target="#${collapseId}" aria-expanded="${isFirstGroup}" aria-controls="${collapseId}">
                                     <span class="activity-title">${activity} (${items.length})</span>
                                     <span class="badge rounded-pill ${badgeClass} ms-2">${badgeText}</span>
                                 </button>
                             </h2>
-                            <div id="${collapseId}" class="accordion-collapse collapse ${isFirstGroup ? 'show' : ''}" aria-labelledby="heading-${accordionId}" data-bs-parent="#resultsAccordion">
+                            <div id="${collapseId}" class="accordion-collapse collapse ${isFirstGroup ? "show" : ""}" aria-labelledby="heading-${accordionId}" data-bs-parent="#resultsAccordion">
                                 <div class="accordion-body p-0"><ul class="list-group list-group-flush">`;
-                    items.forEach(item => {
-                        if (!item || typeof item !== 'object' || item.ID === undefined || item.ID === null) return;
-                        const { ID, title, description, provider, url, state: itemState, content_html } = item;
-                        const stateBadge = (itemState && itemState !== 'National' && itemState !== '') ? `<span class="badge bg-secondary">${itemState}</span>` : '';
-                        const isCompleted = userCompletedTasks.includes(String(ID));
-                        
-                        // Use content_html if available, otherwise fall back to description
-                        const contentToShow = content_html ? 
-                            `<div class="fragment-content">${content_html}</div>` : 
-                            `<p class="task-description">${description || 'No description.'}</p>`;
-                        
-                        accordionHTML += `
-                            <li class="list-group-item ${isCompleted ? 'task-completed' : ''}" data-task-li-id="${ID}">
-                                <input class="form-check-input task-checkbox" type="checkbox" id="task-check-${ID}" data-task-id="${ID}" ${isCompleted ? 'checked' : ''} aria-labelledby="task-title-${ID}">
+                        items.forEach((item) => {
+                            if (
+                                !item ||
+                                typeof item !== "object" ||
+                                item.ID === undefined ||
+                                item.ID === null
+                            )
+                                return;
+                            const {
+                                ID,
+                                title,
+                                description,
+                                provider,
+                                url,
+                                state: itemState,
+                                content_html,
+                            } = item;
+                            const stateBadge =
+                                itemState &&
+                                itemState !== "National" &&
+                                itemState !== ""
+                                    ? `<span class="badge bg-secondary">${itemState}</span>`
+                                    : "";
+                            const isCompleted = userCompletedTasks.includes(
+                                String(ID),
+                            );
+
+                            // Use content_html if available, otherwise fall back to description
+                            const contentToShow = content_html
+                                ? `<div class="fragment-content">${content_html}</div>`
+                                : `<p class="task-description">${description || "No description."}</p>`;
+
+                            accordionHTML += `
+                            <li class="list-group-item ${isCompleted ? "task-completed" : ""}" data-task-li-id="${ID}">
+                                <input class="form-check-input task-checkbox" type="checkbox" id="task-check-${ID}" data-task-id="${ID}" ${isCompleted ? "checked" : ""} aria-labelledby="task-title-${ID}">
                                 <a href="${url}" target="_blank" rel="noopener noreferrer" class="task-link-wrapper">
                                     <div class="task-content-inner">
-                                        <h6 class="task-title" id="task-title-${ID}">${title || 'No Title'} ${stateBadge}</h6>
+                                        <h6 class="task-title" id="task-title-${ID}">${title || "No Title"} ${stateBadge}</h6>
                                         ${contentToShow}
-                                        <small class="text-muted task-meta">Provider: ${provider || 'N/A'}</small>
+                                        <small class="text-muted task-meta">Provider: ${provider || "N/A"}</small>
                                     </div>
                                     <i class="bi bi-box-arrow-up-right offsite-icon" aria-hidden="true"></i>
                                 </a>
                             </li>`;
+                        });
+                        accordionHTML += `</ul></div></div></div>`;
                     });
-                    accordionHTML += `</ul></div></div></div>`;
-                });
-                resultsAccordion.innerHTML = accordionHTML;
+                    resultsAccordion.innerHTML = accordionHTML;
 
-                const progressPercent = totalTasksInResults > 0 ? (completedTasksInResults / totalTasksInResults) * 100 : 0;
+                    const progressPercent =
+                        totalTasksInResults > 0
+                            ? (completedTasksInResults / totalTasksInResults) *
+                              100
+                            : 0;
+                    overallProgressText.textContent = `${completedTasksInResults} of ${totalTasksInResults} steps complete`;
+                    overallProgressBar.style.width = `${progressPercent}%`;
+                    overallProgressBar.setAttribute(
+                        "aria-valuenow",
+                        progressPercent,
+                    );
+                    overallProgressContainer.style.display = "block";
+                    exportControls.style.display = "block";
+                }
+                resultsArea.scrollIntoView({
+                    behavior: "smooth",
+                    block: "start",
+                });
+            }
+
+            function updateAccordionBadge(taskId) {
+                const listItem = document.querySelector(
+                    `[data-task-li-id="${String(taskId)}"]`,
+                );
+                if (!listItem) return;
+                const accordionItem = listItem.closest(".accordion-item");
+                if (!accordionItem) return;
+
+                const accordionButton =
+                    accordionItem.querySelector(".accordion-button");
+                const badge = accordionButton.querySelector(".badge");
+                const listItems = Array.from(
+                    accordionItem.querySelectorAll(".list-group-item"),
+                );
+
+                const tasksInGroup = listItems.length;
+                const completedInGroup = listItems.filter((li) =>
+                    li.classList.contains("task-completed"),
+                ).length;
+
+                let badgeClass = "bg-notstarted",
+                    badgeText = "Not started";
+                if (tasksInGroup > 0 && completedInGroup === tasksInGroup) {
+                    badgeClass = "bg-complete";
+                    badgeText = "Complete";
+                } else if (completedInGroup > 0) {
+                    badgeClass = "bg-inprogress";
+                    badgeText = "In progress";
+                }
+                badge.className = `badge rounded-pill ${badgeClass} ms-2`;
+                badge.textContent = badgeText;
+
+                const allCheckboxes = Array.from(
+                    document.querySelectorAll(
+                        "#resultsAccordion .task-checkbox",
+                    ),
+                );
+                const totalTasksInResults = allCheckboxes.length;
+                const completedTasksInResults = allCheckboxes.filter(
+                    (cb) => cb.checked,
+                ).length;
+                const progressPercent =
+                    totalTasksInResults > 0
+                        ? (completedTasksInResults / totalTasksInResults) * 100
+                        : 0;
+
                 overallProgressText.textContent = `${completedTasksInResults} of ${totalTasksInResults} steps complete`;
                 overallProgressBar.style.width = `${progressPercent}%`;
-                overallProgressBar.setAttribute('aria-valuenow', progressPercent);
-                overallProgressContainer.style.display = 'block';
-                exportControls.style.display = 'block';
+                overallProgressBar.setAttribute(
+                    "aria-valuenow",
+                    progressPercent,
+                );
             }
-            resultsArea.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
-        
-        function updateAccordionBadge(taskId) {
-            const listItem = document.querySelector(`[data-task-li-id="${String(taskId)}"]`);
-            if (!listItem) return;
-            const accordionItem = listItem.closest('.accordion-item');
-            if (!accordionItem) return;
 
-            const accordionButton = accordionItem.querySelector('.accordion-button');
-            const badge = accordionButton.querySelector('.badge');
-            const listItems = Array.from(accordionItem.querySelectorAll('.list-group-item'));
-            
-            const tasksInGroup = listItems.length;
-            const completedInGroup = listItems.filter(li => li.classList.contains('task-completed')).length;
+            function handleCheckboxChange(event) {
+                const checkbox = event.target;
+                const taskId = String(checkbox.dataset.taskId);
+                const isChecked = checkbox.checked;
+                const listItem = checkbox.closest("li");
 
-            let badgeClass = 'bg-notstarted', badgeText = 'Not started';
-            if (tasksInGroup > 0 && completedInGroup === tasksInGroup) {
-                badgeClass = 'bg-complete'; badgeText = 'Complete';
-            } else if (completedInGroup > 0) {
-                badgeClass = 'bg-inprogress'; badgeText = 'In progress';
+                if (!taskId || !listItem) return;
+
+                let completedTasks = loadCompletedTasks().map(String);
+
+                if (isChecked) {
+                    if (!completedTasks.includes(taskId))
+                        completedTasks.push(taskId);
+                    listItem.classList.add("task-completed");
+                } else {
+                    completedTasks = completedTasks.filter(
+                        (id) => id !== taskId,
+                    );
+                    listItem.classList.remove("task-completed");
+                }
+                saveCompletedTasks(completedTasks);
+                updateAccordionBadge(taskId);
             }
-            badge.className = `badge rounded-pill ${badgeClass} ms-2`;
-            badge.textContent = badgeText;
 
-            const allCheckboxes = Array.from(document.querySelectorAll('#resultsAccordion .task-checkbox'));
-            const totalTasksInResults = allCheckboxes.length;
-            const completedTasksInResults = allCheckboxes.filter(cb => cb.checked).length;
-            const progressPercent = totalTasksInResults > 0 ? (completedTasksInResults / totalTasksInResults) * 100 : 0;
-            
-            overallProgressText.textContent = `${completedTasksInResults} of ${totalTasksInResults} steps complete`;
-            overallProgressBar.style.width = `${progressPercent}%`;
-            overallProgressBar.setAttribute('aria-valuenow', progressPercent);
-        }
-
-        function handleCheckboxChange(event) {
-            const checkbox = event.target;
-            const taskId = String(checkbox.dataset.taskId);
-            const isChecked = checkbox.checked;
-            const listItem = checkbox.closest('li'); 
-
-            if (!taskId || !listItem) return;
-
-            let completedTasks = loadCompletedTasks().map(String);
-
-            if (isChecked) {
-                if (!completedTasks.includes(taskId)) completedTasks.push(taskId);
-                listItem.classList.add('task-completed');
-            } else {
-                completedTasks = completedTasks.filter(id => id !== taskId);
-                listItem.classList.remove('task-completed');
+            function hideResults() {
+                resultsArea.style.display = "none";
+                resultsAccordion.innerHTML = "";
+                resultsCount.innerHTML = "";
+                overallProgressContainer.style.display = "none";
+                exportControls.style.display = "none";
             }
-            saveCompletedTasks(completedTasks);
-            updateAccordionBadge(taskId);
-        }
 
-        function hideResults() {
-             resultsArea.style.display = 'none';
-             resultsAccordion.innerHTML = '';
-             resultsCount.innerHTML = '';
-             overallProgressContainer.style.display = 'none';
-             exportControls.style.display = 'none';
-        }
+            function resetGuide() {
+                selections = {
+                    category: null,
+                    lifeEvent: null,
+                    provider: null,
+                };
+                clearRadioSelection("category");
+                clearRadioSelection("lifeEvent");
+                clearRadioSelection("provider");
+                step2.classList.remove("active");
+                lifeEventOptionsContainer.innerHTML = "";
+                step3.classList.remove("active");
+                providerOptionsContainer.innerHTML = "";
+                showResultsBtn.style.display = "none";
+                hideResults();
+                step1.classList.add("active");
+                const formTop = guidedForm.offsetTop,
+                    headerHeight =
+                        document.querySelector(".mygov-header")?.offsetHeight ||
+                        0;
+                window.scrollTo({
+                    top: formTop - headerHeight - 20,
+                    behavior: "smooth",
+                });
+            }
 
-         function resetGuide() {
-             selections = { state: null, stage: null, stageVariant: null };
-             clearRadioSelection('state');
-             clearRadioSelection('stage');
-             clearRadioSelection('stageVariant');
-             step2.classList.remove('active'); stageOptionsContainer.innerHTML = '';
-             step3.classList.remove('active'); stageVariantOptionsContainer.innerHTML = '';
-             showResultsBtn.style.display = 'none';
-             hideResults();
-             step1.classList.add('active'); 
-             const formTop = guidedForm.offsetTop, headerHeight = document.querySelector('.mygov-header')?.offsetHeight || 0;
-             window.scrollTo({ top: formTop - headerHeight - 20 , behavior: 'smooth' });
-         }
+            function generateHtmlForDocx() {
+                const filteredItems = allResults;
+                if (filteredItems.length === 0) return null;
 
-        function generateHtmlForDocx() {
-            const filteredItems = allResults;
-            if (filteredItems.length === 0) return null;
-
-            let htmlString = `
+                let htmlString = `
                 <!DOCTYPE html>
                 <html lang="en">
                 <head>
                     <meta charset="UTF-8">
-                    <title>Your Baby Checklist</title>
+                    <title>Your Checklist</title>
                     <style>
                         body { font-family: Calibri, Arial, sans-serif; font-size: 11pt; }
                         h1 { font-size: 18pt; text-align: center; margin-bottom: 20px; }
@@ -1548,181 +2008,222 @@
                     </style>
                 </head>
                 <body>
-                    <h1>Your Baby Checklist</h1>
+                    <h1>Your Checklist</h1>
             `;
 
-            const groupedByActivity = filteredItems.reduce((acc, item) => {
-                const activity = item.activity || 'Other';
-                if (!acc[activity]) acc[activity] = [];
-                acc[activity].push(item);
-                return acc;
-            }, {});
+                const groupedByActivity = filteredItems.reduce((acc, item) => {
+                    const activity = item.activity || "Other";
+                    if (!acc[activity]) acc[activity] = [];
+                    acc[activity].push(item);
+                    return acc;
+                }, {});
 
-            const activitiesWithMinOrder = Object.keys(groupedByActivity).map(activity => ({
-                activity: activity,
-                minOrder: groupedByActivity[activity].reduce((min, item) => Math.min(min, parseInt(item['task order'], 10) || Infinity), Infinity)
-            })).sort((a, b) => a.minOrder - b.minOrder);
+                const activitiesWithMinOrder = Object.keys(groupedByActivity)
+                    .map((activity) => ({
+                        activity: activity,
+                        minOrder: groupedByActivity[activity].reduce(
+                            (min, item) =>
+                                Math.min(
+                                    min,
+                                    parseInt(item["task order"], 10) ||
+                                        Infinity,
+                                ),
+                            Infinity,
+                        ),
+                    }))
+                    .sort((a, b) => a.minOrder - b.minOrder);
 
-            activitiesWithMinOrder.forEach(({ activity }) => {
-                htmlString += `<h2>${activity}</h2>`;
-                const items = groupedByActivity[activity].sort((a, b) => (parseInt(a['task order'], 10) || Infinity) - (parseInt(b['task order'], 10) || Infinity));
-                
-                htmlString += "<ul>";
-                items.forEach(item => {
-                    const title = item.title || 'No Title';
-                    const description = item.description || 'No description available.';
-                    const provider = item.provider || 'N/A';
-                    const url = item.url || '#';
-                    const s = (str) => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+                activitiesWithMinOrder.forEach(({ activity }) => {
+                    htmlString += `<h2>${activity}</h2>`;
+                    const items = groupedByActivity[activity].sort(
+                        (a, b) =>
+                            (parseInt(a["task order"], 10) || Infinity) -
+                            (parseInt(b["task order"], 10) || Infinity),
+                    );
 
-                    htmlString += "<li>";
-                    htmlString += `<strong>${s(title)}</strong><br>`;
-                    htmlString += `${s(description)}<br>`;
-                    htmlString += `<small>Provider: ${s(provider)}</small><br>`;
-                    if (url && url !== '#') {
-                        htmlString += `<small>URL: <a href="${s(url)}">${s(url)}</a></small>`;
-                    }
-                    htmlString += "</li>";
+                    htmlString += "<ul>";
+                    items.forEach((item) => {
+                        const title = item.title || "No Title";
+                        const description =
+                            item.description || "No description available.";
+                        const provider = item.provider || "N/A";
+                        const url = item.url || "#";
+                        const s = (str) =>
+                            String(str)
+                                .replace(/&/g, "&amp;")
+                                .replace(/</g, "&lt;")
+                                .replace(/>/g, "&gt;")
+                                .replace(/"/g, "&quot;");
+
+                        htmlString += "<li>";
+                        htmlString += `<strong>${s(title)}</strong><br>`;
+                        htmlString += `${s(description)}<br>`;
+                        htmlString += `<small>Provider: ${s(provider)}</small><br>`;
+                        if (url && url !== "#") {
+                            htmlString += `<small>URL: <a href="${s(url)}">${s(url)}</a></small>`;
+                        }
+                        htmlString += "</li>";
+                    });
+                    htmlString += "</ul>";
                 });
-                htmlString += "</ul>";
-            });
 
-            htmlString += "</body></html>";
-            return htmlString;
-        }
-
-        document.addEventListener('DOMContentLoaded', async () => {
-            console.log('Page loaded, initializing...');
-            
-            try {
-                await loadData();
-                console.log('Data loaded successfully');
-                await populateStateOptions();
-                console.log('State options populated');
-            } catch (error) {
-                console.error('Initialization error:', error);
-                showError('Failed to initialize. Please check if the API is running on http://localhost:3000');
+                htmlString += "</body></html>";
+                return htmlString;
             }
 
-            guidedForm.addEventListener('change', handleSelection);
-            showResultsBtn.addEventListener('click', displayFinalResults);
-            startOverBtn.addEventListener('click', resetGuide);
+            document.addEventListener("DOMContentLoaded", async () => {
+                console.log("Page loaded, initializing...");
 
-            resultsAccordion.addEventListener('change', (event) => {
-                 if (event.target.matches('.task-checkbox')) {
-                     handleCheckboxChange(event);
-                 }
-            });
-            
-            resultsAccordion.addEventListener('click', e => { 
-                 const wrapper = e.target.closest('.task-link-wrapper');
-                 if (wrapper) {
-                     const li = wrapper.closest('li');
-                     const cb = li ? li.querySelector('.task-checkbox') : null;
-                     if (cb && cb !== e.target && !e.target.closest('a,.offsite-icon,input.task-checkbox')) {
-                         cb.checked = !cb.checked;
-                         handleCheckboxChange({ target: cb }); 
-                     }
-                 }
-            });
-            
-            if (printBtn) {
-                printBtn.addEventListener('click', () => {
-                    window.print();
-                });
-            }
+                try {
+                    await loadData();
+                    console.log("Data loaded successfully");
+                    await populateCategoryOptions();
+                    console.log("Category options populated");
+                } catch (error) {
+                    console.error("Initialization error:", error);
+                    showError(
+                        "Failed to initialize. Please check if the API is running on http://localhost:3000",
+                    );
+                }
 
-            if (downloadPdfBtn) {
-                downloadPdfBtn.addEventListener('click', () => {
-                    console.log("Download PDF (Print) button clicked");
-                    window.print();
-                });
-            }
+                guidedForm.addEventListener("change", handleSelection);
+                showResultsBtn.addEventListener("click", displayFinalResults);
+                startOverBtn.addEventListener("click", resetGuide);
 
-            if (downloadDocxBtn) {
-                downloadDocxBtn.addEventListener('click', async () => {
-                    console.log("Download DOCX button clicked");
-                    const htmlContent = generateHtmlForDocx();
-                    if (!htmlContent) {
-                        alert("No content to download. Please generate a checklist first.");
-                        return;
-                    }
-
-                    try {
-                        const fileBuffer = await htmlToDocx.asBlob(htmlContent);
-                        saveAs(fileBuffer, 'YourBabyChecklist.docx');
-                        console.log("DOCX generation initiated.");
-                    } catch (error) {
-                        console.error("Error generating DOCX:", error);
-                        alert("Sorry, there was an error generating the DOCX file.");
+                resultsAccordion.addEventListener("change", (event) => {
+                    if (event.target.matches(".task-checkbox")) {
+                        handleCheckboxChange(event);
                     }
                 });
-            }
 
-            const pageUrl = window.location.href;
-            const shareTitle = document.title;
+                resultsAccordion.addEventListener("click", (e) => {
+                    const wrapper = e.target.closest(".task-link-wrapper");
+                    if (wrapper) {
+                        const li = wrapper.closest("li");
+                        const cb = li
+                            ? li.querySelector(".task-checkbox")
+                            : null;
+                        if (
+                            cb &&
+                            cb !== e.target &&
+                            !e.target.closest(
+                                "a,.offsite-icon,input.task-checkbox",
+                            )
+                        ) {
+                            cb.checked = !cb.checked;
+                            handleCheckboxChange({ target: cb });
+                        }
+                    }
+                });
 
-            if (shareTwitter) {
-                shareTwitter.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(shareTitle)}`;
-                    window.open(twitterUrl, '_blank');
-                });
-            }
-            if (shareBluesky) {
-                shareBluesky.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const blueskyUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(shareTitle + " " + pageUrl)}`;
-                    window.open(blueskyUrl, '_blank');
-                });
-            }
-            if (shareFacebook) {
-                shareFacebook.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
-                    window.open(facebookUrl, '_blank');
-                });
-            }
-            if (shareThreads) {
-                shareThreads.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const threadsText = `${shareTitle} - Check it out: ${pageUrl}`;
-                    const threadsUrl = `https://www.threads.net/?text=${encodeURIComponent(threadsText)}`;
-                    window.open(threadsUrl, '_blank');
-                });
-            }
-            if (shareEmail) {
-                shareEmail.addEventListener('click', (e) => {
-                    e.preventDefault();
-                    const mailtoLink = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent("Check out this checklist: " + pageUrl)}`;
-                    window.location.href = mailtoLink;
-                });
-            }
+                if (printBtn) {
+                    printBtn.addEventListener("click", () => {
+                        window.print();
+                    });
+                }
 
-            if (pinBtn) {
-                pinBtn.addEventListener('click', () => {
-                    if (pinNotification) {
-                        pinNotification.classList.add('show');
-                        pinNotification.style.display = 'block';
+                if (downloadPdfBtn) {
+                    downloadPdfBtn.addEventListener("click", () => {
+                        console.log("Download PDF (Print) button clicked");
+                        window.print();
+                    });
+                }
 
-                        setTimeout(() => {
-                            if (pinNotification.classList.contains('show')) {
-                                const bsAlert = bootstrap.Alert.getInstance(pinNotification);
-                                if (bsAlert) {
-                                    bsAlert.close();
-                                } else { 
-                                    pinNotification.classList.remove('show');
-                                    pinNotification.style.display = 'none';
+                if (downloadDocxBtn) {
+                    downloadDocxBtn.addEventListener("click", async () => {
+                        console.log("Download DOCX button clicked");
+                        const htmlContent = generateHtmlForDocx();
+                        if (!htmlContent) {
+                            alert(
+                                "No content to download. Please generate a checklist first.",
+                            );
+                            return;
+                        }
+
+                        try {
+                            const fileBuffer =
+                                await htmlToDocx.asBlob(htmlContent);
+                            saveAs(fileBuffer, "YourChecklist.docx");
+                            console.log("DOCX generation initiated.");
+                        } catch (error) {
+                            console.error("Error generating DOCX:", error);
+                            alert(
+                                "Sorry, there was an error generating the DOCX file.",
+                            );
+                        }
+                    });
+                }
+
+                const pageUrl = window.location.href;
+                const shareTitle = document.title;
+
+                if (shareTwitter) {
+                    shareTwitter.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const twitterUrl = `https://twitter.com/intent/tweet?url=${encodeURIComponent(pageUrl)}&text=${encodeURIComponent(shareTitle)}`;
+                        window.open(twitterUrl, "_blank");
+                    });
+                }
+                if (shareBluesky) {
+                    shareBluesky.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const blueskyUrl = `https://bsky.app/intent/compose?text=${encodeURIComponent(shareTitle + " " + pageUrl)}`;
+                        window.open(blueskyUrl, "_blank");
+                    });
+                }
+                if (shareFacebook) {
+                    shareFacebook.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const facebookUrl = `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(pageUrl)}`;
+                        window.open(facebookUrl, "_blank");
+                    });
+                }
+                if (shareThreads) {
+                    shareThreads.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const threadsText = `${shareTitle} - Check it out: ${pageUrl}`;
+                        const threadsUrl = `https://www.threads.net/?text=${encodeURIComponent(threadsText)}`;
+                        window.open(threadsUrl, "_blank");
+                    });
+                }
+                if (shareEmail) {
+                    shareEmail.addEventListener("click", (e) => {
+                        e.preventDefault();
+                        const mailtoLink = `mailto:?subject=${encodeURIComponent(shareTitle)}&body=${encodeURIComponent("Check out this checklist: " + pageUrl)}`;
+                        window.location.href = mailtoLink;
+                    });
+                }
+
+                if (pinBtn) {
+                    pinBtn.addEventListener("click", () => {
+                        if (pinNotification) {
+                            pinNotification.classList.add("show");
+                            pinNotification.style.display = "block";
+
+                            setTimeout(() => {
+                                if (
+                                    pinNotification.classList.contains("show")
+                                ) {
+                                    const bsAlert =
+                                        bootstrap.Alert.getInstance(
+                                            pinNotification,
+                                        );
+                                    if (bsAlert) {
+                                        bsAlert.close();
+                                    } else {
+                                        pinNotification.classList.remove(
+                                            "show",
+                                        );
+                                        pinNotification.style.display = "none";
+                                    }
                                 }
-                            }
-                        }, 7000);
-                    }
-                    console.log("Pin to dashboard action triggered.");
-                });
-            }
-        });
-             
-    </script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
+                            }, 7000);
+                        }
+                        console.log("Pin to dashboard action triggered.");
+                    });
+                }
+            });
+        </script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    </body>
 </html>

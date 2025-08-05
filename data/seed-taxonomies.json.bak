@@ -1,0 +1,89 @@
+{
+  "lifeEvents": {
+    "Having a baby": {
+      "keywords": ["pregnancy", "pregnant", "baby", "birth", "maternity", "paternity", "newborn", "expecting", "prenatal", "postnatal", "midwife", "obstetric", "parental leave", "baby bonus", "childcare"],
+      "relatedCategories": ["Raising Kids", "Health and Disability"],
+      "stages": {
+        "Before your baby arrives": ["pregnancy", "expecting", "prenatal", "before birth", "antenatal", "conception", "fertility"],
+        "When your baby arrives": ["birth", "newborn", "hospital", "delivery", "labour", "cesarean", "birthing"],
+        "As your baby grows": ["infant", "toddler", "child care", "immunisation", "baby health", "development", "milestone"]
+      }
+    },
+    "Work": {
+      "keywords": ["employment", "job", "career", "workplace", "employer", "employee", "salary", "wages", "redundancy", "unemployment", "jobseeker", "recruitment", "resume"],
+      "relatedCategories": ["Education", "Money and Finance"],
+      "stages": {}
+    },
+    "Ageing": {
+      "keywords": ["retirement", "pension", "senior", "elderly", "aged care", "super", "aged", "older", "retiree", "superannuation", "retirement village"],
+      "relatedCategories": ["Health and Disability", "Living Arrangements"],
+      "stages": {}
+    },
+    "Education": {
+      "keywords": ["school", "university", "tafe", "training", "student", "study", "qualification", "degree", "apprentice", "course", "scholarship", "hecs"],
+      "relatedCategories": ["Work", "Raising Kids"],
+      "stages": {}
+    },
+    "Health and Disability": {
+      "keywords": ["health", "medical", "medicare", "disability", "ndis", "mental health", "hospital", "doctor", "treatment", "illness", "chronic", "therapy", "diagnosis"],
+      "relatedCategories": ["Ageing", "Money and Finance"],
+      "stages": {}
+    },
+    "Raising Kids": {
+      "keywords": ["child", "children", "parenting", "family", "school", "childcare", "youth", "teenager", "adolescent", "custody", "child support"],
+      "relatedCategories": ["Education", "Having a baby"],
+      "stages": {}
+    }
+  },
+  
+  "categories": {
+    "Health and Disability": ["health", "medical", "medicare", "disability", "ndis", "mental health", "hospital", "doctor", "treatment", "pharmaceutical", "therapy", "rehabilitation"],
+    "Raising Kids": ["child", "children", "parenting", "family", "school", "childcare", "youth", "playground", "sport", "activities"],
+    "Money and Finance": ["payment", "benefit", "tax", "income", "financial", "money", "debt", "loan", "centrelink", "allowance", "subsidy", "grant"],
+    "Living Arrangements": ["housing", "rent", "home", "accommodation", "homeless", "tenant", "mortgage", "property", "real estate", "public housing"],
+    "Education": ["learning", "school", "university", "tafe", "course", "training", "skills", "qualification", "certificate", "diploma"],
+    "Work": ["employment", "job", "career", "business", "workplace", "industrial", "fair work", "leave", "safety", "compensation"]
+  },
+  
+  "providers": {
+    "Federal Government": {
+      "Services Australia": ["centrelink", "medicare", "child support", "services australia", "mygov", "express plus"],
+      "Australian Taxation Office": ["tax", "ato", "gst", "tfn", "abn", "bas", "tax return"],
+      "Department of Health": ["health.gov.au", "immunisation", "aged care", "mental health", "pbs", "health services"],
+      "Department of Education": ["education.gov.au", "skills", "training", "schools", "tertiary", "vocational"],
+      "Department of Social Services": ["dss.gov.au", "welfare", "family", "community", "disability", "carers"],
+      "Fair Work": ["fairwork", "workplace", "employment", "industrial relations", "awards", "enterprise agreement"]
+    },
+    "State Government": {
+      "NSW": ["nsw.gov.au", "service.nsw", "new south wales"],
+      "VIC": ["vic.gov.au", "service.vic", "victoria", "melbourne"],
+      "QLD": ["qld.gov.au", "queensland", "brisbane"],
+      "WA": ["wa.gov.au", "western australia", "perth"],
+      "SA": ["sa.gov.au", "south australia", "adelaide"],
+      "TAS": ["tas.gov.au", "tasmania", "hobart"],
+      "ACT": ["act.gov.au", "canberra", "australian capital territory"],
+      "NT": ["nt.gov.au", "northern territory", "darwin"]
+    },
+    "Non-Government": {
+      "Raising Children Network": ["raisingchildren.net.au", "parenting", "child development"],
+      "Beyond Blue": ["beyondblue", "mental health", "depression", "anxiety"],
+      "Lifeline": ["lifeline", "crisis support", "suicide prevention"],
+      "Red Cross": ["redcross", "emergency", "blood donation", "humanitarian"],
+      "Salvation Army": ["salvos", "charity", "welfare", "emergency relief"]
+    }
+  },
+  
+  "stageVariants": {
+    "Having a baby": {
+      "Adopting a child": ["adoption", "adopt", "foster", "permanent care", "intercountry adoption"],
+      "Surrogacy": ["surrogate", "surrogacy", "altruistic", "gestational carrier"],
+      "IVF": ["ivf", "fertility", "assisted reproduction", "art", "icsi", "embryo"],
+      "Multiple births": ["twins", "triplets", "multiple", "multiples", "twin pregnancy"],
+      "Premature birth": ["premature", "preterm", "nicu", "premmie", "early birth"],
+      "Stillborn baby": ["stillborn", "stillbirth", "loss", "bereavement", "miscarriage"],
+      "Single parent": ["single parent", "sole parent", "single mother", "single father"],
+      "LGBTQ+ parents": ["same sex", "lgbtq", "rainbow family", "two mums", "two dads"],
+      "Disability": ["special needs", "disability", "developmental delay", "birth defect"]
+    }
+  }
+}

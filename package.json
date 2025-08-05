@@ -1,5 +1,13 @@
 {
+  "name": "jbfragmentengine",
+  "version": "1.0.0",
   "dependencies": {
+    "axios": "^1.11.0",
+    "cheerio": "^1.1.2",
+    "natural": "^8.1.0",
     "puppeteer": "^24.14.0"
+  },
+  "scripts": {
+    "harvest-stages": "node tools/harvest-stages.js"
   }
 }

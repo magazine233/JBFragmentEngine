@@ -1,0 +1,144 @@
+[
+  {
+    "lifeEvent": "Having a baby",
+    "stages": [
+      {
+        "title": "Before your baby arrives",
+        "url": "https://my.gov.au/en/services/raising-kids/having-a-baby/before-your-baby-arrives"
+      },
+      {
+        "title": "When your baby arrives",
+        "url": "https://my.gov.au/en/services/raising-kids/having-a-baby/when-your-baby-is-born"
+      },
+      {
+        "title": "As your baby grows",
+        "url": "https://my.gov.au/en/services/raising-kids/having-a-baby/as-your-baby-grows"
+      }
+    ]
+  },
+  {
+    "lifeEvent": "Work",
+    "stages": [
+      {
+        "title": "Recently unemployed",
+        "url": "https://my.gov.au/en/services/work/recently-unemployed"
+      },
+      {
+        "title": "Looking for work",
+        "url": "https://my.gov.au/en/services/work/looking-for-work"
+      },
+      {
+        "title": "Starting a job",
+        "url": "https://my.gov.au/en/services/work/starting-a-job"
+      },
+      {
+        "title": "Currently employed",
+        "url": "https://my.gov.au/en/services/work/currently-employed"
+      },
+      {
+        "title": "Returning to work",
+        "url": "https://my.gov.au/en/services/work/returning-to-work"
+      },
+      {
+        "title": "Managing the cost of living",
+        "url": "https://my.gov.au/en/services/work/managing-the-cost-of-living"
+      }
+    ]
+  },
+  {
+    "lifeEvent": "Ageing",
+    "stages": [
+      {
+        "title": "Retirement",
+        "url": "https://my.gov.au/en/services/ageing/retirement"
+      },
+      {
+        "title": "Health and safety as you get older",
+        "url": "https://my.gov.au/en/services/ageing/health-and-safety-as-you-get-older"
+      },
+      {
+        "title": "Accessing aged care services",
+        "url": "https://my.gov.au/en/services/ageing/accessing-aged-care-services"
+      },
+      {
+        "title": "Planning for end of life",
+        "url": "https://my.gov.au/en/services/ageing/planning-for-end-of-life"
+      }
+    ]
+  },
+  {
+    "lifeEvent": "Education",
+    "stages": [
+      {
+        "title": "Vocational education and training",
+        "url": "https://my.gov.au/en/services/education/vocational-education-and-training"
+      },
+      {
+        "title": "Higher education",
+        "url": "https://my.gov.au/en/services/education/higher-education"
+      },
+      {
+        "title": "Help when studying",
+        "url": "https://my.gov.au/en/services/education/help-when-studying"
+      },
+      {
+        "title": "Upgrading professional skills or qualifications",
+        "url": "https://my.gov.au/en/services/education/upgrading-professional-skills-or-qualifications"
+      },
+      {
+        "title": "Doing an apprenticeship",
+        "url": "https://my.gov.au/en/services/education/doing-an-apprenticeship"
+      }
+    ]
+  },
+  {
+    "lifeEvent": "Health and Disability",
+    "stages": [
+      {
+        "title": "Seeking medical help",
+        "url": "https://my.gov.au/en/services/health-and-disability/seeking-medical-help"
+      },
+      {
+        "title": "Being diagnosed with a medical condition or disability",
+        "url": "https://my.gov.au/en/services/health-and-disability/being-diagnosed-with-a-medical-condition-or-disability"
+      },
+      {
+        "title": "Mental health",
+        "url": "https://my.gov.au/en/services/health-and-disability/mental-health"
+      },
+      {
+        "title": "Caring for someone",
+        "url": "https://my.gov.au/en/services/health-and-disability/caring-for-someone"
+      },
+      {
+        "title": "Experiencing the death of a loved one",
+        "url": "https://my.gov.au/en/services/health-and-disability/experiencing-the-death-of-a-loved-one"
+      }
+    ]
+  },
+  {
+    "lifeEvent": "Raising Kids",
+    "stages": [
+      {
+        "title": "Having a baby",
+        "url": "https://my.gov.au/en/services/raising-kids/having-a-baby"
+      },
+      {
+        "title": "Toddlers and preschoolers",
+        "url": "https://my.gov.au/en/services/raising-kids/toddlers-and-preschoolers"
+      },
+      {
+        "title": "Primary school children",
+        "url": "https://my.gov.au/en/services/raising-kids/primary-school-children"
+      },
+      {
+        "title": "Teenagers",
+        "url": "https://my.gov.au/en/services/raising-kids/teenagers"
+      },
+      {
+        "title": "Separated parents",
+        "url": "https://my.gov.au/en/services/raising-kids/separated-parents"
+      }
+    ]
+  }
+]

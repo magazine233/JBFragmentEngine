@@ -19,25 +19,30 @@ async function extractFragment({
     .update(url + headingText + contentText)
     .digest('hex');
   
-  // Build hierarchy
+  // Build hierarchy - ENSURE ALL REQUIRED FIELDS ARE PRESENT
   const headingLevel = parseInt($heading[0].name.substring(1));
   const hierarchyLevels = {};
   
-  // Assign to appropriate hierarchy level
+  // Always ensure hierarchy_lvl0 is set
   if (headingLevel === 1) {
-    hierarchyLevels.hierarchy_lvl0 = headingText;
+    hierarchyLevels.hierarchy_lvl0 = headingText || pageTitle || 'Content';
   } else if (headingLevel === 2) {
-    hierarchyLevels.hierarchy_lvl0 = breadcrumbs[breadcrumbs.length - 1] || pageTitle;
-    hierarchyLevels.hierarchy_lvl1 = headingText;
+    hierarchyLevels.hierarchy_lvl0 = breadcrumbs[breadcrumbs.length - 1] || pageTitle || 'Content';
+    hierarchyLevels.hierarchy_lvl1 = headingText || 'Section';
   } else if (headingLevel === 3) {
-    hierarchyLevels.hierarchy_lvl0 = breadcrumbs[breadcrumbs.length - 1] || pageTitle;
-    hierarchyLevels.hierarchy_lvl1 = $heading.prevAll('h2').first().text() || '';
-    hierarchyLevels.hierarchy_lvl2 = headingText;
+    hierarchyLevels.hierarchy_lvl0 = breadcrumbs[breadcrumbs.length - 1] || pageTitle || 'Content';
+    hierarchyLevels.hierarchy_lvl1 = $heading.prevAll('h2').first().text() || 'Section';
+    hierarchyLevels.hierarchy_lvl2 = headingText || 'Subsection';
   } else {
-    hierarchyLevels.hierarchy_lvl0 = breadcrumbs[breadcrumbs.length - 1] || pageTitle;
-    hierarchyLevels.hierarchy_lvl1 = $heading.prevAll('h2').first().text() || '';
-    hierarchyLevels.hierarchy_lvl2 = $heading.prevAll('h3').first().text() || '';
-    hierarchyLevels.hierarchy_lvl3 = headingText;
+    hierarchyLevels.hierarchy_lvl0 = breadcrumbs[breadcrumbs.length - 1] || pageTitle || 'Content';
+    hierarchyLevels.hierarchy_lvl1 = $heading.prevAll('h2').first().text() || 'Section';
+    hierarchyLevels.hierarchy_lvl2 = $heading.prevAll('h3').first().text() || 'Subsection';
+    hierarchyLevels.hierarchy_lvl3 = headingText || 'Item';
+  }
+  
+  // Fallback: if hierarchy_lvl0 is still empty, set a default
+  if (!hierarchyLevels.hierarchy_lvl0) {
+    hierarchyLevels.hierarchy_lvl0 = 'Content';
   }
   
   // Create container for HTML preservation
@@ -57,11 +62,11 @@ async function extractFragment({
     id,
     url: url + '#' + ($heading.attr('id') || id),
     anchor: $heading.attr('id') || id,
-    title: headingText,
+    title: headingText || 'Untitled',
     content_text: contentText,
     content_html: $container.html(),
     site_hierarchy: extractSiteHierarchy(url),
-    page_hierarchy: [...breadcrumbs, headingText],
+    page_hierarchy: [...breadcrumbs, headingText].filter(Boolean),
     ...hierarchyLevels,
     
     // These will be enriched by taxonomies.js

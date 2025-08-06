@@ -122,14 +122,95 @@
             ollama: `${API_BASE_URL}/api/ollama/chat`
         };
 
-        // Mock chat responses for demo
-        const mockChatResponses = [
-            "I can help you find government services. What specific area are you interested in?",
-            "Based on your query, here are some relevant services I found...",
-            "Would you like more information about any of these services?",
-            "I can guide you through the eligibility requirements for this service.",
-            "Let me search for more specific information about that topic."
-        ];
+        // Category to Life Event mappings - FIXED TO MATCH ACTUAL API DATA
+        const categoryToLifeEvents = {
+            "Health and caring": [
+                "Seeking medical help",
+                "Being diagnosed with a medical condition or disability", 
+                "Experiencing mental illness",
+                "Being seriously injured",
+                "Providing temporary care for another",
+                "Becoming a long term carer",
+                "Ceasing to be a carer",
+                "Experiencing the death of a loved one",
+                "Coming to the end of your life",
+                "Becoming an older Australian",
+                "Accessing aged care"
+            ],
+            "Family and relationships": [
+                "Getting together",
+                "Making it work", 
+                "Breaking up",
+                "Having a baby",
+                "Adopting a child",
+                "Fostering a child",
+                "Raising a child to adulthood",
+                "Separated parents",
+                "Estrangement from family",
+                "Getting a pet"
+            ],
+            "Work and Money": [  // Fixed capitalization
+                "Working",
+                "Changing careers", 
+                "Returning to work",
+                "Experiencing workplace conflict",
+                "Becoming unemployed",
+                "Looking for work",
+                "Retiring from the workforce",
+                "Starting a business",
+                "Establishing trade",
+                "Growing a business",
+                "Having a business fail",
+                "Closing a business",
+                "Selling a business",
+                "Experiencing financial stress"
+            ],
+            "Housing and Travel": [  // Fixed capitalization
+                "Coming to Australia to visit",
+                "Moving to Australia permanently", 
+                "Coming to Australia as a refugee",
+                "Renting a home",
+                "Buying a home",
+                "Moving into an existing household",
+                "Experiencing homelessness",
+                "Moving domestically",
+                "Moving abroad",
+                "Travelling within Australia",
+                "Travelling overseas"
+            ],
+            "Disasters and Crime": [  // Fixed capitalization
+                "Being the victim of a crime",
+                "Being arrested and charged with a crime",
+                "Being involved in a lawsuit", 
+                "Being sentenced and serving your sentence",
+                "Being released from prison",
+                "Experiencing domestic violence",
+                "Leaving a violent relationship",
+                "Being removed from your family",
+                "Experiencing a war",
+                "Experiencing terrorist act",
+                "Experiencing a major industrial accident",
+                "Experiencing a pandemic",
+                "Experiencing a sudden disaster",
+                "Experiencing a gradual disaster"
+            ],
+            "Education and Identity": [  // Fixed capitalization
+                "Becoming a driver",
+                "Becoming financially independent",
+                "Moving out of home for the first time",
+                "Coming out",
+                "Changing gender identity",
+                "Changing national identity",
+                "Change in religious beliefs", 
+                "Transitioning to civilian life",
+                "Studying at primary school",
+                "Studying at high school",
+                "Studying at a tertiary institution",
+                "Becoming an apprentice",
+                "Upgrading professional skills or qualifications",
+                "Coming to Australia temporarily"
+            ]
+        };
 
         function App() {
             const [mode, setMode] = useState('browse'); // browse, home, search, chat
@@ -241,7 +322,7 @@
                     setLoading(false);
                 }
             };
-            
+
             const handleSearch = () => {
                 loadResults({ q: searchQuery });
             };
@@ -368,6 +449,28 @@ Remember to:
                 ? (completedTasks.length / results.length) * 100 
                 : 0;
 
+            // ADD FILTERING HELPER FUNCTIONS
+            const getFilteredLifeEvents = () => {
+                const selectedCategory = mode === 'search' ? searchFilters.category : selections.category;
+                if (!selectedCategory || !facetsData?.life_events) return [];
+                
+                // Get allowed life events for selected category
+                const allowedEvents = categoryToLifeEvents[selectedCategory] || [];
+                
+                // Filter facets data to only include allowed events
+                return facetsData.life_events.filter(event => 
+                    allowedEvents.includes(event.value)
+                ).sort((a, b) => b.count - a.count);
+            };
+
+            // Also add debug logging to see what's happening
+            const debugCategoryMapping = (category) => {
+                console.log('Selected category:', category);
+                console.log('Available mappings:', Object.keys(categoryToLifeEvents));
+                console.log('Mapped events:', categoryToLifeEvents[category]);
+                console.log('Facets life events:', facetsData?.life_events?.map(e => e.value));
+            };
+
             const iconMap = {
                 "Health and caring": "favorite",
                 "Family and relationships": "people",
@@ -444,10 +547,13 @@ Remember to:
                                                 value={mode === 'search' ? searchFilters.category : selections.category}
                                                 onChange={(e) => {
                                                     if (mode === 'search') {
-                                                        setSearchFilters({...searchFilters, category: e.target.value});
+                                                        setSearchFilters({...searchFilters, category: e.target.value, lifeEvent: null, provider: null});
                                                     } else {
+                                                        // RESET LIFE EVENT WHEN CATEGORY CHANGES
                                                         setSelections({...selections, category: e.target.value, lifeEvent: null, provider: null});
                                                     }
+                                                    // DEBUG: Log category selection
+                                                    debugCategoryMapping(e.target.value);
                                                 }}
                                             >
                                                 {facetsData?.categories?.map(cat => (
@@ -467,7 +573,8 @@ Remember to:
                                         </FormControl>
                                     </Grid>
 
-                                    {(selections.category || mode === 'search') && (
+                                    {/* MODIFY LIFE EVENT SECTION TO USE FILTERED OPTIONS FOR ALL MODES */}
+                                    {((mode === 'search' ? searchFilters.category : selections.category)) && (
                                         <Grid item xs={12} md={mode === 'search' ? 4 : 12}>
                                             <FormControl component="fieldset">
                                                 <FormLabel component="legend">What life event or situation applies?</FormLabel>
@@ -478,11 +585,13 @@ Remember to:
                                                         if (mode === 'search') {
                                                             setSearchFilters({...searchFilters, lifeEvent: e.target.value});
                                                         } else {
+                                                            // RESET PROVIDER WHEN LIFE EVENT CHANGES
                                                             setSelections({...selections, lifeEvent: e.target.value, provider: null});
                                                         }
                                                     }}
                                                 >
-                                                    {facetsData?.life_events?.map(event => (
+                                                    {/* USE FILTERED LIFE EVENTS FOR ALL MODES */}
+                                                    {getFilteredLifeEvents()?.map(event => (
                                                         <FormControlLabel
                                                             key={event.value}
                                                             value={event.value}
@@ -500,7 +609,7 @@ Remember to:
                                         </Grid>
                                     )}
 
-                                    {(selections.lifeEvent || mode === 'search') && (
+                                    {((mode === 'search' ? searchFilters.lifeEvent : selections.lifeEvent)) && (
                                         <Grid item xs={12} md={mode === 'search' ? 4 : 12}>
                                             <FormControl component="fieldset">
                                                 <FormLabel component="legend">Which service provider?</FormLabel>
@@ -644,58 +753,6 @@ Remember to:
 
                         {!loading && results.length > 0 && (
                             <>
-                                {/* Progress Bar (Browse mode only) */}
-                                {mode === 'browse' && (
-                                    <Box sx={{ mb: 3 }}>
-                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                            <Typography variant="h5">Your Checklist</Typography>
-                                            <Typography variant="body2" color="text.secondary">
-                                                {completedTasks.length} of {results.length} steps complete
-                                            </Typography>
-                                        </Box>
-                                        <LinearProgress variant="determinate" value={progress} />
-                                        
-                                        <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                                            <Button
-                                                size="small"
-                                                startIcon={<span className="material-icons">push_pin</span>}
-                                            >
-                                                Pin to dashboard
-                                            </Button>
-                                            <Button
-                                                size="small"
-                                                startIcon={<span className="material-icons">share</span>}
-                                                onClick={(e) => setExportAnchor(e.currentTarget)}
-                                            >
-                                                Export
-                                            </Button>
-                                            <Menu
-                                                anchorEl={exportAnchor}
-                                                open={Boolean(exportAnchor)}
-                                                onClose={() => setExportAnchor(null)}
-                                            >
-                                                <MenuItem onClick={() => window.print()}>
-                                                    <ListItemIcon><span className="material-icons">print</span></ListItemIcon>
-                                                    Print
-                                                </MenuItem>
-                                                <MenuItem>
-                                                    <ListItemIcon><span className="material-icons">picture_as_pdf</span></ListItemIcon>
-                                                    Download PDF
-                                                </MenuItem>
-                                                <MenuItem>
-                                                    <ListItemIcon><span className="material-icons">description</span></ListItemIcon>
-                                                    Download DOCX
-                                                </MenuItem>
-                                                <Divider />
-                                                <MenuItem>
-                                                    <ListItemIcon><span className="material-icons">share</span></ListItemIcon>
-                                                    Share via email
-                                                </MenuItem>
-                                            </Menu>
-                                        </Box>
-                                    </Box>
-                                )}
-
                                 {/* Home Mode - Static Content */}
                                 {mode === 'home' && (
                                     <Box sx={{ 
@@ -751,7 +808,7 @@ Remember to:
                                         </Typography>
                                         
                                         <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
-                                            Information and services for {selections.lifeEvent.toLowerCase()} from {
+                                            Information and services for {selections.lifeEvent?.toLowerCase()} from {
                                                 selections.provider === 'All providers' ? 'all government providers' : selections.provider
                                             }.
                                         </Typography>
@@ -855,94 +912,147 @@ Remember to:
 
                                 {/* Browse Mode - Checklist */}
                                 {mode === 'browse' && (
-                                    <Box>
-                                        {Object.entries(
-                                            results.reduce((acc, item) => {
-                                                const activity = item.hierarchy;
-                                                if (!acc[activity]) acc[activity] = [];
-                                                acc[activity].push(item);
-                                                return acc;
-                                            }, {})
-                                        ).map(([activity, items], index) => {
-                                            const completedInGroup = items.filter(item => 
-                                                completedTasks.includes(item.id)
-                                            ).length;
+                                    <>
+                                        {/* Progress Bar (Browse mode only) */}
+                                        <Box sx={{ mb: 3 }}>
+                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
+                                                <Typography variant="h5">Your Checklist</Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    {completedTasks.length} of {results.length} steps complete
+                                                </Typography>
+                                            </Box>
+                                            <LinearProgress variant="determinate" value={progress} />
                                             
-                                            return (
-                                                <Accordion key={activity} defaultExpanded={index === 0}>
-                                                    <AccordionSummary expandIcon={<span className="material-icons">expand_more</span>}>
-                                                        <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', pr: 2 }}>
-                                                            <Typography sx={{ flexGrow: 1 }}>
-                                                                {activity} ({items.length})
-                                                            </Typography>
-                                                            <Chip 
-                                                                size="small"
-                                                                label={
-                                                                    completedInGroup === items.length ? 'Complete' :
-                                                                    completedInGroup > 0 ? 'In progress' : 'Not started'
-                                                                }
-                                                                color={
-                                                                    completedInGroup === items.length ? 'success' :
-                                                                    completedInGroup > 0 ? 'info' : 'default'
-                                                                }
-                                                            />
-                                                        </Box>
-                                                    </AccordionSummary>
-                                                    <AccordionDetails>
-                                                        <List>
-                                                            {items.map(item => (
-                                                                <ListItem 
-                                                                    key={item.id}
-                                                                    sx={{ 
-                                                                        opacity: completedTasks.includes(item.id) ? 0.6 : 1,
-                                                                        '&:hover': { bgcolor: 'action.hover' }
-                                                                    }}
-                                                                >
-                                                                    <ListItemIcon>
-                                                                        <Checkbox
-                                                                            checked={completedTasks.includes(item.id)}
-                                                                            onChange={() => toggleTask(item.id)}
-                                                                        />
-                                                                    </ListItemIcon>
-                                                                    <ListItemText
-                                                                        primary={
-                                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                                {item.title}
-                                                                                {item.state !== 'National' && (
-                                                                                    <Chip size="small" label={item.state} />
-                                                                                )}
-                                                                            </Box>
-                                                                        }
-                                                                        secondary={
-                                                                            <>
-                                                                                <Typography variant="body2" component="span">
-                                                                                    {item.description}
-                                                                                </Typography>
-                                                                                <br />
-                                                                                <Typography variant="caption" color="text.secondary">
-                                                                                    Provider: {item.provider}
-                                                                                </Typography>
-                                                                            </>
-                                                                        }
-                                                                        sx={{
-                                                                            textDecoration: completedTasks.includes(item.id) ? 'line-through' : 'none'
+                                            <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
+                                                <Button
+                                                    size="small"
+                                                    startIcon={<span className="material-icons">push_pin</span>}
+                                                >
+                                                    Pin to dashboard
+                                                </Button>
+                                                <Button
+                                                    size="small"
+                                                    startIcon={<span className="material-icons">share</span>}
+                                                    onClick={(e) => setExportAnchor(e.currentTarget)}
+                                                >
+                                                    Export
+                                                </Button>
+                                                <Menu
+                                                    anchorEl={exportAnchor}
+                                                    open={Boolean(exportAnchor)}
+                                                    onClose={() => setExportAnchor(null)}
+                                                >
+                                                    <MenuItem onClick={() => window.print()}>
+                                                        <ListItemIcon><span className="material-icons">print</span></ListItemIcon>
+                                                        Print
+                                                    </MenuItem>
+                                                    <MenuItem>
+                                                        <ListItemIcon><span className="material-icons">picture_as_pdf</span></ListItemIcon>
+                                                        Download PDF
+                                                    </MenuItem>
+                                                    <MenuItem>
+                                                        <ListItemIcon><span className="material-icons">description</span></ListItemIcon>
+                                                        Download DOCX
+                                                    </MenuItem>
+                                                    <Divider />
+                                                    <MenuItem>
+                                                        <ListItemIcon><span className="material-icons">share</span></ListItemIcon>
+                                                        Share via email
+                                                    </MenuItem>
+                                                </Menu>
+                                            </Box>
+                                        </Box>
+
+                                        {/* Results organized by hierarchy */}
+                                        <Box>
+                                            {Object.entries(
+                                                results.reduce((acc, item) => {
+                                                    const activity = item.hierarchy;
+                                                    if (!acc[activity]) acc[activity] = [];
+                                                    acc[activity].push(item);
+                                                    return acc;
+                                                }, {})
+                                            ).map(([activity, items], index) => {
+                                                const completedInGroup = items.filter(item => 
+                                                    completedTasks.includes(item.id)
+                                                ).length;
+                                                
+                                                return (
+                                                    <Accordion key={activity} defaultExpanded={index === 0}>
+                                                        <AccordionSummary expandIcon={<span className="material-icons">expand_more</span>}>
+                                                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', pr: 2 }}>
+                                                                <Typography sx={{ flexGrow: 1 }}>
+                                                                    {activity} ({items.length})
+                                                                </Typography>
+                                                                <Chip 
+                                                                    size="small"
+                                                                    label={
+                                                                        completedInGroup === items.length ? 'Complete' :
+                                                                        completedInGroup > 0 ? 'In progress' : 'Not started'
+                                                                    }
+                                                                    color={
+                                                                        completedInGroup === items.length ? 'success' :
+                                                                        completedInGroup > 0 ? 'info' : 'default'
+                                                                    }
+                                                                />
+                                                            </Box>
+                                                        </AccordionSummary>
+                                                        <AccordionDetails>
+                                                            <List>
+                                                                {items.map(item => (
+                                                                    <ListItem 
+                                                                        key={item.id}
+                                                                        sx={{ 
+                                                                            opacity: completedTasks.includes(item.id) ? 0.6 : 1,
+                                                                            '&:hover': { bgcolor: 'action.hover' }
                                                                         }}
-                                                                    />
-                                                                    <IconButton 
-                                                                        href={item.url} 
-                                                                        target="_blank"
-                                                                        size="small"
                                                                     >
-                                                                        <span className="material-icons">open_in_new</span>
-                                                                    </IconButton>
-                                                                </ListItem>
-                                                            ))}
-                                                        </List>
-                                                    </AccordionDetails>
-                                                </Accordion>
-                                            );
-                                        })}
-                                    </Box>
+                                                                        <ListItemIcon>
+                                                                            <Checkbox
+                                                                                checked={completedTasks.includes(item.id)}
+                                                                                onChange={() => toggleTask(item.id)}
+                                                                            />
+                                                                        </ListItemIcon>
+                                                                        <ListItemText
+                                                                            primary={
+                                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                                    {item.title}
+                                                                                    {item.state !== 'National' && (
+                                                                                        <Chip size="small" label={item.state} />
+                                                                                    )}
+                                                                                </Box>
+                                                                            }
+                                                                            secondary={
+                                                                                <>
+                                                                                    <Typography variant="body2" component="span">
+                                                                                        {item.description}
+                                                                                    </Typography>
+                                                                                    <br />
+                                                                                    <Typography variant="caption" color="text.secondary">
+                                                                                        Provider: {item.provider}
+                                                                                    </Typography>
+                                                                                </>
+                                                                            }
+                                                                            sx={{
+                                                                                textDecoration: completedTasks.includes(item.id) ? 'line-through' : 'none'
+                                                                            }}
+                                                                        />
+                                                                        <IconButton 
+                                                                            href={item.url} 
+                                                                            target="_blank"
+                                                                            size="small"
+                                                                        >
+                                                                            <span className="material-icons">open_in_new</span>
+                                                                        </IconButton>
+                                                                    </ListItem>
+                                                                ))}
+                                                            </List>
+                                                        </AccordionDetails>
+                                                    </Accordion>
+                                                );
+                                            })}
+                                        </Box>
+                                    </>
                                 )}
 
                                 {/* Search Mode - Results Grid */}

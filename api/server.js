@@ -29,6 +29,22 @@ app.locals.typesense = typesenseClient;
 // Routes
 app.use('/api/fragments', fragmentRoutes);
 
+// Try to load ollama routes if dependencies are available
+try {
+  const ollamaRoutes = require('./routes/ollama');
+  app.use('/api/ollama', ollamaRoutes);
+  console.log('Ollama routes loaded successfully');
+} catch (error) {
+  console.log('Ollama routes not available (missing dependencies):', error.message);
+  // Provide a simple fallback endpoint
+  app.use('/api/ollama', (req, res) => {
+    res.status(503).json({ 
+      error: 'Ollama service not available', 
+      message: 'Missing node-fetch dependency or Ollama not configured' 
+    });
+  });
+}
+
 // Health check
 app.get('/health', async (req, res) => {
   try {

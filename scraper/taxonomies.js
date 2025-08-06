@@ -154,7 +154,6 @@ function getDefaultTaxonomyData() {
           "de facto",
           "dating",
           "partnered",
-          "",
         ],
         relatedCategories: ["Growing up", "Domestic violence"],
         stages: {
@@ -196,7 +195,6 @@ function getDefaultTaxonomyData() {
           "stalking",
           "abuse",
           "violent relationship",
-          "",
         ],
         relatedCategories: ["Relationship changes", "Child health"],
         stages: {

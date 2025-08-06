@@ -1,58 +1,1315 @@
 {
   "lifeEvents": {
+    "Being the victim of a crime": {
+      "keywords": [
+        "victim",
+        "crime",
+        "assault",
+        "theft",
+        "robbery",
+        "fraud",
+        "scam",
+        "violence",
+        "attack",
+        "police report",
+        "victim support",
+        "compensation"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Health and caring"],
+      "stages": {}
+    },
+    "Being arrested and charged with a crime": {
+      "keywords": [
+        "arrested",
+        "charged",
+        "police",
+        "custody",
+        "bail",
+        "court",
+        "criminal",
+        "offence",
+        "legal aid",
+        "lawyer",
+        "defendant"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Work and Money"],
+      "stages": {}
+    },
+    "Being involved in a lawsuit": {
+      "keywords": [
+        "lawsuit",
+        "legal",
+        "court",
+        "litigation",
+        "dispute",
+        "sue",
+        "sued",
+        "civil case",
+        "legal proceedings",
+        "lawyer",
+        "solicitor"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Work and Money"],
+      "stages": {}
+    },
+    "Being sentenced and serving your sentence": {
+      "keywords": [
+        "prison",
+        "jail",
+        "sentenced",
+        "conviction",
+        "incarcerated",
+        "corrections",
+        "inmate",
+        "detention",
+        "custody",
+        "parole"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Family and Relationships"],
+      "stages": {}
+    },
+    "Being released from prison": {
+      "keywords": [
+        "release",
+        "prison release",
+        "parole",
+        "ex-offender",
+        "reintegration",
+        "post-release",
+        "halfway house",
+        "supervision order"
+      ],
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Housing and Travel",
+        "Work and Money"
+      ],
+      "stages": {}
+    },
+    "Experiencing domestic violence": {
+      "keywords": [
+        "domestic violence",
+        "family violence",
+        "abuse",
+        "dv",
+        "violence",
+        "controlling",
+        "coercive",
+        "intimate partner",
+        "escape",
+        "safety",
+        "refuge",
+        "shelter",
+        "avo",
+        "protection order"
+      ],
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Family and Relationships",
+        "Health and caring"
+      ],
+      "stages": {}
+    },
+    "Leaving a violent relationship": {
+      "keywords": [
+        "leaving violence",
+        "escape",
+        "fleeing",
+        "refuge",
+        "shelter",
+        "crisis accommodation",
+        "safety plan",
+        "dv support",
+        "starting over"
+      ],
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Housing and Travel",
+        "Family and Relationships"
+      ],
+      "stages": {}
+    },
+    "Being removed from your family": {
+      "keywords": [
+        "removed",
+        "child protection",
+        "foster care",
+        "out of home care",
+        "care order",
+        "child safety",
+        "placement",
+        "guardian"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Family and Relationships"],
+      "stages": {}
+    },
+    "Experiencing a war": {
+      "keywords": [
+        "war",
+        "conflict",
+        "warfare",
+        "combat",
+        "military conflict",
+        "war zone",
+        "displaced",
+        "refugee",
+        "asylum"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Housing and Travel"],
+      "stages": {}
+    },
+    "Experiencing terrorist act": {
+      "keywords": [
+        "terrorism",
+        "terrorist",
+        "attack",
+        "bombing",
+        "extremism",
+        "mass casualty",
+        "terror victim",
+        "trauma"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Health and caring"],
+      "stages": {}
+    },
+    "Experiencing a major industrial accident": {
+      "keywords": [
+        "industrial accident",
+        "workplace disaster",
+        "chemical spill",
+        "explosion",
+        "industrial",
+        "hazardous",
+        "contamination",
+        "evacuation"
+      ],
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Work and Money",
+        "Health and caring"
+      ],
+      "stages": {}
+    },
+    "Experiencing a pandemic": {
+      "keywords": [
+        "pandemic",
+        "epidemic",
+        "covid",
+        "coronavirus",
+        "lockdown",
+        "quarantine",
+        "isolation",
+        "outbreak",
+        "public health",
+        "vaccination",
+        "mask"
+      ],
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Health and caring",
+        "Work and Money"
+      ],
+      "stages": {}
+    },
+    "Experiencing a sudden disaster": {
+      "keywords": [
+        "disaster",
+        "fire",
+        "flood",
+        "storm",
+        "cyclone",
+        "earthquake",
+        "tsunami",
+        "bushfire",
+        "natural disaster",
+        "emergency",
+        "evacuation",
+        "disaster relief"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Housing and Travel"],
+      "stages": {}
+    },
+    "Experiencing a gradual disaster": {
+      "keywords": [
+        "drought",
+        "insect plague",
+        "locust",
+        "environmental",
+        "climate",
+        "crop failure",
+        "water shortage",
+        "farming crisis",
+        "rural hardship"
+      ],
+      "relatedCategories": ["Disasters and Crime", "Work and Money"],
+      "stages": {}
+    },
+    "Becoming a driver": {
+      "keywords": [
+        "driver",
+        "license",
+        "licence",
+        "learner",
+        "learners",
+        "provisional",
+        "p plate",
+        "driving test",
+        "road rules",
+        "car"
+      ],
+      "relatedCategories": ["Education and identity"],
+      "stages": {}
+    },
+    "Becoming financially independent": {
+      "keywords": [
+        "financial independence",
+        "independent",
+        "self sufficient",
+        "moving out",
+        "own money",
+        "financially stable",
+        "self supporting"
+      ],
+      "relatedCategories": ["Education and identity", "Work and Money"],
+      "stages": {}
+    },
+    "Moving out of home for the first time": {
+      "keywords": [
+        "moving out",
+        "leaving home",
+        "first time",
+        "independent living",
+        "own place",
+        "share house",
+        "flatmate",
+        "roommate"
+      ],
+      "relatedCategories": ["Education and identity", "Housing and Travel"],
+      "stages": {}
+    },
+    "Coming out": {
+      "keywords": [
+        "coming out",
+        "lgbtiq",
+        "lgbt",
+        "gay",
+        "lesbian",
+        "bisexual",
+        "transgender",
+        "queer",
+        "sexuality",
+        "gender identity",
+        "pride"
+      ],
+      "relatedCategories": [
+        "Education and identity",
+        "Family and Relationships"
+      ],
+      "stages": {}
+    },
+    "Changing gender identity": {
+      "keywords": [
+        "gender",
+        "transgender",
+        "trans",
+        "transition",
+        "gender diverse",
+        "non-binary",
+        "gender affirmation",
+        "hormone",
+        "surgery"
+      ],
+      "relatedCategories": ["Education and identity", "Health and caring"],
+      "stages": {}
+    },
+    "Changing national identity": {
+      "keywords": [
+        "citizenship",
+        "naturalisation",
+        "citizen",
+        "dual citizenship",
+        "nationality",
+        "passport",
+        "allegiance",
+        "citizenship ceremony"
+      ],
+      "relatedCategories": ["Education and identity", "Housing and Travel"],
+      "stages": {}
+    },
+    "Change in religious beliefs": {
+      "keywords": [
+        "religion",
+        "faith",
+        "belief",
+        "conversion",
+        "religious",
+        "spiritual",
+        "church",
+        "mosque",
+        "temple",
+        "atheist",
+        "agnostic"
+      ],
+      "relatedCategories": ["Education and identity"],
+      "stages": {}
+    },
+    "Transitioning to civilian life": {
+      "keywords": [
+        "veteran",
+        "ex-military",
+        "civilian",
+        "discharge",
+        "military transition",
+        "dva",
+        "defence force",
+        "ex-service"
+      ],
+      "relatedCategories": ["Education and identity", "Work and Money"],
+      "stages": {}
+    },
+    "Studying at primary school": {
+      "keywords": [
+        "primary school",
+        "elementary",
+        "primary student",
+        "year 1",
+        "year 2",
+        "year 3",
+        "year 4",
+        "year 5",
+        "year 6",
+        "prep",
+        "kindergarten"
+      ],
+      "relatedCategories": ["Education and identity"],
+      "stages": {}
+    },
+    "Studying at high school": {
+      "keywords": [
+        "high school",
+        "secondary school",
+        "teenager",
+        "adolescent",
+        "year 7",
+        "year 8",
+        "year 9",
+        "year 10",
+        "year 11",
+        "year 12",
+        "hsc",
+        "vce",
+        "atar"
+      ],
+      "relatedCategories": ["Education and identity"],
+      "stages": {}
+    },
+    "Studying at a tertiary institution": {
+      "keywords": [
+        "university",
+        "uni",
+        "college",
+        "tafe",
+        "tertiary",
+        "higher education",
+        "degree",
+        "diploma",
+        "student",
+        "undergraduate",
+        "postgraduate",
+        "phd"
+      ],
+      "relatedCategories": ["Education and identity", "Work and Money"],
+      "stages": {}
+    },
+    "Becoming an apprentice": {
+      "keywords": [
+        "apprentice",
+        "apprenticeship",
+        "trade",
+        "traineeship",
+        "vocational",
+        "on the job",
+        "trade training",
+        "certificate"
+      ],
+      "relatedCategories": ["Education and identity", "Work and Money"],
+      "stages": {}
+    },
+    "Upgrading professional skills or qualifications": {
+      "keywords": [
+        "upskilling",
+        "reskilling",
+        "professional development",
+        "training",
+        "qualification",
+        "certificate",
+        "course",
+        "workshop",
+        "career development"
+      ],
+      "relatedCategories": ["Education and identity", "Work and Money"],
+      "stages": {}
+    },
+    "Coming to Australia temporarily": {
+      "keywords": [
+        "temporary visa",
+        "student visa",
+        "working holiday",
+        "visitor",
+        "tourist",
+        "international student",
+        "temporary resident",
+        "visa"
+      ],
+      "relatedCategories": ["Education and identity", "Housing and Travel"],
+      "stages": {}
+    },
+    "Getting together": {
+      "keywords": [
+        "relationship",
+        "dating",
+        "partner",
+        "boyfriend",
+        "girlfriend",
+        "couple",
+        "romance",
+        "love",
+        "partnership"
+      ],
+      "relatedCategories": ["Family and Relationships"],
+      "stages": {}
+    },
+    "Making it work": {
+      "keywords": [
+        "relationship",
+        "long term",
+        "committed",
+        "de facto",
+        "living together",
+        "serious relationship",
+        "partnership",
+        "cohabitation"
+      ],
+      "relatedCategories": ["Family and Relationships"],
+      "stages": {}
+    },
+    "Breaking up": {
+      "keywords": [
+        "breakup",
+        "separation",
+        "divorce",
+        "split",
+        "relationship breakdown",
+        "separated",
+        "ending relationship",
+        "moving on"
+      ],
+      "relatedCategories": ["Family and Relationships", "Housing and Travel"],
+      "stages": {}
+    },
+    "Separated parents": {
+      "keywords": [
+        "separated parents",
+        "co-parenting",
+        "custody",
+        "shared care",
+        "parenting plan",
+        "child support",
+        "family court",
+        "mediation"
+      ],
+      "relatedCategories": ["Family and Relationships"],
+      "stages": {}
+    },
+    "Estrangement from family": {
+      "keywords": [
+        "estranged",
+        "family conflict",
+        "no contact",
+        "family breakdown",
+        "cut off",
+        "disowned",
+        "family estrangement"
+      ],
+      "relatedCategories": ["Family and Relationships", "Health and caring"],
+      "stages": {}
+    },
     "Having a baby": {
-      "keywords": ["pregnancy", "pregnant", "baby", "birth", "maternity", "paternity", "newborn", "expecting", "prenatal", "postnatal", "midwife", "obstetric", "parental leave", "baby bonus", "childcare"],
+      "keywords": [
+        "pregnancy",
+        "pregnant",
+        "baby",
+        "birth",
+        "maternity",
+        "paternity",
+        "newborn",
+        "expecting",
+        "prenatal",
+        "postnatal",
+        "midwife",
+        "obstetric",
+        "parental leave",
+        "baby bonus",
+        "childcare"
+      ],
       "relatedCategories": ["Raising Kids", "Health and Disability"],
       "stages": {
-        "Before your baby arrives": ["pregnancy", "expecting", "prenatal", "before birth", "antenatal", "conception", "fertility"],
-        "When your baby arrives": ["birth", "newborn", "hospital", "delivery", "labour", "cesarean", "birthing"],
-        "As your baby grows": ["infant", "toddler", "child care", "immunisation", "baby health", "development", "milestone"]
+        "Before your baby arrives": [
+          "pregnancy",
+          "expecting",
+          "prenatal",
+          "before birth",
+          "antenatal",
+          "conception",
+          "fertility"
+        ],
+        "When your baby arrives": [
+          "birth",
+          "newborn",
+          "hospital",
+          "delivery",
+          "labour",
+          "cesarean",
+          "birthing"
+        ],
+        "As your baby grows": [
+          "infant",
+          "toddler",
+          "child care",
+          "immunisation",
+          "baby health",
+          "development",
+          "milestone"
+        ]
       }
     },
-    "Work": {
-      "keywords": ["employment", "job", "career", "workplace", "employer", "employee", "salary", "wages", "redundancy", "unemployment", "jobseeker", "recruitment", "resume"],
-      "relatedCategories": ["Education", "Money and Finance"],
+    "Adopting a child": {
+      "keywords": [
+        "adoption",
+        "adopt",
+        "adoptive parent",
+        "placement",
+        "permanent care",
+        "intercountry adoption",
+        "local adoption"
+      ],
+      "relatedCategories": ["Family and Relationships"],
       "stages": {}
     },
-    "Ageing": {
-      "keywords": ["retirement", "pension", "senior", "elderly", "aged care", "super", "aged", "older", "retiree", "superannuation", "retirement village"],
-      "relatedCategories": ["Health and Disability", "Living Arrangements"],
+    "Fostering a child": {
+      "keywords": [
+        "foster",
+        "foster care",
+        "foster parent",
+        "temporary care",
+        "out of home care",
+        "kinship care",
+        "respite care"
+      ],
+      "relatedCategories": ["Family and Relationships"],
       "stages": {}
     },
-    "Education": {
-      "keywords": ["school", "university", "tafe", "training", "student", "study", "qualification", "degree", "apprentice", "course", "scholarship", "hecs"],
-      "relatedCategories": ["Work", "Raising Kids"],
+    "Raising a child to adulthood": {
+      "keywords": [
+        "parenting",
+        "raising children",
+        "child rearing",
+        "parent",
+        "guardian",
+        "child development",
+        "teenager",
+        "adolescent",
+        "school age"
+      ],
+      "relatedCategories": [
+        "Family and Relationships",
+        "Education and identity"
+      ],
       "stages": {}
     },
-    "Health and Disability": {
-      "keywords": ["health", "medical", "medicare", "disability", "ndis", "mental health", "hospital", "doctor", "treatment", "illness", "chronic", "therapy", "diagnosis"],
-      "relatedCategories": ["Ageing", "Money and Finance"],
+    "Getting a pet": {
+      "keywords": [
+        "pet",
+        "dog",
+        "cat",
+        "animal",
+        "pet ownership",
+        "companion animal",
+        "puppy",
+        "kitten",
+        "adopt pet",
+        "rescue animal"
+      ],
+      "relatedCategories": ["Family and Relationships"],
       "stages": {}
     },
-    "Raising Kids": {
-      "keywords": ["child", "children", "parenting", "family", "school", "childcare", "youth", "teenager", "adolescent", "custody", "child support"],
-      "relatedCategories": ["Education", "Having a baby"],
+    "Providing temporary care for another": {
+      "keywords": [
+        "temporary care",
+        "respite",
+        "short term care",
+        "emergency care",
+        "carer",
+        "caregiver",
+        "looking after"
+      ],
+      "relatedCategories": ["Health and caring", "Family and Relationships"],
+      "stages": {}
+    },
+    "Becoming a long term carer": {
+      "keywords": [
+        "carer",
+        "caregiver",
+        "long term care",
+        "primary carer",
+        "full time carer",
+        "caring",
+        "disability care",
+        "aged care",
+        "chronic illness"
+      ],
+      "relatedCategories": ["Health and caring", "Work and Money"],
+      "stages": {}
+    },
+    "Ceasing to be a carer": {
+      "keywords": [
+        "stop caring",
+        "end of caring",
+        "care transition",
+        "respite",
+        "nursing home",
+        "death",
+        "recovery",
+        "no longer carer"
+      ],
+      "relatedCategories": ["Health and caring", "Work and Money"],
+      "stages": {}
+    },
+    "Experiencing the death of a loved one": {
+      "keywords": [
+        "death",
+        "bereavement",
+        "grief",
+        "loss",
+        "funeral",
+        "mourning",
+        "widow",
+        "widower",
+        "orphan",
+        "bereaved"
+      ],
+      "relatedCategories": ["Health and caring", "Family and Relationships"],
+      "stages": {}
+    },
+    "Coming to the end of your life": {
+      "keywords": [
+        "end of life",
+        "terminal",
+        "palliative",
+        "dying",
+        "hospice",
+        "final stages",
+        "life limiting",
+        "advance directive"
+      ],
+      "relatedCategories": ["Health and caring"],
+      "stages": {}
+    },
+    "Becoming an older Australian": {
+      "keywords": [
+        "senior",
+        "elderly",
+        "older",
+        "aged",
+        "retirement age",
+        "pensioner",
+        "over 65",
+        "ageing",
+        "seniors card"
+      ],
+      "relatedCategories": ["Health and caring", "Work and Money"],
+      "stages": {}
+    },
+    "Accessing aged care": {
+      "keywords": [
+        "aged care",
+        "nursing home",
+        "residential care",
+        "home care",
+        "acat",
+        "aged care assessment",
+        "retirement village",
+        "assisted living"
+      ],
+      "relatedCategories": ["Health and caring", "Housing and Travel"],
+      "stages": {}
+    },
+    "Seeking medical help": {
+      "keywords": [
+        "doctor",
+        "medical",
+        "gp",
+        "hospital",
+        "health",
+        "treatment",
+        "diagnosis",
+        "medicare",
+        "bulk bill",
+        "specialist",
+        "referral"
+      ],
+      "relatedCategories": ["Health and caring"],
+      "stages": {}
+    },
+    "Being diagnosed with a medical condition or disability": {
+      "keywords": [
+        "diagnosis",
+        "medical condition",
+        "disability",
+        "chronic illness",
+        "disease",
+        "disorder",
+        "impairment",
+        "health condition"
+      ],
+      "relatedCategories": ["Health and caring", "Work and Money"],
+      "stages": {}
+    },
+    "Experiencing mental illness": {
+      "keywords": [
+        "mental health",
+        "depression",
+        "anxiety",
+        "mental illness",
+        "psychology",
+        "psychiatry",
+        "therapy",
+        "counselling",
+        "wellbeing"
+      ],
+      "relatedCategories": ["Health and caring"],
+      "stages": {}
+    },
+    "Being seriously injured": {
+      "keywords": [
+        "injury",
+        "accident",
+        "trauma",
+        "emergency",
+        "ambulance",
+        "serious injury",
+        "rehabilitation",
+        "recovery",
+        "compensation"
+      ],
+      "relatedCategories": ["Health and caring", "Work and Money"],
+      "stages": {}
+    },
+    "Coming to Australia to visit": {
+      "keywords": [
+        "visit",
+        "tourist",
+        "visitor visa",
+        "holiday",
+        "vacation",
+        "travel",
+        "temporary",
+        "short stay"
+      ],
+      "relatedCategories": ["Housing and Travel"],
+      "stages": {}
+    },
+    "Moving to Australia permanently": {
+      "keywords": [
+        "immigration",
+        "migrate",
+        "permanent resident",
+        "pr",
+        "permanent visa",
+        "skilled migration",
+        "family reunion",
+        "settle"
+      ],
+      "relatedCategories": ["Housing and Travel", "Work and Money"],
+      "stages": {}
+    },
+    "Coming to Australia as a refugee": {
+      "keywords": [
+        "refugee",
+        "asylum",
+        "protection visa",
+        "humanitarian",
+        "persecution",
+        "unhcr",
+        "boat people",
+        "detention"
+      ],
+      "relatedCategories": ["Housing and Travel", "Health and caring"],
+      "stages": {}
+    },
+    "Renting a home": {
+      "keywords": [
+        "rent",
+        "rental",
+        "tenant",
+        "lease",
+        "landlord",
+        "bond",
+        "rental property",
+        "real estate",
+        "tenancy"
+      ],
+      "relatedCategories": ["Housing and Travel"],
+      "stages": {}
+    },
+    "Buying a home": {
+      "keywords": [
+        "buying home",
+        "property",
+        "mortgage",
+        "home loan",
+        "first home",
+        "real estate",
+        "house purchase",
+        "home ownership"
+      ],
+      "relatedCategories": ["Housing and Travel", "Work and Money"],
+      "stages": {}
+    },
+    "Moving into an existing household": {
+      "keywords": [
+        "moving in",
+        "share house",
+        "housemate",
+        "live with",
+        "household",
+        "cohabitation",
+        "room rental"
+      ],
+      "relatedCategories": ["Housing and Travel", "Family and Relationships"],
+      "stages": {}
+    },
+    "Experiencing homelessness": {
+      "keywords": [
+        "homeless",
+        "homelessness",
+        "rough sleeping",
+        "no fixed address",
+        "housing crisis",
+        "shelter",
+        "crisis accommodation",
+        "couch surfing"
+      ],
+      "relatedCategories": ["Housing and Travel", "Health and caring"],
+      "stages": {}
+    },
+    "Moving domestically": {
+      "keywords": [
+        "moving",
+        "relocation",
+        "moving house",
+        "interstate",
+        "removalist",
+        "change address",
+        "new home",
+        "packing"
+      ],
+      "relatedCategories": ["Housing and Travel"],
+      "stages": {}
+    },
+    "Moving abroad": {
+      "keywords": [
+        "moving overseas",
+        "expat",
+        "expatriate",
+        "emigrate",
+        "living abroad",
+        "international move",
+        "visa",
+        "work abroad"
+      ],
+      "relatedCategories": ["Housing and Travel", "Work and Money"],
+      "stages": {}
+    },
+    "Travelling within Australia": {
+      "keywords": [
+        "travel",
+        "domestic travel",
+        "holiday",
+        "vacation",
+        "road trip",
+        "interstate",
+        "tourism",
+        "explore australia"
+      ],
+      "relatedCategories": ["Housing and Travel"],
+      "stages": {}
+    },
+    "Travelling overseas": {
+      "keywords": [
+        "overseas travel",
+        "international travel",
+        "passport",
+        "visa",
+        "holiday",
+        "vacation",
+        "travel insurance",
+        "departure"
+      ],
+      "relatedCategories": ["Housing and Travel"],
+      "stages": {}
+    },
+    "Working": {
+      "keywords": [
+        "work",
+        "job",
+        "employment",
+        "employed",
+        "career",
+        "profession",
+        "occupation",
+        "workplace",
+        "salary",
+        "wages"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Changing careers": {
+      "keywords": [
+        "career change",
+        "new career",
+        "career transition",
+        "job change",
+        "different field",
+        "career switch",
+        "mid life career"
+      ],
+      "relatedCategories": ["Work and Money", "Education and identity"],
+      "stages": {}
+    },
+    "Returning to work": {
+      "keywords": [
+        "return to work",
+        "back to work",
+        "re-enter workforce",
+        "work again",
+        "maternity return",
+        "rtw",
+        "workforce re-entry"
+      ],
+      "relatedCategories": ["Work and Money", "Family and Relationships"],
+      "stages": {}
+    },
+    "Experiencing workplace conflict": {
+      "keywords": [
+        "workplace conflict",
+        "bullying",
+        "harassment",
+        "discrimination",
+        "unfair dismissal",
+        "workplace dispute",
+        "hr complaint",
+        "toxic workplace"
+      ],
+      "relatedCategories": ["Work and Money", "Health and caring"],
+      "stages": {}
+    },
+    "Becoming unemployed": {
+      "keywords": [
+        "unemployed",
+        "job loss",
+        "redundancy",
+        "fired",
+        "laid off",
+        "retrenchment",
+        "jobless",
+        "out of work",
+        "terminated"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Looking for work": {
+      "keywords": [
+        "job search",
+        "job seeking",
+        "looking for work",
+        "job hunting",
+        "application",
+        "interview",
+        "resume",
+        "jobactive",
+        "employment services"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Retiring from the workforce": {
+      "keywords": [
+        "retirement",
+        "retire",
+        "pension",
+        "superannuation",
+        "super",
+        "retiring",
+        "end career",
+        "stop working"
+      ],
+      "relatedCategories": ["Work and Money", "Health and caring"],
+      "stages": {}
+    },
+    "Starting a business": {
+      "keywords": [
+        "business",
+        "startup",
+        "entrepreneur",
+        "small business",
+        "abn",
+        "company",
+        "sole trader",
+        "partnership",
+        "venture"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Establishing trade": {
+      "keywords": [
+        "trade",
+        "tradesperson",
+        "tradie",
+        "contractor",
+        "skilled trade",
+        "license",
+        "trade business",
+        "tools of trade"
+      ],
+      "relatedCategories": ["Work and Money", "Education and identity"],
+      "stages": {}
+    },
+    "Growing a business": {
+      "keywords": [
+        "business growth",
+        "expansion",
+        "scaling",
+        "hiring",
+        "business development",
+        "increase revenue",
+        "new markets"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Having a business fail": {
+      "keywords": [
+        "business failure",
+        "bankruptcy",
+        "insolvency",
+        "liquidation",
+        "business closure",
+        "wind up",
+        "administration",
+        "receivership"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Closing a business": {
+      "keywords": [
+        "closing business",
+        "business closure",
+        "deregister",
+        "wind down",
+        "cease trading",
+        "shut down",
+        "final tax"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Selling a business": {
+      "keywords": [
+        "sell business",
+        "business sale",
+        "exit strategy",
+        "business broker",
+        "valuation",
+        "due diligence",
+        "settlement"
+      ],
+      "relatedCategories": ["Work and Money"],
+      "stages": {}
+    },
+    "Experiencing financial stress": {
+      "keywords": [
+        "financial stress",
+        "money problems",
+        "debt",
+        "financial hardship",
+        "can't pay bills",
+        "financial difficulty",
+        "money worry",
+        "broke"
+      ],
+      "relatedCategories": ["Work and Money", "Health and caring"],
       "stages": {}
     }
   },
-  
+
   "categories": {
-    "Health and Disability": ["health", "medical", "medicare", "disability", "ndis", "mental health", "hospital", "doctor", "treatment", "pharmaceutical", "therapy", "rehabilitation"],
-    "Raising Kids": ["child", "children", "parenting", "family", "school", "childcare", "youth", "playground", "sport", "activities"],
-    "Money and Finance": ["payment", "benefit", "tax", "income", "financial", "money", "debt", "loan", "centrelink", "allowance", "subsidy", "grant"],
-    "Living Arrangements": ["housing", "rent", "home", "accommodation", "homeless", "tenant", "mortgage", "property", "real estate", "public housing"],
-    "Education": ["learning", "school", "university", "tafe", "course", "training", "skills", "qualification", "certificate", "diploma"],
-    "Work": ["employment", "job", "career", "business", "workplace", "industrial", "fair work", "leave", "safety", "compensation"]
+    "Disasters and Crime": [
+      "disaster",
+      "emergency",
+      "crisis",
+      "crime",
+      "victim",
+      "offender",
+      "court",
+      "legal",
+      "police",
+      "violence",
+      "abuse",
+      "war",
+      "terrorism",
+      "pandemic",
+      "flood",
+      "fire",
+      "drought",
+      "cyclone"
+    ],
+    "Education and identity": [
+      "education",
+      "school",
+      "university",
+      "tafe",
+      "study",
+      "student",
+      "qualification",
+      "identity",
+      "citizenship",
+      "gender",
+      "sexuality",
+      "religion",
+      "veteran",
+      "apprentice",
+      "training"
+    ],
+    "Family and Relationships": [
+      "family",
+      "relationship",
+      "partner",
+      "marriage",
+      "divorce",
+      "parent",
+      "child",
+      "baby",
+      "adoption",
+      "foster",
+      "pet",
+      "dating",
+      "separation",
+      "custody"
+    ],
+    "Health and caring": [
+      "health",
+      "medical",
+      "doctor",
+      "hospital",
+      "mental health",
+      "disability",
+      "care",
+      "carer",
+      "aged care",
+      "death",
+      "grief",
+      "injury",
+      "illness",
+      "diagnosis",
+      "treatment"
+    ],
+    "Housing and Travel": [
+      "housing",
+      "rent",
+      "home",
+      "property",
+      "homeless",
+      "accommodation",
+      "moving",
+      "travel",
+      "immigration",
+      "visa",
+      "refugee",
+      "tourist",
+      "overseas",
+      "domestic"
+    ],
+    "Work and Money": [
+      "work",
+      "job",
+      "employment",
+      "unemployment",
+      "career",
+      "business",
+      "money",
+      "financial",
+      "income",
+      "debt",
+      "retirement",
+      "superannuation",
+      "redundancy",
+      "bankruptcy"
+    ]
   },
-  
+
   "providers": {
     "Federal Government": {
-      "Services Australia": ["centrelink", "medicare", "child support", "services australia", "mygov", "express plus"],
-      "Australian Taxation Office": ["tax", "ato", "gst", "tfn", "abn", "bas", "tax return"],
-      "Department of Health": ["health.gov.au", "immunisation", "aged care", "mental health", "pbs", "health services"],
-      "Department of Education": ["education.gov.au", "skills", "training", "schools", "tertiary", "vocational"],
-      "Department of Social Services": ["dss.gov.au", "welfare", "family", "community", "disability", "carers"],
-      "Fair Work": ["fairwork", "workplace", "employment", "industrial relations", "awards", "enterprise agreement"]
+      "Services Australia": [
+        "centrelink",
+        "medicare",
+        "child support",
+        "services australia",
+        "mygov"
+      ],
+      "Australian Taxation Office": ["tax", "ato", "gst", "tfn", "abn", "bas"],
+      "Department of Health": [
+        "health.gov.au",
+        "immunisation",
+        "aged care",
+        "mental health",
+        "pbs"
+      ],
+      "Department of Education": [
+        "education.gov.au",
+        "skills",
+        "training",
+        "apprentice"
+      ],
+      "Department of Social Services": [
+        "dss.gov.au",
+        "welfare",
+        "family",
+        "disability",
+        "carers"
+      ],
+      "Department of Home Affairs": [
+        "homeaffairs.gov.au",
+        "immigration",
+        "visa",
+        "citizenship"
+      ],
+      "Department of Veterans Affairs": [
+        "dva.gov.au",
+        "veteran",
+        "military",
+        "war widow"
+      ],
+      "Fair Work": [
+        "fairwork",
+        "workplace",
+        "employment",
+        "industrial relations"
+      ]
     },
     "State Government": {
       "NSW": ["nsw.gov.au", "service.nsw", "new south wales"],
@@ -65,25 +1322,92 @@
       "NT": ["nt.gov.au", "northern territory", "darwin"]
     },
     "Non-Government": {
-      "Raising Children Network": ["raisingchildren.net.au", "parenting", "child development"],
-      "Beyond Blue": ["beyondblue", "mental health", "depression", "anxiety"],
-      "Lifeline": ["lifeline", "crisis support", "suicide prevention"],
-      "Red Cross": ["redcross", "emergency", "blood donation", "humanitarian"],
-      "Salvation Army": ["salvos", "charity", "welfare", "emergency relief"]
+      "Legal Aid": ["legal aid", "legal assistance", "community legal"],
+      "Housing Services": [
+        "housing",
+        "shelter",
+        "crisis accommodation",
+        "homelessness"
+      ],
+      "Mental Health Services": [
+        "beyond blue",
+        "lifeline",
+        "headspace",
+        "black dog"
+      ],
+      "Family Services": [
+        "relationships australia",
+        "family relationship",
+        "mediation"
+      ],
+      "Employment Services": [
+        "jobactive",
+        "employment services",
+        "job network"
+      ],
+      "Financial Counselling": [
+        "financial counselling",
+        "money help",
+        "debt help"
+      ]
     }
   },
-  
+
   "stageVariants": {
     "Having a baby": {
-      "Adopting a child": ["adoption", "adopt", "foster", "permanent care", "intercountry adoption"],
-      "Surrogacy": ["surrogate", "surrogacy", "altruistic", "gestational carrier"],
-      "IVF": ["ivf", "fertility", "assisted reproduction", "art", "icsi", "embryo"],
-      "Multiple births": ["twins", "triplets", "multiple", "multiples", "twin pregnancy"],
-      "Premature birth": ["premature", "preterm", "nicu", "premmie", "early birth"],
-      "Stillborn baby": ["stillborn", "stillbirth", "loss", "bereavement", "miscarriage"],
-      "Single parent": ["single parent", "sole parent", "single mother", "single father"],
-      "LGBTQ+ parents": ["same sex", "lgbtq", "rainbow family", "two mums", "two dads"],
-      "Disability": ["special needs", "disability", "developmental delay", "birth defect"]
+      "First child": ["first baby", "first time parent", "new parent"],
+      "Subsequent children": [
+        "second child",
+        "third child",
+        "another baby",
+        "sibling"
+      ],
+      "Multiple births": ["twins", "triplets", "multiple birth"],
+      "Premature birth": ["premature", "preterm", "nicu", "special care"],
+      "Adoption": ["adopting baby", "adoption process", "adoptive parent"],
+      "Surrogacy": ["surrogate", "surrogacy arrangement"],
+      "IVF": ["ivf", "fertility treatment", "assisted reproduction"],
+      "Miscarriage": ["pregnancy loss", "miscarriage", "stillbirth"],
+      "Single parent": ["single parent", "sole parent", "unmarried mother"],
+      "Teen parent": ["teenage parent", "young parent", "teen pregnancy"]
+    },
+    "Working": {
+      "Full-time": ["full time", "permanent", "ongoing", "38 hours"],
+      "Part-time": ["part time", "reduced hours", "flexible work"],
+      "Casual": ["casual", "temporary", "seasonal", "irregular hours"],
+      "Contract": ["contractor", "consultant", "fixed term", "project based"],
+      "Self-employed": [
+        "self employed",
+        "freelance",
+        "sole trader",
+        "own business"
+      ],
+      "Gig economy": ["uber", "deliveroo", "airtasker", "gig work"],
+      "Remote work": ["work from home", "remote", "telework", "distributed"]
+    },
+    "Experiencing mental illness": {
+      "Depression": [
+        "depression",
+        "depressed",
+        "major depression",
+        "clinical depression"
+      ],
+      "Anxiety": ["anxiety", "panic", "worry", "anxious", "gad"],
+      "PTSD": ["ptsd", "trauma", "post traumatic", "flashback"],
+      "Bipolar": ["bipolar", "manic", "mood disorder"],
+      "Psychosis": ["psychosis", "psychotic", "delusion", "hallucination"],
+      "Eating disorder": [
+        "anorexia",
+        "bulimia",
+        "eating disorder",
+        "body image"
+      ],
+      "Substance abuse": [
+        "addiction",
+        "substance abuse",
+        "alcoholism",
+        "drug dependency"
+      ]
     }
   }
 }

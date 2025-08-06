@@ -1,5 +1,66 @@
 // config/typesense-schema.js
 module.exports = {
+  // Services are the actual government programs/benefits
+  serviceSchema: {
+    name: 'services',
+    enable_nested_fields: true,
+    fields: [
+      // Service identification
+      { name: 'id', type: 'string' },
+      { name: 'service_name', type: 'string' },
+      { name: 'service_code', type: 'string', optional: true }, // e.g., 'AGE_PENSION', 'FTB_A'
+      { name: 'description', type: 'string' },
+      
+      // Service provider
+      { name: 'provider', type: 'string', facet: true },
+      { name: 'governance', type: 'string', facet: true },
+      { name: 'department', type: 'string', facet: true },
+      
+      // Life events this service helps with
+      { name: 'life_events', type: 'string[]', facet: true },
+      { name: 'categories', type: 'string[]', facet: true },
+      
+      // Eligibility criteria (structured)
+      { name: 'eligibility_statuses', type: 'string[]', facet: true }, // Required statuses
+      { name: 'min_age', type: 'int32', optional: true },
+      { name: 'max_age', type: 'int32', optional: true },
+      { name: 'min_income', type: 'int32', optional: true },
+      { name: 'max_income', type: 'int32', optional: true },
+      { name: 'assets_test', type: 'object', optional: true },
+      { name: 'residency_requirements', type: 'string[]', facet: true },
+      { name: 'citizenship_requirements', type: 'string[]', facet: true },
+      { name: 'required_documents', type: 'string[]' },
+      { name: 'eligibility_rules', type: 'object', optional: true }, // Complex rules/OpenFisca
+      
+      // Service details
+      { name: 'service_type', type: 'string', facet: true }, // payment, concession, support, information
+      { name: 'delivery_method', type: 'string[]', facet: true }, // online, phone, in-person
+      { name: 'payment_frequency', type: 'string', facet: true, optional: true },
+      { name: 'payment_amount', type: 'object', optional: true },
+      
+      // Relationships
+      { name: 'related_services', type: 'string[]' },
+      { name: 'incompatible_services', type: 'string[]' }, // Can't receive both
+      { name: 'gateway_service', type: 'string', optional: true }, // Must have this first
+      
+      // Content fragments that describe this service
+      { name: 'fragment_ids', type: 'string[]' },
+      { name: 'primary_url', type: 'string' },
+      { name: 'urls', type: 'string[]' },
+      
+      // Search optimization
+      { name: 'keywords', type: 'string[]' },
+      { name: 'common_names', type: 'string[]' }, // Colloquial names
+      
+      // Metadata
+      { name: 'last_updated', type: 'int64' },
+      { name: 'review_date', type: 'int64', optional: true },
+      { name: 'popularity_score', type: 'int32' },
+      { name: 'is_active', type: 'bool' }
+    ]
+  },
+  
+
   contentFragmentSchema: {
     name: 'content_fragments',
     enable_nested_fields: true,
@@ -56,7 +117,78 @@ module.exports = {
       { name: 'embedding', type: 'float[]', num_dim: 768, optional: true },
 
       // sorting helper (pre‑negated so ascending sort → highest first)
-      { name: 'popularity_sort', type: 'int32' }
+      { name: 'popularity_sort', type: 'int32' },
+      
+      { name: 'prerequisite_states', type: 'string[]', facet: true },
+      { name: 'leads_to_states', type: 'string[]', facet: true },
+      { name: 'concurrent_states', type: 'string[]', facet: true },
+      { name: 'excludes_states', type: 'string[]', facet: true },
+      
+      // Eligibility criteria (structured)
+      { name: 'min_age', type: 'int32', optional: true },
+      { name: 'max_age', type: 'int32', optional: true },
+      { name: 'min_income', type: 'int32', optional: true },
+      { name: 'max_income', type: 'int32', optional: true },
+      { name: 'required_citizenship', type: 'string[]', facet: true },
+      { name: 'required_residency', type: 'string[]', facet: true },
+      { name: 'required_disabilities', type: 'string[]', facet: true },
+      { name: 'required_employment_status', type: 'string[]', facet: true },
+      { name: 'required_housing_status', type: 'string[]', facet: true },
+      { name: 'required_caring_status', type: 'bool', optional: true },
+      { name: 'required_children', type: 'bool', optional: true },
+      { name: 'children_age_ranges', type: 'object[]', optional: true },
+      
+      // Service linkage
+      { name: 'service_id', type: 'string', optional: true },
+      { name: 'openfisca_rules', type: 'object', optional: true },
+      
+      // Journey metadata
+      { name: 'typical_duration_days', type: 'int32', optional: true },
+      { name: 'urgency_score', type: 'int32', optional: true },
+      { name: 'completion_likelihood', type: 'float', optional: true }
+    ]
+  },
+ // New collection for user profiles
+  userProfileSchema: {
+    name: 'user_profiles',
+    fields: [
+      { name: 'id', type: 'string' },
+      { name: 'age', type: 'int32' },
+      { name: 'income', type: 'int32' },
+      { name: 'assets', type: 'int32' },
+      { name: 'citizenship', type: 'string[]' },
+      { name: 'residency_state', type: 'string' },
+      { name: 'disabilities', type: 'string[]' },
+      { name: 'employment_status', type: 'string' },
+      { name: 'housing_status', type: 'string' },
+      { name: 'is_carer', type: 'bool' },
+      { name: 'children', type: 'object[]' }, // [{age: 5, has_disability: false}]
+      { name: 'current_life_events', type: 'string[]' },
+      { name: 'completed_life_events', type: 'string[]' },
+      { name: 'disaster_affected', type: 'string[]' },
+      { name: 'created_at', type: 'int64' },
+      { name: 'updated_at', type: 'int64' }
+    ]
+  },
+
+
+  // New collection for life event graph
+  lifeEventGraphSchema: {
+    name: 'life_event_graph',
+    fields: [
+      { name: 'id', type: 'string' },
+      { name: 'event_name', type: 'string' },
+      { name: 'event_type', type: 'string', facet: true }, // state, transition, milestone
+      { name: 'prerequisites', type: 'string[]' },
+      { name: 'next_states', type: 'string[]' },
+      { name: 'concurrent_allowed', type: 'string[]' },
+      { name: 'mutually_exclusive', type: 'string[]' },
+      { name: 'typical_age_range', type: 'int32[]' },
+      { name: 'typical_duration_days', type: 'int32' },
+      { name: 'position_x', type: 'float' }, // For visualization
+      { name: 'position_y', type: 'float' },
+      { name: 'position_z', type: 'float', optional: true },
+      { name: 'cluster', type: 'string', facet: true } // Visual grouping
     ]
   }
 };

@@ -1,5 +1,6 @@
 // scraper/sitemap.js
 const { parseStringPromise } = require('xml2js');
+const fetch = require('node-fetch');
 
 async function fetchSitemapUrls(baseUrl) {
   const urls = new Set();

@@ -5,6 +5,7 @@ const crypto = require('crypto');
 const pLimit = require('p-limit');
 const robotsParser = require('robots-parser');
 const Typesense = require('typesense');
+const fetch = require('node-fetch'); // Add this import
 const { extractFragment } = require('./extractors');
 const { enrichWithTaxonomy } = require('./taxonomies');
 const { contentFragmentSchema } = require('/config/typesense-schema');

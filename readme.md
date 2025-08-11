@@ -20,6 +20,9 @@ A Typesense-powered content extraction and search system for government websites
 
 ### Installation
 
+0. Prep your system
+On a clean vm you'll need to install docker-compose, enable docker and add yourself to the docker group 
+
 1. Clone the repository:
 ```bash
 git clone https://github.com/p0ss/FragmentEngine
@@ -42,6 +45,8 @@ TARGET_URL=https://my.gov.au
 chmod +x deploy.sh
 ./deploy.sh --crawl  # Include --crawl to run initial scrape
 ```
+
+
 
 ## Usage
 

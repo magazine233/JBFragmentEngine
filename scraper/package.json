@@ -15,7 +15,8 @@
     "robots-parser": "^3.0.0",
     "syllable": "^4.1.0",
     "cssesc": "^3.0.0",
-    "xml2js": "^0.6.2"
+    "xml2js": "^0.6.2",
+    "node-fetch": "^2.7.0"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

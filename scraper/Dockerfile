@@ -1,5 +1,5 @@
 # scraper/Dockerfile
-FROM node:18-slim
+FROM node:22-alpine
 
 # Install Chromium dependencies
 RUN apt-get update && apt-get install -y \

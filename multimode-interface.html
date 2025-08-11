@@ -1,371 +1,487 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>myGov - Multi-Mode Interface</title>
-    
-    <!-- Material-UI -->
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap" />
-    <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons" />
-    
-    <!-- React & Dependencies -->
-    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/@mui/material@5.14.0/umd/material-ui.production.min.js"></script>
-    <script crossorigin src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    
-    <style>
-        body {
-            margin: 0;
-            font-family: 'Roboto', sans-serif;
-            background-color: #f5f5f5;
-        }
-        .chat-messages {
-            height: 400px;
-            overflow-y: auto;
-            padding: 16px;
-            background-color: #fafafa;
-            border-radius: 4px;
-            margin-bottom: 16px;
-        }
-        .chat-message {
-            margin-bottom: 16px;
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-        }
-        .chat-message.user {
-            flex-direction: row-reverse;
-        }
-        .chat-bubble {
-            max-width: 70%;
-            padding: 12px 16px;
-            border-radius: 16px;
-            background-color: #e0e0e0;
-        }
-        .chat-message.user .chat-bubble {
-            background-color: #1976d2;
-            color: white;
-        }
-        .chat-avatar {
-            width: 36px;
-            height: 36px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
-            font-weight: 500;
-        }
-        .chat-message.assistant .chat-avatar {
-            background-color: #66d3ee;
-            color: #333;
-        }
-        .chat-message.user .chat-avatar {
-            background-color: #1976d2;
-            color: white;
-        }
-        .content-section {
-            margin-bottom: 32px;
-        }
-        .content-card {
-            transition: transform 0.2s;
-        }
-        .content-card:hover {
-            transform: translateY(-2px);
-        }
-        .filter-chips {
-            display: flex;
-            gap: 8px;
-            flex-wrap: wrap;
-            margin-bottom: 16px;
-        }
-        .logo-container {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-        }
-        .logo-image {
-            height: 40px;
-            width: auto;
-        }
-        @media print {
-            .MuiAppBar-root, .MuiBottomNavigation-root {
-                display: none !important;
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>myGov - Multi-Mode Interface</title>
+
+        <!-- Material-UI -->
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap"
+        />
+        <link
+            rel="stylesheet"
+            href="https://fonts.googleapis.com/icon?family=Material+Icons"
+        />
+
+        <!-- React & Dependencies -->
+        <script
+            crossorigin
+            src="https://unpkg.com/react@18/umd/react.production.min.js"
+        ></script>
+        <script
+            crossorigin
+            src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"
+        ></script>
+        <script
+            crossorigin
+            src="https://unpkg.com/@mui/material@5.14.0/umd/material-ui.production.min.js"
+        ></script>
+        <script
+            crossorigin
+            src="https://unpkg.com/@babel/standalone/babel.min.js"
+        ></script>
+
+        <style>
+            body {
+                margin: 0;
+                font-family: "Roboto", sans-serif;
+                background-color: #f5f5f5;
             }
-        }
-    </style>
-</head>
-<body>
-    <div id="root"></div>
-
-    <script type="text/babel">
-        const {
-            AppBar, Toolbar, Typography, Container, Box, Card, CardContent,
-            Button, IconButton, TextField, Chip, Paper, Grid, List, ListItem,
-            ListItemText, ListItemIcon, Checkbox, Accordion, AccordionSummary,
-            AccordionDetails, Badge, LinearProgress, ToggleButton, ToggleButtonGroup,
-            Tabs, Tab, Dialog, DialogTitle, DialogContent, DialogActions,
-            Menu, MenuItem, Snackbar, Alert, Divider, InputAdornment,
-            Radio, RadioGroup, FormControlLabel, FormControl, FormLabel,
-            Avatar, Stack, Fade, Grow, Collapse, CircularProgress, Link
-        } = MaterialUI;
-
-        const { useState, useEffect, useRef, useCallback } = React;
-
-        // API Configuration
-        const API_BASE_URL = "http://localhost:3000";
-        const API_ENDPOINTS = {
-            search: `${API_BASE_URL}/api/fragments/search`,
-            facets: `${API_BASE_URL}/api/fragments/facets`,
-            ollama: `${API_BASE_URL}/api/ollama/chat`
-        };
-
-        // Category to Life Event mappings - FIXED TO MATCH ACTUAL API DATA
-        const categoryToLifeEvents = {
-            "Health and caring": [
-                "Seeking medical help",
-                "Being diagnosed with a medical condition or disability", 
-                "Experiencing mental illness",
-                "Being seriously injured",
-                "Providing temporary care for another",
-                "Becoming a long term carer",
-                "Ceasing to be a carer",
-                "Experiencing the death of a loved one",
-                "Coming to the end of your life",
-                "Becoming an older Australian",
-                "Accessing aged care"
-            ],
-            "Family and relationships": [
-                "Getting together",
-                "Making it work", 
-                "Breaking up",
-                "Having a baby",
-                "Adopting a child",
-                "Fostering a child",
-                "Raising a child to adulthood",
-                "Separated parents",
-                "Estrangement from family",
-                "Getting a pet"
-            ],
-            "Work and Money": [  // Fixed capitalization
-                "Working",
-                "Changing careers", 
-                "Returning to work",
-                "Experiencing workplace conflict",
-                "Becoming unemployed",
-                "Looking for work",
-                "Retiring from the workforce",
-                "Starting a business",
-                "Establishing trade",
-                "Growing a business",
-                "Having a business fail",
-                "Closing a business",
-                "Selling a business",
-                "Experiencing financial stress"
-            ],
-            "Housing and Travel": [  // Fixed capitalization
-                "Coming to Australia to visit",
-                "Moving to Australia permanently", 
-                "Coming to Australia as a refugee",
-                "Renting a home",
-                "Buying a home",
-                "Moving into an existing household",
-                "Experiencing homelessness",
-                "Moving domestically",
-                "Moving abroad",
-                "Travelling within Australia",
-                "Travelling overseas"
-            ],
-            "Disasters and Crime": [  // Fixed capitalization
-                "Being the victim of a crime",
-                "Being arrested and charged with a crime",
-                "Being involved in a lawsuit", 
-                "Being sentenced and serving your sentence",
-                "Being released from prison",
-                "Experiencing domestic violence",
-                "Leaving a violent relationship",
-                "Being removed from your family",
-                "Experiencing a war",
-                "Experiencing terrorist act",
-                "Experiencing a major industrial accident",
-                "Experiencing a pandemic",
-                "Experiencing a sudden disaster",
-                "Experiencing a gradual disaster"
-            ],
-            "Education and Identity": [  // Fixed capitalization
-                "Becoming a driver",
-                "Becoming financially independent",
-                "Moving out of home for the first time",
-                "Coming out",
-                "Changing gender identity",
-                "Changing national identity",
-                "Change in religious beliefs", 
-                "Transitioning to civilian life",
-                "Studying at primary school",
-                "Studying at high school",
-                "Studying at a tertiary institution",
-                "Becoming an apprentice",
-                "Upgrading professional skills or qualifications",
-                "Coming to Australia temporarily"
-            ]
-        };
-
-        function App() {
-            const [mode, setMode] = useState('browse'); // browse, home, search, chat
-            const [facetsData, setFacetsData] = useState(null);
-            const [results, setResults] = useState([]);
-            const [loading, setLoading] = useState(false);
-            const [error, setError] = useState(null);
-            
-            // Selection state
-            const [selections, setSelections] = useState({
-                category: null,
-                lifeEvent: null,
-                provider: null
-            });
-            
-            // Search state
-            const [searchQuery, setSearchQuery] = useState('');
-            const [searchFilters, setSearchFilters] = useState({
-                category: null,
-                lifeEvent: null,
-                provider: null,
-                state: null
-            });
-            
-            // Chat state
-            const [chatMessages, setChatMessages] = useState([
-                { type: 'assistant', text: 'Hello! I\'m here to help you find government services. What can I help you with today?' }
-            ]);
-            const [chatInput, setChatInput] = useState('');
-            const [ollamaModel, setOllamaModel] = useState('llama2'); // Default model
-            
-            // Progress tracking
-            const [completedTasks, setCompletedTasks] = useState([]);
-            
-            // Export menu
-            const [exportAnchor, setExportAnchor] = useState(null);
-            
-            // Load facets on mount
-            useEffect(() => {
-                loadFacets();
-            }, []);
-            
-            // Load results when selections change
-            useEffect(() => {
-                if (mode === 'browse' || mode === 'home') {
-                    if (selections.category && selections.lifeEvent && selections.provider) {
-                        loadResults();
-                    }
+            .chat-messages {
+                height: 400px;
+                overflow-y: auto;
+                padding: 16px;
+                background-color: #fafafa;
+                border-radius: 4px;
+                margin-bottom: 16px;
+            }
+            .chat-message {
+                margin-bottom: 16px;
+                display: flex;
+                align-items: flex-start;
+                gap: 8px;
+            }
+            .chat-message.user {
+                flex-direction: row-reverse;
+            }
+            .chat-bubble {
+                max-width: 70%;
+                padding: 12px 16px;
+                border-radius: 16px;
+                background-color: #e0e0e0;
+            }
+            .chat-message.user .chat-bubble {
+                background-color: #1976d2;
+                color: white;
+            }
+            .chat-avatar {
+                width: 36px;
+                height: 36px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                font-size: 14px;
+                font-weight: 500;
+            }
+            .chat-message.assistant .chat-avatar {
+                background-color: #66d3ee;
+                color: #333;
+            }
+            .chat-message.user .chat-avatar {
+                background-color: #1976d2;
+                color: white;
+            }
+            .content-section {
+                margin-bottom: 32px;
+            }
+            .content-card {
+                transition: transform 0.2s;
+            }
+            .content-card:hover {
+                transform: translateY(-2px);
+            }
+            .filter-chips {
+                display: flex;
+                gap: 8px;
+                flex-wrap: wrap;
+                margin-bottom: 16px;
+            }
+            .logo-container {
+                display: flex;
+                align-items: center;
+                gap: 12px;
+            }
+            .logo-image {
+                height: 40px;
+                width: auto;
+            }
+            @media print {
+                .MuiAppBar-root,
+                .MuiBottomNavigation-root {
+                    display: none !important;
                 }
-            }, [selections, mode]);
-            
-            const loadFacets = async () => {
-                try {
-                    const response = await fetch(API_ENDPOINTS.facets);
-                    if (!response.ok) throw new Error('Failed to load facets');
-                    const data = await response.json();
-                    setFacetsData(data);
-                } catch (err) {
-                    setError('Failed to load options. Please check if the API is running.');
-                    console.error(err);
-                }
+            }
+        </style>
+    </head>
+    <body>
+        <div id="root"></div>
+
+        <script type="text/babel">
+            const {
+                AppBar,
+                Toolbar,
+                Typography,
+                Container,
+                Box,
+                Card,
+                CardContent,
+                Button,
+                IconButton,
+                TextField,
+                Chip,
+                Paper,
+                Grid,
+                List,
+                ListItem,
+                ListItemText,
+                ListItemIcon,
+                Checkbox,
+                Accordion,
+                AccordionSummary,
+                AccordionDetails,
+                Badge,
+                LinearProgress,
+                ToggleButton,
+                ToggleButtonGroup,
+                Tabs,
+                Tab,
+                Dialog,
+                DialogTitle,
+                DialogContent,
+                DialogActions,
+                Menu,
+                MenuItem,
+                Snackbar,
+                Alert,
+                Divider,
+                InputAdornment,
+                Radio,
+                RadioGroup,
+                FormControlLabel,
+                FormControl,
+                FormLabel,
+                Avatar,
+                Stack,
+                Fade,
+                Grow,
+                Collapse,
+                CircularProgress,
+                Link,
+            } = MaterialUI;
+
+            const { useState, useEffect, useRef, useCallback } = React;
+
+            // API Configuration
+            const API_BASE_URL = "http://localhost:3000";
+            const API_ENDPOINTS = {
+                search: `${API_BASE_URL}/api/fragments/search`,
+                facets: `${API_BASE_URL}/api/fragments/facets`,
+                ollama: `${API_BASE_URL}/api/ollama/chat`,
             };
-            
-            const loadResults = async (searchParams = {}) => {
-                setLoading(true);
-                setError(null);
-                
-                try {
-                    const params = new URLSearchParams({
-                        q: searchParams.q || '*',
-                        include_html: 'true',
-                        per_page: '100'
-                    });
-                    
-                    // Add filters based on mode
-                    if (mode === 'browse' || mode === 'home') {
-                        if (selections.category) params.append('category', selections.category);
-                        if (selections.lifeEvent) params.append('life_event', selections.lifeEvent);
-                        if (selections.provider && selections.provider !== 'All providers') {
-                            params.append('provider', selections.provider);
+
+            // Category to Life Event mappings - FIXED TO MATCH ACTUAL API DATA
+            const categoryToLifeEvents = {
+                "Health and caring": [
+                    "Seeking medical help",
+                    "Being diagnosed with a medical condition or disability",
+                    "Experiencing mental illness",
+                    "Being seriously injured",
+                    "Providing temporary care for another",
+                    "Becoming a long term carer",
+                    "Ceasing to be a carer",
+                    "Experiencing the death of a loved one",
+                    "Coming to the end of your life",
+                    "Becoming an older Australian",
+                    "Accessing aged care",
+                ],
+                "Family and relationships": [
+                    "Getting together",
+                    "Making it work",
+                    "Breaking up",
+                    "Having a baby",
+                    "Adopting a child",
+                    "Fostering a child",
+                    "Raising a child to adulthood",
+                    "Separated parents",
+                    "Estrangement from family",
+                    "Getting a pet",
+                ],
+                "Work and Money": [
+                    // Fixed capitalization
+                    "Working",
+                    "Changing careers",
+                    "Returning to work",
+                    "Experiencing workplace conflict",
+                    "Becoming unemployed",
+                    "Looking for work",
+                    "Retiring from the workforce",
+                    "Starting a business",
+                    "Establishing trade",
+                    "Growing a business",
+                    "Having a business fail",
+                    "Closing a business",
+                    "Selling a business",
+                    "Experiencing financial stress",
+                ],
+                "Housing and Travel": [
+                    // Fixed capitalization
+                    "Coming to Australia to visit",
+                    "Moving to Australia permanently",
+                    "Coming to Australia as a refugee",
+                    "Renting a home",
+                    "Buying a home",
+                    "Moving into an existing household",
+                    "Experiencing homelessness",
+                    "Moving domestically",
+                    "Moving abroad",
+                    "Travelling within Australia",
+                    "Travelling overseas",
+                ],
+                "Disasters and Crime": [
+                    // Fixed capitalization
+                    "Being the victim of a crime",
+                    "Being arrested and charged with a crime",
+                    "Being involved in a lawsuit",
+                    "Being sentenced and serving your sentence",
+                    "Being released from prison",
+                    "Experiencing domestic violence",
+                    "Leaving a violent relationship",
+                    "Being removed from your family",
+                    "Experiencing a war",
+                    "Experiencing terrorist act",
+                    "Experiencing a major industrial accident",
+                    "Experiencing a pandemic",
+                    "Experiencing a sudden disaster",
+                    "Experiencing a gradual disaster",
+                ],
+                "Education and Identity": [
+                    // Fixed capitalization
+                    "Becoming a driver",
+                    "Becoming financially independent",
+                    "Moving out of home for the first time",
+                    "Coming out",
+                    "Changing gender identity",
+                    "Changing national identity",
+                    "Change in religious beliefs",
+                    "Transitioning to civilian life",
+                    "Studying at primary school",
+                    "Studying at high school",
+                    "Studying at a tertiary institution",
+                    "Becoming an apprentice",
+                    "Upgrading professional skills or qualifications",
+                    "Coming to Australia temporarily",
+                ],
+            };
+
+            function App() {
+                const [mode, setMode] = useState("browse"); // browse, home, search, chat
+                const [facetsData, setFacetsData] = useState(null);
+                const [results, setResults] = useState([]);
+                const [loading, setLoading] = useState(false);
+                const [error, setError] = useState(null);
+
+                // Selection state
+                const [selections, setSelections] = useState({
+                    category: null,
+                    lifeEvent: null,
+                    provider: null,
+                });
+
+                // Search state
+                const [searchQuery, setSearchQuery] = useState("");
+                const [searchFilters, setSearchFilters] = useState({
+                    category: null,
+                    lifeEvent: null,
+                    provider: null,
+                    state: null,
+                });
+
+                // Chat state
+                const [chatMessages, setChatMessages] = useState([
+                    {
+                        type: "assistant",
+                        text: "Hello! I'm here to help you find government services. What can I help you with today?",
+                    },
+                ]);
+                const [chatInput, setChatInput] = useState("");
+                const [ollamaModel, setOllamaModel] = useState("gemma:27b"); // Default model
+
+                // Progress tracking
+                const [completedTasks, setCompletedTasks] = useState([]);
+
+                // Export menu
+                const [exportAnchor, setExportAnchor] = useState(null);
+
+                // Load facets on mount
+                useEffect(() => {
+                    loadFacets();
+                }, []);
+
+                // Load results when selections change
+                useEffect(() => {
+                    if (mode === "browse" || mode === "home") {
+                        if (
+                            selections.category &&
+                            selections.lifeEvent &&
+                            selections.provider
+                        ) {
+                            loadResults();
                         }
-                    } else if (mode === 'search') {
-                        if (searchFilters.category) params.append('category', searchFilters.category);
-                        if (searchFilters.lifeEvent) params.append('life_event', searchFilters.lifeEvent);
-                        if (searchFilters.provider) params.append('provider', searchFilters.provider);
-                        if (searchFilters.state) params.append('state', searchFilters.state);
                     }
-                    
-                    const response = await fetch(`${API_ENDPOINTS.search}?${params}`);
-                    if (!response.ok) throw new Error('Failed to search');
-                    const data = await response.json();
-                    
-                    setResults(data.results.map(hit => ({
-                        id: hit.document.id,
-                        url: hit.document.url,
-                        title: hit.document.title,
-                        description: hit.document.content_text,
-                        content_html: hit.document.content_html,
-                        category: hit.document.categories?.[0] || 'General',
-                        lifeEvent: hit.document.life_events?.[0] || 'General',
-                        provider: hit.document.provider || 'Services Australia',
-                        state: hit.document.states?.[0] || 'National',
-                        hierarchy: hit.document.hierarchy_lvl0 || hit.document.title
-                    })));
-                } catch (err) {
-                    setError('Failed to load results. Please try again.');
-                    console.error(err);
-                } finally {
-                    setLoading(false);
-                }
-            };
+                }, [selections, mode]);
 
-            const handleSearch = () => {
-                loadResults({ q: searchQuery });
-            };
-            
-            const handleChatSend = async () => {
-                if (!chatInput.trim()) return;
-                
-                const userMessage = chatInput;
-                setChatInput('');
-                
-                // Add user message
-                setChatMessages(prev => [...prev, { type: 'user', text: userMessage }]);
-                
-                // Add a loading message
-                const loadingId = Date.now();
-                setChatMessages(prev => [...prev, { 
-                    type: 'assistant', 
-                    text: 'Thinking...', 
-                    id: loadingId,
-                    loading: true 
-                }]);
-                
-                try {
-                    // First, search for relevant content using Typesense
-                    const searchResponse = await fetch(`${API_ENDPOINTS.search}?${new URLSearchParams({
-                        q: userMessage,
-                        per_page: '5',
-                        include_html: 'false'
-                    })}`);
-                    
-                    let context = '';
-                    if (searchResponse.ok) {
-                        const searchData = await searchResponse.json();
-                        context = searchData.results
-                            .map(hit => `Title: ${hit.document.title}\nContent: ${hit.document.content_text}\nProvider: ${hit.document.provider}`)
-                            .join('\n\n---\n\n');
+                const loadFacets = async () => {
+                    try {
+                        const response = await fetch(API_ENDPOINTS.facets);
+                        if (!response.ok)
+                            throw new Error("Failed to load facets");
+                        const data = await response.json();
+                        setFacetsData(data);
+                    } catch (err) {
+                        setError(
+                            "Failed to load options. Please check if the API is running.",
+                        );
+                        console.error(err);
                     }
-                    
-                    // Prepare the prompt with context
-                    const systemPrompt = `You are a helpful Australian government services assistant. Use the following search results to answer the user's question. If the search results don't contain relevant information, provide general guidance and suggest where they might find more information.
+                };
+
+                const loadResults = async (searchParams = {}) => {
+                    setLoading(true);
+                    setError(null);
+
+                    try {
+                        const params = new URLSearchParams({
+                            q: searchParams.q || "*",
+                            include_html: "true",
+                            per_page: "100",
+                        });
+
+                        // Add filters based on mode
+                        if (mode === "browse" || mode === "home") {
+                            if (selections.category)
+                                params.append("category", selections.category);
+                            if (selections.lifeEvent)
+                                params.append(
+                                    "life_event",
+                                    selections.lifeEvent,
+                                );
+                            if (
+                                selections.provider &&
+                                selections.provider !== "All providers"
+                            ) {
+                                params.append("provider", selections.provider);
+                            }
+                        } else if (mode === "search") {
+                            if (searchFilters.category)
+                                params.append(
+                                    "category",
+                                    searchFilters.category,
+                                );
+                            if (searchFilters.lifeEvent)
+                                params.append(
+                                    "life_event",
+                                    searchFilters.lifeEvent,
+                                );
+                            if (searchFilters.provider)
+                                params.append(
+                                    "provider",
+                                    searchFilters.provider,
+                                );
+                            if (searchFilters.state)
+                                params.append("state", searchFilters.state);
+                        }
+
+                        const response = await fetch(
+                            `${API_ENDPOINTS.search}?${params}`,
+                        );
+                        if (!response.ok) throw new Error("Failed to search");
+                        const data = await response.json();
+
+                        setResults(
+                            data.results.map((hit) => ({
+                                id: hit.document.id,
+                                url: hit.document.url,
+                                title: hit.document.title,
+                                description: hit.document.content_text,
+                                content_html: hit.document.content_html,
+                                category:
+                                    hit.document.categories?.[0] || "General",
+                                lifeEvent:
+                                    hit.document.life_events?.[0] || "General",
+                                provider:
+                                    hit.document.provider ||
+                                    "Services Australia",
+                                state: hit.document.states?.[0] || "National",
+                                hierarchy:
+                                    hit.document.hierarchy_lvl0 ||
+                                    hit.document.title,
+                            })),
+                        );
+                    } catch (err) {
+                        setError("Failed to load results. Please try again.");
+                        console.error(err);
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                const handleSearch = () => {
+                    loadResults({ q: searchQuery });
+                };
+
+                const handleChatSend = async () => {
+                    if (!chatInput.trim()) return;
+
+                    const userMessage = chatInput;
+                    setChatInput("");
+
+                    // Add user message
+                    setChatMessages((prev) => [
+                        ...prev,
+                        { type: "user", text: userMessage },
+                    ]);
+
+                    // Add a loading message
+                    const loadingId = Date.now();
+                    setChatMessages((prev) => [
+                        ...prev,
+                        {
+                            type: "assistant",
+                            text: "Thinking...",
+                            id: loadingId,
+                            loading: true,
+                        },
+                    ]);
+
+                    try {
+                        // First, search for relevant content using Typesense
+                        const searchResponse = await fetch(
+                            `${API_ENDPOINTS.search}?${new URLSearchParams({
+                                q: userMessage,
+                                per_page: "5",
+                                include_html: "false",
+                            })}`,
+                        );
+
+                        let context = "";
+                        if (searchResponse.ok) {
+                            const searchData = await searchResponse.json();
+                            context = searchData.results
+                                .map(
+                                    (hit) =>
+                                        `Title: ${hit.document.title}\nContent: ${hit.document.content_text}\nProvider: ${hit.document.provider}`,
+                                )
+                                .join("\n\n---\n\n");
+                        }
+
+                        // Prepare the prompt with context
+                        const systemPrompt = `You are a helpful Australian government services assistant. Use the following search results to answer the user's question. If the search results don't contain relevant information, provide general guidance and suggest where they might find more information.
 
 Search Results:
-${context || 'No specific results found for this query.'}
+${context || "No specific results found for this query."}
 
 Remember to:
 - Be helpful and concise
@@ -373,778 +489,1485 @@ Remember to:
 - Suggest visiting official government websites for the most up-to-date information
 - If discussing eligibility or requirements, note that these can vary and users should check official sources`;
 
-                    const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nAssistant:`;
+                        const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nAssistant:`;
 
-                    console.log('Calling Ollama via API proxy with model:', ollamaModel);
-                    
-                    // Call our API proxy instead of Ollama directly
-                    const response = await fetch(API_ENDPOINTS.ollama, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({
-                            model: ollamaModel,
-                            prompt: fullPrompt
-                        })
+                        console.log(
+                            "Calling Ollama via API proxy with model:",
+                            ollamaModel,
+                        );
+
+                        // Call our API proxy instead of Ollama directly
+                        const response = await fetch(API_ENDPOINTS.ollama, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                model: ollamaModel,
+                                prompt: fullPrompt,
+                            }),
+                        });
+
+                        const data = await response.json();
+
+                        if (!response.ok) {
+                            throw new Error(
+                                data.error ||
+                                    `Server returned ${response.status}`,
+                            );
+                        }
+
+                        // Replace loading message with actual response
+                        setChatMessages((prev) =>
+                            prev.map((msg) =>
+                                msg.id === loadingId
+                                    ? {
+                                          type: "assistant",
+                                          text: data.response,
+                                          id: loadingId,
+                                      }
+                                    : msg,
+                            ),
+                        );
+                    } catch (error) {
+                        console.error("Chat error:", error);
+
+                        let errorMessage = "Sorry, I encountered an error. ";
+
+                        if (error.message.includes("Failed to fetch")) {
+                            errorMessage +=
+                                "Could not connect to the API server. Please ensure the API is running on port 3000.";
+                        } else if (
+                            error.message.includes("Cannot connect to Ollama")
+                        ) {
+                            errorMessage +=
+                                "The API server cannot reach Ollama. Please ensure Ollama is running (ollama serve).";
+                        } else if (error.message.includes("404")) {
+                            errorMessage += `Model "${ollamaModel}" not found. Try running: ollama pull ${ollamaModel}`;
+                        } else {
+                            errorMessage += error.message;
+                        }
+
+                        // Replace loading message with error message
+                        setChatMessages((prev) =>
+                            prev.map((msg) =>
+                                msg.id === loadingId
+                                    ? {
+                                          type: "assistant",
+                                          text: errorMessage,
+                                          id: loadingId,
+                                          error: true,
+                                      }
+                                    : msg,
+                            ),
+                        );
+                    }
+                };
+
+                const toggleTask = (taskId) => {
+                    setCompletedTasks((prev) => {
+                        if (prev.includes(taskId)) {
+                            return prev.filter((id) => id !== taskId);
+                        } else {
+                            return [...prev, taskId];
+                        }
                     });
-                    
-                    const data = await response.json();
-                    
-                    if (!response.ok) {
-                        throw new Error(data.error || `Server returned ${response.status}`);
-                    }
-                    
-                    // Replace loading message with actual response
-                    setChatMessages(prev => 
-                        prev.map(msg => 
-                            msg.id === loadingId 
-                                ? { type: 'assistant', text: data.response, id: loadingId }
-                                : msg
-                        )
+                };
+
+                const progress =
+                    results.length > 0
+                        ? (completedTasks.length / results.length) * 100
+                        : 0;
+
+                // ADD FILTERING HELPER FUNCTIONS
+                const getFilteredLifeEvents = () => {
+                    const selectedCategory =
+                        mode === "search"
+                            ? searchFilters.category
+                            : selections.category;
+                    if (!selectedCategory || !facetsData?.life_events)
+                        return [];
+
+                    // Get allowed life events for selected category
+                    const allowedEvents =
+                        categoryToLifeEvents[selectedCategory] || [];
+
+                    // Filter facets data to only include allowed events
+                    return facetsData.life_events
+                        .filter((event) => allowedEvents.includes(event.value))
+                        .sort((a, b) => b.count - a.count);
+                };
+
+                // Also add debug logging to see what's happening
+                const debugCategoryMapping = (category) => {
+                    console.log("Selected category:", category);
+                    console.log(
+                        "Available mappings:",
+                        Object.keys(categoryToLifeEvents),
                     );
-                    
-                } catch (error) {
-                    console.error('Chat error:', error);
-                    
-                    let errorMessage = 'Sorry, I encountered an error. ';
-                    
-                    if (error.message.includes('Failed to fetch')) {
-                        errorMessage += 'Could not connect to the API server. Please ensure the API is running on port 3000.';
-                    } else if (error.message.includes('Cannot connect to Ollama')) {
-                        errorMessage += 'The API server cannot reach Ollama. Please ensure Ollama is running (ollama serve).';
-                    } else if (error.message.includes('404')) {
-                        errorMessage += `Model "${ollamaModel}" not found. Try running: ollama pull ${ollamaModel}`;
-                    } else {
-                        errorMessage += error.message;
-                    }
-                    
-                    // Replace loading message with error message
-                    setChatMessages(prev => 
-                        prev.map(msg => 
-                            msg.id === loadingId 
-                                ? { 
-                                    type: 'assistant', 
-                                    text: errorMessage, 
-                                    id: loadingId,
-                                    error: true
-                                  }
-                                : msg
-                        )
+                    console.log(
+                        "Mapped events:",
+                        categoryToLifeEvents[category],
                     );
-                }
-            };
-            
-            const toggleTask = (taskId) => {
-                setCompletedTasks(prev => {
-                    if (prev.includes(taskId)) {
-                        return prev.filter(id => id !== taskId);
-                    } else {
-                        return [...prev, taskId];
-                    }
-                });
-            };
-            
-            const progress = results.length > 0 
-                ? (completedTasks.length / results.length) * 100 
-                : 0;
+                    console.log(
+                        "Facets life events:",
+                        facetsData?.life_events?.map((e) => e.value),
+                    );
+                };
 
-            // ADD FILTERING HELPER FUNCTIONS
-            const getFilteredLifeEvents = () => {
-                const selectedCategory = mode === 'search' ? searchFilters.category : selections.category;
-                if (!selectedCategory || !facetsData?.life_events) return [];
-                
-                // Get allowed life events for selected category
-                const allowedEvents = categoryToLifeEvents[selectedCategory] || [];
-                
-                // Filter facets data to only include allowed events
-                return facetsData.life_events.filter(event => 
-                    allowedEvents.includes(event.value)
-                ).sort((a, b) => b.count - a.count);
-            };
+                const iconMap = {
+                    "Health and caring": "favorite",
+                    "Family and relationships": "people",
+                    "Work and money": "attach_money",
+                    "Housing and travel": "home",
+                    "Disasters and crime": "warning",
+                    "Education and identity": "school",
+                    "Having a baby": "child_friendly",
+                    "Growing up": "child_care",
+                    "Child health": "health_and_safety",
+                    "Relationship changes": "favorite_border",
+                    "Domestic violence": "report_problem",
+                    Work: "work",
+                    Ageing: "elderly",
+                    Education: "school",
+                    "All providers": "public",
+                    "Services Australia": "account_balance",
+                    "Australian Taxation Office": "receipt",
+                    "Department of Health": "local_hospital",
+                    "Department of Education": "backpack",
+                    "State Government": "location_on",
+                    "Non-Government": "business",
+                };
 
-            // Also add debug logging to see what's happening
-            const debugCategoryMapping = (category) => {
-                console.log('Selected category:', category);
-                console.log('Available mappings:', Object.keys(categoryToLifeEvents));
-                console.log('Mapped events:', categoryToLifeEvents[category]);
-                console.log('Facets life events:', facetsData?.life_events?.map(e => e.value));
-            };
+                const getIcon = (name) => iconMap[name] || "circle";
 
-            const iconMap = {
-                "Health and caring": "favorite",
-                "Family and relationships": "people",
-                "Work and money": "attach_money",
-                "Housing and travel": "home",
-                "Disasters and crime": "warning",
-                "Education and identity": "school",
-                "Having a baby": "child_friendly",
-                "Growing up": "child_care",
-                "Child health": "health_and_safety",
-                "Relationship changes": "favorite_border",
-                "Domestic violence": "report_problem",
-                "Work": "work",
-                "Ageing": "elderly",
-                "Education": "school",
-                "All providers": "public",
-                "Services Australia": "account_balance",
-                "Australian Taxation Office": "receipt",
-                "Department of Health": "local_hospital",
-                "Department of Education": "backpack",
-                "State Government": "location_on",
-                "Non-Government": "business"
-            };
+                return (
+                    <>
+                        <AppBar
+                            position="sticky"
+                            sx={{ bgcolor: "#66d3ee", color: "#333" }}
+                        >
+                            <Toolbar>
+                                <Box
+                                    className="logo-container"
+                                    sx={{ flexGrow: 1 }}
+                                >
+                                    <img
+                                        src="img/logo.png"
+                                        alt="myGov"
+                                        className="logo-image"
+                                    />
+                                    <Typography variant="h6" component="div">
+                                        myGov
+                                    </Typography>
+                                </Box>
 
-            const getIcon = (name) => iconMap[name] || "circle";
-
-            return (
-                <>
-                    <AppBar position="sticky" sx={{ bgcolor: '#66d3ee', color: '#333' }}>
-                        <Toolbar>
-                            <Box className="logo-container" sx={{ flexGrow: 1 }}>
-                                <img src="img/logo.png" alt="myGov" className="logo-image" />
-                                <Typography variant="h6" component="div">
-                                    myGov
-                                </Typography>
-                            </Box>
-                            
-                            <Tabs 
-                                value={mode} 
-                                onChange={(e, newMode) => setMode(newMode)}
-                                sx={{ 
-                                    '& .MuiTab-root': { color: '#333' },
-                                    '& .Mui-selected': { color: '#1976d2' }
-                                }}
-                            >
-                                <Tab label="Home" value="home" />
-                                <Tab label="Browse" value="browse" />
-                                <Tab label="Search" value="search" icon={<span className="material-icons">search</span>} iconPosition="end" />
-                                <Tab label="Chat" value="chat" icon={<span className="material-icons">chat</span>} iconPosition="end" />
-                            </Tabs>
-                            
-                            <Button color="inherit" startIcon={<span className="material-icons">login</span>}>
-                                Sign in
-                            </Button>
-                        </Toolbar>
-                    </AppBar>
-
-                    <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
-                        {error && (
-                            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
-                                {error}
-                            </Alert>
-                        )}
-
-                        {/* Navigation Questions (shown in browse, home, and search modes) */}
-                        {(mode === 'browse' || mode === 'home' || mode === 'search') && (
-                            <Paper sx={{ p: 3, mb: 3 }}>
-                                <Grid container spacing={3}>
-                                    <Grid item xs={12} md={mode === 'search' ? 4 : 12}>
-                                        <FormControl component="fieldset">
-                                            <FormLabel component="legend">What area do you need help with?</FormLabel>
-                                            <RadioGroup
-                                                row={mode !== 'search'}
-                                                value={mode === 'search' ? searchFilters.category : selections.category}
-                                                onChange={(e) => {
-                                                    if (mode === 'search') {
-                                                        setSearchFilters({...searchFilters, category: e.target.value, lifeEvent: null, provider: null});
-                                                    } else {
-                                                        // RESET LIFE EVENT WHEN CATEGORY CHANGES
-                                                        setSelections({...selections, category: e.target.value, lifeEvent: null, provider: null});
-                                                    }
-                                                    // DEBUG: Log category selection
-                                                    debugCategoryMapping(e.target.value);
-                                                }}
-                                            >
-                                                {facetsData?.categories?.map(cat => (
-                                                    <FormControlLabel
-                                                        key={cat.value}
-                                                        value={cat.value}
-                                                        control={<Radio />}
-                                                        label={
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                <span className="material-icons">{getIcon(cat.value)}</span>
-                                                                {cat.value}
-                                                            </Box>
-                                                        }
-                                                    />
-                                                ))}
-                                            </RadioGroup>
-                                        </FormControl>
-                                    </Grid>
-
-                                    {/* MODIFY LIFE EVENT SECTION TO USE FILTERED OPTIONS FOR ALL MODES */}
-                                    {((mode === 'search' ? searchFilters.category : selections.category)) && (
-                                        <Grid item xs={12} md={mode === 'search' ? 4 : 12}>
-                                            <FormControl component="fieldset">
-                                                <FormLabel component="legend">What life event or situation applies?</FormLabel>
-                                                <RadioGroup
-                                                    row={mode !== 'search'}
-                                                    value={mode === 'search' ? searchFilters.lifeEvent : selections.lifeEvent}
-                                                    onChange={(e) => {
-                                                        if (mode === 'search') {
-                                                            setSearchFilters({...searchFilters, lifeEvent: e.target.value});
-                                                        } else {
-                                                            // RESET PROVIDER WHEN LIFE EVENT CHANGES
-                                                            setSelections({...selections, lifeEvent: e.target.value, provider: null});
-                                                        }
-                                                    }}
-                                                >
-                                                    {/* USE FILTERED LIFE EVENTS FOR ALL MODES */}
-                                                    {getFilteredLifeEvents()?.map(event => (
-                                                        <FormControlLabel
-                                                            key={event.value}
-                                                            value={event.value}
-                                                            control={<Radio />}
-                                                            label={
-                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                    <span className="material-icons">{getIcon(event.value)}</span>
-                                                                    {event.value}
-                                                                </Box>
-                                                            }
-                                                        />
-                                                    ))}
-                                                </RadioGroup>
-                                            </FormControl>
-                                        </Grid>
-                                    )}
-
-                                    {((mode === 'search' ? searchFilters.lifeEvent : selections.lifeEvent)) && (
-                                        <Grid item xs={12} md={mode === 'search' ? 4 : 12}>
-                                            <FormControl component="fieldset">
-                                                <FormLabel component="legend">Which service provider?</FormLabel>
-                                                <RadioGroup
-                                                    row={mode !== 'search'}
-                                                    value={mode === 'search' ? searchFilters.provider : selections.provider}
-                                                    onChange={(e) => {
-                                                        if (mode === 'search') {
-                                                            setSearchFilters({...searchFilters, provider: e.target.value});
-                                                        } else {
-                                                            setSelections({...selections, provider: e.target.value});
-                                                        }
-                                                    }}
-                                                >
-                                                    <FormControlLabel
-                                                        value="All providers"
-                                                        control={<Radio />}
-                                                        label={
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                <span className="material-icons">{getIcon("All providers")}</span>
-                                                                All providers
-                                                            </Box>
-                                                        }
-                                                    />
-                                                    {facetsData?.provider?.map(provider => (
-                                                        <FormControlLabel
-                                                            key={provider.value}
-                                                            value={provider.value}
-                                                            control={<Radio />}
-                                                            label={
-                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                    <span className="material-icons">{getIcon(provider.value)}</span>
-                                                                    {provider.value}
-                                                                </Box>
-                                                            }
-                                                        />
-                                                    ))}
-                                                </RadioGroup>
-                                            </FormControl>
-                                        </Grid>
-                                    )}
-                                </Grid>
-                            </Paper>
-                        )}
-
-                        {/* Search Mode */}
-                        {mode === 'search' && (
-                            <Paper sx={{ p: 3, mb: 3 }}>
-                                <TextField
-                                    fullWidth
-                                    variant="outlined"
-                                    placeholder="Search for government services..."
-                                    value={searchQuery}
-                                    onChange={(e) => setSearchQuery(e.target.value)}
-                                    onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
-                                    InputProps={{
-                                        endAdornment: (
-                                            <InputAdornment position="end">
-                                                <IconButton onClick={handleSearch}>
-                                                    <span className="material-icons">search</span>
-                                                </IconButton>
-                                            </InputAdornment>
-                                        )
+                                <Tabs
+                                    value={mode}
+                                    onChange={(e, newMode) => setMode(newMode)}
+                                    sx={{
+                                        "& .MuiTab-root": { color: "#333" },
+                                        "& .Mui-selected": { color: "#1976d2" },
                                     }}
-                                />
-                                
-                                {/* Active filters */}
-                                <Box className="filter-chips" sx={{ mt: 2 }}>
-                                    {Object.entries(searchFilters).map(([key, value]) => 
-                                        value && (
-                                            <Chip
-                                                key={key}
-                                                label={value}
-                                                onDelete={() => setSearchFilters({...searchFilters, [key]: null})}
-                                            />
-                                        )
-                                    )}
-                                </Box>
-                            </Paper>
-                        )}
+                                >
+                                    <Tab label="Home" value="home" />
+                                    <Tab label="Browse" value="browse" />
+                                    <Tab
+                                        label="Search"
+                                        value="search"
+                                        icon={
+                                            <span className="material-icons">
+                                                search
+                                            </span>
+                                        }
+                                        iconPosition="end"
+                                    />
+                                    <Tab
+                                        label="Chat"
+                                        value="chat"
+                                        icon={
+                                            <span className="material-icons">
+                                                chat
+                                            </span>
+                                        }
+                                        iconPosition="end"
+                                    />
+                                </Tabs>
 
-                        {/* Chat Mode */}
-                        {mode === 'chat' && (
-                            <Paper sx={{ p: 3 }}>
-                                <Typography variant="h5" gutterBottom>
-                                    AI Assistant
-                                </Typography>
-                                <Box className="chat-messages">
-                                    {chatMessages.map((msg, index) => (
-                                        <Fade in key={msg.id || index}>
-                                            <Box className={`chat-message ${msg.type}`}>
-                                                <Avatar className="chat-avatar">
-                                                    {msg.type === 'user' ? 'U' : 'AI'}
-                                                </Avatar>
-                                                <Paper className="chat-bubble" elevation={1}>
-                                                    <Typography variant="body2">
-                                                        {msg.loading && (
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                <CircularProgress size={16} />
-                                                                {msg.text}
-                                                            </Box>
-                                                        )}
-                                                        {!msg.loading && msg.text}
-                                                    </Typography>
-                                                    {msg.error && (
-                                                        <Typography variant="caption" color="error" sx={{ mt: 1, display: 'block' }}>
-                                                            Make sure Ollama is running: <code>ollama serve</code>
-                                                        </Typography>
+                                <Button
+                                    color="inherit"
+                                    startIcon={
+                                        <span className="material-icons">
+                                            login
+                                        </span>
+                                    }
+                                >
+                                    Sign in
+                                </Button>
+                            </Toolbar>
+                        </AppBar>
+
+                        <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                            {error && (
+                                <Alert
+                                    severity="error"
+                                    sx={{ mb: 2 }}
+                                    onClose={() => setError(null)}
+                                >
+                                    {error}
+                                </Alert>
+                            )}
+
+                            {/* Navigation Questions (shown in browse, home, and search modes) */}
+                            {(mode === "browse" ||
+                                mode === "home" ||
+                                mode === "search") && (
+                                <Paper sx={{ p: 3, mb: 3 }}>
+                                    <Grid container spacing={3}>
+                                        <Grid
+                                            item
+                                            xs={12}
+                                            md={mode === "search" ? 4 : 12}
+                                        >
+                                            <FormControl component="fieldset">
+                                                <FormLabel component="legend">
+                                                    What area do you need help
+                                                    with?
+                                                </FormLabel>
+                                                <RadioGroup
+                                                    row={mode !== "search"}
+                                                    value={
+                                                        mode === "search"
+                                                            ? searchFilters.category
+                                                            : selections.category
+                                                    }
+                                                    onChange={(e) => {
+                                                        if (mode === "search") {
+                                                            setSearchFilters({
+                                                                ...searchFilters,
+                                                                category:
+                                                                    e.target
+                                                                        .value,
+                                                                lifeEvent: null,
+                                                                provider: null,
+                                                            });
+                                                        } else {
+                                                            // RESET LIFE EVENT WHEN CATEGORY CHANGES
+                                                            setSelections({
+                                                                ...selections,
+                                                                category:
+                                                                    e.target
+                                                                        .value,
+                                                                lifeEvent: null,
+                                                                provider: null,
+                                                            });
+                                                        }
+                                                        // DEBUG: Log category selection
+                                                        debugCategoryMapping(
+                                                            e.target.value,
+                                                        );
+                                                    }}
+                                                >
+                                                    {facetsData?.categories?.map(
+                                                        (cat) => (
+                                                            <FormControlLabel
+                                                                key={cat.value}
+                                                                value={
+                                                                    cat.value
+                                                                }
+                                                                control={
+                                                                    <Radio />
+                                                                }
+                                                                label={
+                                                                    <Box
+                                                                        sx={{
+                                                                            display:
+                                                                                "flex",
+                                                                            alignItems:
+                                                                                "center",
+                                                                            gap: 1,
+                                                                        }}
+                                                                    >
+                                                                        <span className="material-icons">
+                                                                            {getIcon(
+                                                                                cat.value,
+                                                                            )}
+                                                                        </span>
+                                                                        {
+                                                                            cat.value
+                                                                        }
+                                                                    </Box>
+                                                                }
+                                                            />
+                                                        ),
                                                     )}
-                                                </Paper>
-                                            </Box>
-                                        </Fade>
-                                    ))}
-                                </Box>
-                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                                </RadioGroup>
+                                            </FormControl>
+                                        </Grid>
+
+                                        {/* MODIFY LIFE EVENT SECTION TO USE FILTERED OPTIONS FOR ALL MODES */}
+                                        {(mode === "search"
+                                            ? searchFilters.category
+                                            : selections.category) && (
+                                            <Grid
+                                                item
+                                                xs={12}
+                                                md={mode === "search" ? 4 : 12}
+                                            >
+                                                <FormControl component="fieldset">
+                                                    <FormLabel component="legend">
+                                                        What life event or
+                                                        situation applies?
+                                                    </FormLabel>
+                                                    <RadioGroup
+                                                        row={mode !== "search"}
+                                                        value={
+                                                            mode === "search"
+                                                                ? searchFilters.lifeEvent
+                                                                : selections.lifeEvent
+                                                        }
+                                                        onChange={(e) => {
+                                                            if (
+                                                                mode ===
+                                                                "search"
+                                                            ) {
+                                                                setSearchFilters(
+                                                                    {
+                                                                        ...searchFilters,
+                                                                        lifeEvent:
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                    },
+                                                                );
+                                                            } else {
+                                                                // RESET PROVIDER WHEN LIFE EVENT CHANGES
+                                                                setSelections({
+                                                                    ...selections,
+                                                                    lifeEvent:
+                                                                        e.target
+                                                                            .value,
+                                                                    provider:
+                                                                        null,
+                                                                });
+                                                            }
+                                                        }}
+                                                    >
+                                                        {/* USE FILTERED LIFE EVENTS FOR ALL MODES */}
+                                                        {getFilteredLifeEvents()?.map(
+                                                            (event) => (
+                                                                <FormControlLabel
+                                                                    key={
+                                                                        event.value
+                                                                    }
+                                                                    value={
+                                                                        event.value
+                                                                    }
+                                                                    control={
+                                                                        <Radio />
+                                                                    }
+                                                                    label={
+                                                                        <Box
+                                                                            sx={{
+                                                                                display:
+                                                                                    "flex",
+                                                                                alignItems:
+                                                                                    "center",
+                                                                                gap: 1,
+                                                                            }}
+                                                                        >
+                                                                            <span className="material-icons">
+                                                                                {getIcon(
+                                                                                    event.value,
+                                                                                )}
+                                                                            </span>
+                                                                            {
+                                                                                event.value
+                                                                            }
+                                                                        </Box>
+                                                                    }
+                                                                />
+                                                            ),
+                                                        )}
+                                                    </RadioGroup>
+                                                </FormControl>
+                                            </Grid>
+                                        )}
+
+                                        {(mode === "search"
+                                            ? searchFilters.lifeEvent
+                                            : selections.lifeEvent) && (
+                                            <Grid
+                                                item
+                                                xs={12}
+                                                md={mode === "search" ? 4 : 12}
+                                            >
+                                                <FormControl component="fieldset">
+                                                    <FormLabel component="legend">
+                                                        Which service provider?
+                                                    </FormLabel>
+                                                    <RadioGroup
+                                                        row={mode !== "search"}
+                                                        value={
+                                                            mode === "search"
+                                                                ? searchFilters.provider
+                                                                : selections.provider
+                                                        }
+                                                        onChange={(e) => {
+                                                            if (
+                                                                mode ===
+                                                                "search"
+                                                            ) {
+                                                                setSearchFilters(
+                                                                    {
+                                                                        ...searchFilters,
+                                                                        provider:
+                                                                            e
+                                                                                .target
+                                                                                .value,
+                                                                    },
+                                                                );
+                                                            } else {
+                                                                setSelections({
+                                                                    ...selections,
+                                                                    provider:
+                                                                        e.target
+                                                                            .value,
+                                                                });
+                                                            }
+                                                        }}
+                                                    >
+                                                        <FormControlLabel
+                                                            value="All providers"
+                                                            control={<Radio />}
+                                                            label={
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <span className="material-icons">
+                                                                        {getIcon(
+                                                                            "All providers",
+                                                                        )}
+                                                                    </span>
+                                                                    All
+                                                                    providers
+                                                                </Box>
+                                                            }
+                                                        />
+                                                        {facetsData?.provider?.map(
+                                                            (provider) => (
+                                                                <FormControlLabel
+                                                                    key={
+                                                                        provider.value
+                                                                    }
+                                                                    value={
+                                                                        provider.value
+                                                                    }
+                                                                    control={
+                                                                        <Radio />
+                                                                    }
+                                                                    label={
+                                                                        <Box
+                                                                            sx={{
+                                                                                display:
+                                                                                    "flex",
+                                                                                alignItems:
+                                                                                    "center",
+                                                                                gap: 1,
+                                                                            }}
+                                                                        >
+                                                                            <span className="material-icons">
+                                                                                {getIcon(
+                                                                                    provider.value,
+                                                                                )}
+                                                                            </span>
+                                                                            {
+                                                                                provider.value
+                                                                            }
+                                                                        </Box>
+                                                                    }
+                                                                />
+                                                            ),
+                                                        )}
+                                                    </RadioGroup>
+                                                </FormControl>
+                                            </Grid>
+                                        )}
+                                    </Grid>
+                                </Paper>
+                            )}
+
+                            {/* Search Mode */}
+                            {mode === "search" && (
+                                <Paper sx={{ p: 3, mb: 3 }}>
                                     <TextField
                                         fullWidth
                                         variant="outlined"
-                                        placeholder="Ask me anything about government services..."
-                                        value={chatInput}
-                                        onChange={(e) => setChatInput(e.target.value)}
-                                        onKeyPress={(e) => e.key === 'Enter' && handleChatSend()}
-                                    />
-                                    <Button 
-                                        variant="contained" 
-                                        onClick={handleChatSend}
-                                        endIcon={<span className="material-icons">send</span>}
-                                    >
-                                        Send
-                                    </Button>
-                                </Box>
-                            </Paper>
-                        )}
-
-                        {/* Results Display */}
-                        {loading && (
-                            <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
-                                <CircularProgress />
-                            </Box>
-                        )}
-
-                        {!loading && results.length > 0 && (
-                            <>
-                                {/* Home Mode - Static Content */}
-                                {mode === 'home' && (
-                                    <Box sx={{ 
-                                        maxWidth: '800px', 
-                                        mx: 'auto',
-                                        '& .fragment-content': {
-                                            mb: 3,
-                                            '& h1, & h2, & h3, & h4, & h5, & h6': {
-                                                mt: 2,
-                                                mb: 1,
-                                                fontWeight: 'normal'
-                                            },
-                                            '& p': { mb: 1.5, lineHeight: 1.6 },
-                                            '& ul, & ol': { mb: 1.5, pl: 3 },
-                                            '& li': { mb: 0.5 },
-                                            '& .info-box, & .alert': {
-                                                p: 2,
-                                                mb: 2,
-                                                borderRadius: 1,
-                                                backgroundColor: '#f5f5f5',
-                                                border: '1px solid #e0e0e0'
-                                            },
-                                            '& .alert': {
-                                                backgroundColor: '#fff3cd',
-                                                borderColor: '#ffeeba',
-                                                color: '#856404'
-                                            },
-                                            '& table': {
-                                                width: '100%',
-                                                mb: 2,
-                                                borderCollapse: 'collapse',
-                                                '& th, & td': {
-                                                    border: '1px solid #ddd',
-                                                    p: 1,
-                                                    textAlign: 'left'
-                                                },
-                                                '& th': {
-                                                    backgroundColor: '#f5f5f5',
-                                                    fontWeight: 'bold'
-                                                }
-                                            },
-                                            '& form': {
-                                                mb: 2,
-                                                p: 2,
-                                                border: '1px solid #ddd',
-                                                borderRadius: 1
-                                            }
+                                        placeholder="Search for government services..."
+                                        value={searchQuery}
+                                        onChange={(e) =>
+                                            setSearchQuery(e.target.value)
                                         }
-                                    }}>
-                                        {/* Page Title (H1) */}
-                                        <Typography variant="h3" component="h1" gutterBottom sx={{ fontWeight: 400, mb: 3 }}>
-                                            {selections.lifeEvent} - {selections.category}
-                                        </Typography>
-                                        
-                                        <Typography variant="body1" sx={{ mb: 4, color: 'text.secondary' }}>
-                                            Information and services for {selections.lifeEvent?.toLowerCase()} from {
-                                                selections.provider === 'All providers' ? 'all government providers' : selections.provider
-                                            }.
-                                        </Typography>
-                                        
-                                        {/* Group results hierarchically */}
-                                        {(() => {
-                                            // Group by category -> life event -> page title
-                                            const grouped = results.reduce((acc, item) => {
-                                                const cat = item.category || 'General Information';
-                                                const event = item.lifeEvent || 'General';
-                                                const page = item.hierarchy || 'Information';
-                                                
-                                                if (!acc[cat]) acc[cat] = {};
-                                                if (!acc[cat][event]) acc[cat][event] = {};
-                                                if (!acc[cat][event][page]) acc[cat][event][page] = [];
-                                                
-                                                acc[cat][event][page].push(item);
-                                                return acc;
-                                            }, {});
-                                            
-                                            return Object.entries(grouped).map(([category, eventGroups]) => (
-                                                <Box key={category} sx={{ mb: 5 }}>
-                                                    {/* H2 - Category */}
-                                                    <Typography variant="h4" component="h2" gutterBottom sx={{ 
-                                                        fontWeight: 500, 
-                                                        borderBottom: '2px solid #e0e0e0',
-                                                        pb: 1,
-                                                        mb: 3
-                                                    }}>
-                                                        {category}
-                                                    </Typography>
-                                                    
-                                                    {Object.entries(eventGroups).map(([event, pageGroups]) => (
-                                                        <Box key={event} sx={{ mb: 4 }}>
-                                                            {/* H3 - Life Event (only if different from selection) */}
-                                                            {event !== selections.lifeEvent && (
-                                                                <Typography variant="h5" component="h3" gutterBottom sx={{ 
-                                                                    fontWeight: 500,
-                                                                    color: '#1976d2',
-                                                                    mb: 2
-                                                                }}>
-                                                                    {event}
-                                                                </Typography>
-                                                            )}
-                                                            
-                                                            {Object.entries(pageGroups).map(([pageTitle, items]) => (
-                                                                <Box key={pageTitle} sx={{ mb: 3 }}>
-                                                                    {/* H4 - Page Title */}
-                                                                    <Typography variant="h6" component="h4" gutterBottom sx={{ 
-                                                                        fontWeight: 500,
-                                                                        mb: 2
-                                                                    }}>
-                                                                        {pageTitle}
-                                                                    </Typography>
-                                                                    
-                                                                    {/* Render content fragments as they originally appeared */}
-                                                                    {items.map(item => (
-                                                                        <Box key={item.id} sx={{ mb: 3 }}>
-                                                                            {item.content_html ? (
-                                                                                <Box 
-                                                                                    className="fragment-content"
-                                                                                    dangerouslySetInnerHTML={{ __html: item.content_html }}
-                                                                                />
-                                                                            ) : (
-                                                                                <Box className="fragment-content">
-                                                                                    <Typography variant="body1" paragraph>
-                                                                                        {item.description}
-                                                                                    </Typography>
-                                                                                </Box>
-                                                                            )}
-                                                                            
-                                                                            {/* Source attribution */}
-                                                                            <Typography variant="caption" sx={{ 
-                                                                                display: 'block',
-                                                                                color: 'text.secondary',
-                                                                                fontStyle: 'italic',
-                                                                                mb: 2
-                                                                            }}>
-                                                                                Source: {item.provider}
-                                                                                {item.state !== 'National' && ` (${item.state})`}
-                                                                                {' - '}
-                                                                                <Link 
-                                                                                    href={item.url} 
-                                                                                    target="_blank"
-                                                                                    sx={{ color: 'inherit' }}
-                                                                                >
-                                                                                    View original
-                                                                                </Link>
-                                                                            </Typography>
-                                                                        </Box>
-                                                                    ))}
-                                                                </Box>
-                                                            ))}
-                                                        </Box>
-                                                    ))}
-                                                </Box>
-                                            ));
-                                        })()}
+                                        onKeyPress={(e) =>
+                                            e.key === "Enter" && handleSearch()
+                                        }
+                                        InputProps={{
+                                            endAdornment: (
+                                                <InputAdornment position="end">
+                                                    <IconButton
+                                                        onClick={handleSearch}
+                                                    >
+                                                        <span className="material-icons">
+                                                            search
+                                                        </span>
+                                                    </IconButton>
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                    />
+
+                                    {/* Active filters */}
+                                    <Box
+                                        className="filter-chips"
+                                        sx={{ mt: 2 }}
+                                    >
+                                        {Object.entries(searchFilters).map(
+                                            ([key, value]) =>
+                                                value && (
+                                                    <Chip
+                                                        key={key}
+                                                        label={value}
+                                                        onDelete={() =>
+                                                            setSearchFilters({
+                                                                ...searchFilters,
+                                                                [key]: null,
+                                                            })
+                                                        }
+                                                    />
+                                                ),
+                                        )}
                                     </Box>
-                                )}
+                                </Paper>
+                            )}
 
-                                {/* Browse Mode - Checklist */}
-                                {mode === 'browse' && (
-                                    <>
-                                        {/* Progress Bar (Browse mode only) */}
-                                        <Box sx={{ mb: 3 }}>
-                                            <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1 }}>
-                                                <Typography variant="h5">Your Checklist</Typography>
-                                                <Typography variant="body2" color="text.secondary">
-                                                    {completedTasks.length} of {results.length} steps complete
-                                                </Typography>
-                                            </Box>
-                                            <LinearProgress variant="determinate" value={progress} />
-                                            
-                                            <Box sx={{ mt: 2, display: 'flex', gap: 1 }}>
-                                                <Button
-                                                    size="small"
-                                                    startIcon={<span className="material-icons">push_pin</span>}
+                            {/* Chat Mode */}
+                            {mode === "chat" && (
+                                <Paper sx={{ p: 3 }}>
+                                    <Typography variant="h5" gutterBottom>
+                                        AI Assistant
+                                    </Typography>
+                                    <Box className="chat-messages">
+                                        {chatMessages.map((msg, index) => (
+                                            <Fade in key={msg.id || index}>
+                                                <Box
+                                                    className={`chat-message ${msg.type}`}
                                                 >
-                                                    Pin to dashboard
-                                                </Button>
-                                                <Button
-                                                    size="small"
-                                                    startIcon={<span className="material-icons">share</span>}
-                                                    onClick={(e) => setExportAnchor(e.currentTarget)}
-                                                >
-                                                    Export
-                                                </Button>
-                                                <Menu
-                                                    anchorEl={exportAnchor}
-                                                    open={Boolean(exportAnchor)}
-                                                    onClose={() => setExportAnchor(null)}
-                                                >
-                                                    <MenuItem onClick={() => window.print()}>
-                                                        <ListItemIcon><span className="material-icons">print</span></ListItemIcon>
-                                                        Print
-                                                    </MenuItem>
-                                                    <MenuItem>
-                                                        <ListItemIcon><span className="material-icons">picture_as_pdf</span></ListItemIcon>
-                                                        Download PDF
-                                                    </MenuItem>
-                                                    <MenuItem>
-                                                        <ListItemIcon><span className="material-icons">description</span></ListItemIcon>
-                                                        Download DOCX
-                                                    </MenuItem>
-                                                    <Divider />
-                                                    <MenuItem>
-                                                        <ListItemIcon><span className="material-icons">share</span></ListItemIcon>
-                                                        Share via email
-                                                    </MenuItem>
-                                                </Menu>
-                                            </Box>
-                                        </Box>
+                                                    <Avatar className="chat-avatar">
+                                                        {msg.type === "user"
+                                                            ? "U"
+                                                            : "AI"}
+                                                    </Avatar>
+                                                    <Paper
+                                                        className="chat-bubble"
+                                                        elevation={1}
+                                                    >
+                                                        <Typography variant="body2">
+                                                            {msg.loading && (
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        alignItems:
+                                                                            "center",
+                                                                        gap: 1,
+                                                                    }}
+                                                                >
+                                                                    <CircularProgress
+                                                                        size={
+                                                                            16
+                                                                        }
+                                                                    />
+                                                                    {msg.text}
+                                                                </Box>
+                                                            )}
+                                                            {!msg.loading &&
+                                                                msg.text}
+                                                        </Typography>
+                                                        {msg.error && (
+                                                            <Typography
+                                                                variant="caption"
+                                                                color="error"
+                                                                sx={{
+                                                                    mt: 1,
+                                                                    display:
+                                                                        "block",
+                                                                }}
+                                                            >
+                                                                Make sure Ollama
+                                                                is running:{" "}
+                                                                <code>
+                                                                    ollama serve
+                                                                </code>
+                                                            </Typography>
+                                                        )}
+                                                    </Paper>
+                                                </Box>
+                                            </Fade>
+                                        ))}
+                                    </Box>
+                                    <Box sx={{ display: "flex", gap: 1 }}>
+                                        <TextField
+                                            fullWidth
+                                            variant="outlined"
+                                            placeholder="Ask me anything about government services..."
+                                            value={chatInput}
+                                            onChange={(e) =>
+                                                setChatInput(e.target.value)
+                                            }
+                                            onKeyPress={(e) =>
+                                                e.key === "Enter" &&
+                                                handleChatSend()
+                                            }
+                                        />
+                                        <Button
+                                            variant="contained"
+                                            onClick={handleChatSend}
+                                            endIcon={
+                                                <span className="material-icons">
+                                                    send
+                                                </span>
+                                            }
+                                        >
+                                            Send
+                                        </Button>
+                                    </Box>
+                                </Paper>
+                            )}
 
-                                        {/* Results organized by hierarchy */}
-                                        <Box>
-                                            {Object.entries(
-                                                results.reduce((acc, item) => {
-                                                    const activity = item.hierarchy;
-                                                    if (!acc[activity]) acc[activity] = [];
-                                                    acc[activity].push(item);
-                                                    return acc;
-                                                }, {})
-                                            ).map(([activity, items], index) => {
-                                                const completedInGroup = items.filter(item => 
-                                                    completedTasks.includes(item.id)
-                                                ).length;
-                                                
-                                                return (
-                                                    <Accordion key={activity} defaultExpanded={index === 0}>
-                                                        <AccordionSummary expandIcon={<span className="material-icons">expand_more</span>}>
-                                                            <Box sx={{ display: 'flex', alignItems: 'center', width: '100%', pr: 2 }}>
-                                                                <Typography sx={{ flexGrow: 1 }}>
-                                                                    {activity} ({items.length})
-                                                                </Typography>
-                                                                <Chip 
-                                                                    size="small"
-                                                                    label={
-                                                                        completedInGroup === items.length ? 'Complete' :
-                                                                        completedInGroup > 0 ? 'In progress' : 'Not started'
-                                                                    }
-                                                                    color={
-                                                                        completedInGroup === items.length ? 'success' :
-                                                                        completedInGroup > 0 ? 'info' : 'default'
-                                                                    }
-                                                                />
-                                                            </Box>
-                                                        </AccordionSummary>
-                                                        <AccordionDetails>
-                                                            <List>
-                                                                {items.map(item => (
-                                                                    <ListItem 
-                                                                        key={item.id}
-                                                                        sx={{ 
-                                                                            opacity: completedTasks.includes(item.id) ? 0.6 : 1,
-                                                                            '&:hover': { bgcolor: 'action.hover' }
+                            {/* Results Display */}
+                            {loading && (
+                                <Box
+                                    sx={{
+                                        display: "flex",
+                                        justifyContent: "center",
+                                        my: 4,
+                                    }}
+                                >
+                                    <CircularProgress />
+                                </Box>
+                            )}
+
+                            {!loading && results.length > 0 && (
+                                <>
+                                    {/* Home Mode - Static Content */}
+                                    {mode === "home" && (
+                                        <Box
+                                            sx={{
+                                                maxWidth: "800px",
+                                                mx: "auto",
+                                                "& .fragment-content": {
+                                                    mb: 3,
+                                                    "& h1, & h2, & h3, & h4, & h5, & h6":
+                                                        {
+                                                            mt: 2,
+                                                            mb: 1,
+                                                            fontWeight:
+                                                                "normal",
+                                                        },
+                                                    "& p": {
+                                                        mb: 1.5,
+                                                        lineHeight: 1.6,
+                                                    },
+                                                    "& ul, & ol": {
+                                                        mb: 1.5,
+                                                        pl: 3,
+                                                    },
+                                                    "& li": { mb: 0.5 },
+                                                    "& .info-box, & .alert": {
+                                                        p: 2,
+                                                        mb: 2,
+                                                        borderRadius: 1,
+                                                        backgroundColor:
+                                                            "#f5f5f5",
+                                                        border: "1px solid #e0e0e0",
+                                                    },
+                                                    "& .alert": {
+                                                        backgroundColor:
+                                                            "#fff3cd",
+                                                        borderColor: "#ffeeba",
+                                                        color: "#856404",
+                                                    },
+                                                    "& table": {
+                                                        width: "100%",
+                                                        mb: 2,
+                                                        borderCollapse:
+                                                            "collapse",
+                                                        "& th, & td": {
+                                                            border: "1px solid #ddd",
+                                                            p: 1,
+                                                            textAlign: "left",
+                                                        },
+                                                        "& th": {
+                                                            backgroundColor:
+                                                                "#f5f5f5",
+                                                            fontWeight: "bold",
+                                                        },
+                                                    },
+                                                    "& form": {
+                                                        mb: 2,
+                                                        p: 2,
+                                                        border: "1px solid #ddd",
+                                                        borderRadius: 1,
+                                                    },
+                                                },
+                                            }}
+                                        >
+                                            {/* Page Title (H1) */}
+                                            <Typography
+                                                variant="h3"
+                                                component="h1"
+                                                gutterBottom
+                                                sx={{ fontWeight: 400, mb: 3 }}
+                                            >
+                                                {selections.lifeEvent} -{" "}
+                                                {selections.category}
+                                            </Typography>
+
+                                            <Typography
+                                                variant="body1"
+                                                sx={{
+                                                    mb: 4,
+                                                    color: "text.secondary",
+                                                }}
+                                            >
+                                                Information and services for{" "}
+                                                {selections.lifeEvent?.toLowerCase()}{" "}
+                                                from{" "}
+                                                {selections.provider ===
+                                                "All providers"
+                                                    ? "all government providers"
+                                                    : selections.provider}
+                                                .
+                                            </Typography>
+
+                                            {/* Group results hierarchically */}
+                                            {(() => {
+                                                // Group by category -> life event -> page title
+                                                const grouped = results.reduce(
+                                                    (acc, item) => {
+                                                        const cat =
+                                                            item.category ||
+                                                            "General Information";
+                                                        const event =
+                                                            item.lifeEvent ||
+                                                            "General";
+                                                        const page =
+                                                            item.hierarchy ||
+                                                            "Information";
+
+                                                        if (!acc[cat])
+                                                            acc[cat] = {};
+                                                        if (!acc[cat][event])
+                                                            acc[cat][event] =
+                                                                {};
+                                                        if (
+                                                            !acc[cat][event][
+                                                                page
+                                                            ]
+                                                        )
+                                                            acc[cat][event][
+                                                                page
+                                                            ] = [];
+
+                                                        acc[cat][event][
+                                                            page
+                                                        ].push(item);
+                                                        return acc;
+                                                    },
+                                                    {},
+                                                );
+
+                                                return Object.entries(
+                                                    grouped,
+                                                ).map(
+                                                    ([
+                                                        category,
+                                                        eventGroups,
+                                                    ]) => (
+                                                        <Box
+                                                            key={category}
+                                                            sx={{ mb: 5 }}
+                                                        >
+                                                            {/* H2 - Category */}
+                                                            <Typography
+                                                                variant="h4"
+                                                                component="h2"
+                                                                gutterBottom
+                                                                sx={{
+                                                                    fontWeight: 500,
+                                                                    borderBottom:
+                                                                        "2px solid #e0e0e0",
+                                                                    pb: 1,
+                                                                    mb: 3,
+                                                                }}
+                                                            >
+                                                                {category}
+                                                            </Typography>
+
+                                                            {Object.entries(
+                                                                eventGroups,
+                                                            ).map(
+                                                                ([
+                                                                    event,
+                                                                    pageGroups,
+                                                                ]) => (
+                                                                    <Box
+                                                                        key={
+                                                                            event
+                                                                        }
+                                                                        sx={{
+                                                                            mb: 4,
                                                                         }}
                                                                     >
-                                                                        <ListItemIcon>
-                                                                            <Checkbox
-                                                                                checked={completedTasks.includes(item.id)}
-                                                                                onChange={() => toggleTask(item.id)}
-                                                                            />
-                                                                        </ListItemIcon>
-                                                                        <ListItemText
-                                                                            primary={
-                                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                                                                                    {item.title}
-                                                                                    {item.state !== 'National' && (
-                                                                                        <Chip size="small" label={item.state} />
+                                                                        {/* H3 - Life Event (only if different from selection) */}
+                                                                        {event !==
+                                                                            selections.lifeEvent && (
+                                                                            <Typography
+                                                                                variant="h5"
+                                                                                component="h3"
+                                                                                gutterBottom
+                                                                                sx={{
+                                                                                    fontWeight: 500,
+                                                                                    color: "#1976d2",
+                                                                                    mb: 2,
+                                                                                }}
+                                                                            >
+                                                                                {
+                                                                                    event
+                                                                                }
+                                                                            </Typography>
+                                                                        )}
+
+                                                                        {Object.entries(
+                                                                            pageGroups,
+                                                                        ).map(
+                                                                            ([
+                                                                                pageTitle,
+                                                                                items,
+                                                                            ]) => (
+                                                                                <Box
+                                                                                    key={
+                                                                                        pageTitle
+                                                                                    }
+                                                                                    sx={{
+                                                                                        mb: 3,
+                                                                                    }}
+                                                                                >
+                                                                                    {/* H4 - Page Title */}
+                                                                                    <Typography
+                                                                                        variant="h6"
+                                                                                        component="h4"
+                                                                                        gutterBottom
+                                                                                        sx={{
+                                                                                            fontWeight: 500,
+                                                                                            mb: 2,
+                                                                                        }}
+                                                                                    >
+                                                                                        {
+                                                                                            pageTitle
+                                                                                        }
+                                                                                    </Typography>
+
+                                                                                    {/* Render content fragments as they originally appeared */}
+                                                                                    {items.map(
+                                                                                        (
+                                                                                            item,
+                                                                                        ) => (
+                                                                                            <Box
+                                                                                                key={
+                                                                                                    item.id
+                                                                                                }
+                                                                                                sx={{
+                                                                                                    mb: 3,
+                                                                                                }}
+                                                                                            >
+                                                                                                {item.content_html ? (
+                                                                                                    <Box
+                                                                                                        className="fragment-content"
+                                                                                                        dangerouslySetInnerHTML={{
+                                                                                                            __html: item.content_html,
+                                                                                                        }}
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <Box className="fragment-content">
+                                                                                                        <Typography
+                                                                                                            variant="body1"
+                                                                                                            paragraph
+                                                                                                        >
+                                                                                                            {
+                                                                                                                item.description
+                                                                                                            }
+                                                                                                        </Typography>
+                                                                                                    </Box>
+                                                                                                )}
+
+                                                                                                {/* Source attribution */}
+                                                                                                <Typography
+                                                                                                    variant="caption"
+                                                                                                    sx={{
+                                                                                                        display:
+                                                                                                            "block",
+                                                                                                        color: "text.secondary",
+                                                                                                        fontStyle:
+                                                                                                            "italic",
+                                                                                                        mb: 2,
+                                                                                                    }}
+                                                                                                >
+                                                                                                    Source:{" "}
+                                                                                                    {
+                                                                                                        item.provider
+                                                                                                    }
+                                                                                                    {item.state !==
+                                                                                                        "National" &&
+                                                                                                        ` (${item.state})`}
+                                                                                                    {
+                                                                                                        " - "
+                                                                                                    }
+                                                                                                    <Link
+                                                                                                        href={
+                                                                                                            item.url
+                                                                                                        }
+                                                                                                        target="_blank"
+                                                                                                        sx={{
+                                                                                                            color: "inherit",
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        View
+                                                                                                        original
+                                                                                                    </Link>
+                                                                                                </Typography>
+                                                                                            </Box>
+                                                                                        ),
                                                                                     )}
                                                                                 </Box>
-                                                                            }
-                                                                            secondary={
-                                                                                <>
-                                                                                    <Typography variant="body2" component="span">
-                                                                                        {item.description}
-                                                                                    </Typography>
-                                                                                    <br />
-                                                                                    <Typography variant="caption" color="text.secondary">
-                                                                                        Provider: {item.provider}
-                                                                                    </Typography>
-                                                                                </>
-                                                                            }
-                                                                            sx={{
-                                                                                textDecoration: completedTasks.includes(item.id) ? 'line-through' : 'none'
-                                                                            }}
-                                                                        />
-                                                                        <IconButton 
-                                                                            href={item.url} 
-                                                                            target="_blank"
-                                                                            size="small"
-                                                                        >
-                                                                            <span className="material-icons">open_in_new</span>
-                                                                        </IconButton>
-                                                                    </ListItem>
-                                                                ))}
-                                                            </List>
-                                                        </AccordionDetails>
-                                                    </Accordion>
+                                                                            ),
+                                                                        )}
+                                                                    </Box>
+                                                                ),
+                                                            )}
+                                                        </Box>
+                                                    ),
                                                 );
-                                            })}
+                                            })()}
                                         </Box>
-                                    </>
-                                )}
+                                    )}
 
-                                {/* Search Mode - Results Grid */}
-                                {mode === 'search' && (
-                                    <Box>
-                                        <Typography variant="h5" gutterBottom>
-                                            Search Results ({results.length})
-                                        </Typography>
-                                        <Grid container spacing={2}>
-                                            {results.map(item => (
-                                                <Grid item xs={12} md={6} key={item.id}>
-                                                    <Card variant="outlined">
-                                                        <CardContent>
-                                                            <Typography variant="h6" gutterBottom>
-                                                                {item.title}
-                                                            </Typography>
-                                                            <Typography variant="body2" color="text.secondary" paragraph>
-                                                                {item.description}
-                                                            </Typography>
-                                                            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2 }}>
-                                                                <Chip size="small" label={item.category} color="primary" variant="outlined" />
-                                                                <Chip size="small" label={item.provider} />
-                                                                {item.state !== 'National' && (
-                                                                    <Chip size="small" label={item.state} variant="outlined" />
-                                                                )}
-                                                            </Box>
-                                                            <Button 
-                                                                size="small" 
-                                                                href={item.url}
-                                                                target="_blank"
-                                                                endIcon={<span className="material-icons">open_in_new</span>}
+                                    {/* Browse Mode - Checklist */}
+                                    {mode === "browse" && (
+                                        <>
+                                            {/* Progress Bar (Browse mode only) */}
+                                            <Box sx={{ mb: 3 }}>
+                                                <Box
+                                                    sx={{
+                                                        display: "flex",
+                                                        justifyContent:
+                                                            "space-between",
+                                                        mb: 1,
+                                                    }}
+                                                >
+                                                    <Typography variant="h5">
+                                                        Your Checklist
+                                                    </Typography>
+                                                    <Typography
+                                                        variant="body2"
+                                                        color="text.secondary"
+                                                    >
+                                                        {completedTasks.length}{" "}
+                                                        of {results.length}{" "}
+                                                        steps complete
+                                                    </Typography>
+                                                </Box>
+                                                <LinearProgress
+                                                    variant="determinate"
+                                                    value={progress}
+                                                />
+
+                                                <Box
+                                                    sx={{
+                                                        mt: 2,
+                                                        display: "flex",
+                                                        gap: 1,
+                                                    }}
+                                                >
+                                                    <Button
+                                                        size="small"
+                                                        startIcon={
+                                                            <span className="material-icons">
+                                                                push_pin
+                                                            </span>
+                                                        }
+                                                    >
+                                                        Pin to dashboard
+                                                    </Button>
+                                                    <Button
+                                                        size="small"
+                                                        startIcon={
+                                                            <span className="material-icons">
+                                                                share
+                                                            </span>
+                                                        }
+                                                        onClick={(e) =>
+                                                            setExportAnchor(
+                                                                e.currentTarget,
+                                                            )
+                                                        }
+                                                    >
+                                                        Export
+                                                    </Button>
+                                                    <Menu
+                                                        anchorEl={exportAnchor}
+                                                        open={Boolean(
+                                                            exportAnchor,
+                                                        )}
+                                                        onClose={() =>
+                                                            setExportAnchor(
+                                                                null,
+                                                            )
+                                                        }
+                                                    >
+                                                        <MenuItem
+                                                            onClick={() =>
+                                                                window.print()
+                                                            }
+                                                        >
+                                                            <ListItemIcon>
+                                                                <span className="material-icons">
+                                                                    print
+                                                                </span>
+                                                            </ListItemIcon>
+                                                            Print
+                                                        </MenuItem>
+                                                        <MenuItem>
+                                                            <ListItemIcon>
+                                                                <span className="material-icons">
+                                                                    picture_as_pdf
+                                                                </span>
+                                                            </ListItemIcon>
+                                                            Download PDF
+                                                        </MenuItem>
+                                                        <MenuItem>
+                                                            <ListItemIcon>
+                                                                <span className="material-icons">
+                                                                    description
+                                                                </span>
+                                                            </ListItemIcon>
+                                                            Download DOCX
+                                                        </MenuItem>
+                                                        <Divider />
+                                                        <MenuItem>
+                                                            <ListItemIcon>
+                                                                <span className="material-icons">
+                                                                    share
+                                                                </span>
+                                                            </ListItemIcon>
+                                                            Share via email
+                                                        </MenuItem>
+                                                    </Menu>
+                                                </Box>
+                                            </Box>
+
+                                            {/* Results organized by hierarchy */}
+                                            <Box>
+                                                {Object.entries(
+                                                    results.reduce(
+                                                        (acc, item) => {
+                                                            const activity =
+                                                                item.hierarchy;
+                                                            if (!acc[activity])
+                                                                acc[activity] =
+                                                                    [];
+                                                            acc[activity].push(
+                                                                item,
+                                                            );
+                                                            return acc;
+                                                        },
+                                                        {},
+                                                    ),
+                                                ).map(
+                                                    (
+                                                        [activity, items],
+                                                        index,
+                                                    ) => {
+                                                        const completedInGroup =
+                                                            items.filter(
+                                                                (item) =>
+                                                                    completedTasks.includes(
+                                                                        item.id,
+                                                                    ),
+                                                            ).length;
+
+                                                        return (
+                                                            <Accordion
+                                                                key={activity}
+                                                                defaultExpanded={
+                                                                    index === 0
+                                                                }
                                                             >
-                                                                View details
-                                                            </Button>
-                                                        </CardContent>
-                                                    </Card>
-                                                </Grid>
-                                            ))}
-                                        </Grid>
-                                    </Box>
+                                                                <AccordionSummary
+                                                                    expandIcon={
+                                                                        <span className="material-icons">
+                                                                            expand_more
+                                                                        </span>
+                                                                    }
+                                                                >
+                                                                    <Box
+                                                                        sx={{
+                                                                            display:
+                                                                                "flex",
+                                                                            alignItems:
+                                                                                "center",
+                                                                            width: "100%",
+                                                                            pr: 2,
+                                                                        }}
+                                                                    >
+                                                                        <Typography
+                                                                            sx={{
+                                                                                flexGrow: 1,
+                                                                            }}
+                                                                        >
+                                                                            {
+                                                                                activity
+                                                                            }{" "}
+                                                                            (
+                                                                            {
+                                                                                items.length
+                                                                            }
+                                                                            )
+                                                                        </Typography>
+                                                                        <Chip
+                                                                            size="small"
+                                                                            label={
+                                                                                completedInGroup ===
+                                                                                items.length
+                                                                                    ? "Complete"
+                                                                                    : completedInGroup >
+                                                                                        0
+                                                                                      ? "In progress"
+                                                                                      : "Not started"
+                                                                            }
+                                                                            color={
+                                                                                completedInGroup ===
+                                                                                items.length
+                                                                                    ? "success"
+                                                                                    : completedInGroup >
+                                                                                        0
+                                                                                      ? "info"
+                                                                                      : "default"
+                                                                            }
+                                                                        />
+                                                                    </Box>
+                                                                </AccordionSummary>
+                                                                <AccordionDetails>
+                                                                    <List>
+                                                                        {items.map(
+                                                                            (
+                                                                                item,
+                                                                            ) => (
+                                                                                <ListItem
+                                                                                    key={
+                                                                                        item.id
+                                                                                    }
+                                                                                    sx={{
+                                                                                        opacity:
+                                                                                            completedTasks.includes(
+                                                                                                item.id,
+                                                                                            )
+                                                                                                ? 0.6
+                                                                                                : 1,
+                                                                                        "&:hover":
+                                                                                            {
+                                                                                                bgcolor:
+                                                                                                    "action.hover",
+                                                                                            },
+                                                                                    }}
+                                                                                >
+                                                                                    <ListItemIcon>
+                                                                                        <Checkbox
+                                                                                            checked={completedTasks.includes(
+                                                                                                item.id,
+                                                                                            )}
+                                                                                            onChange={() =>
+                                                                                                toggleTask(
+                                                                                                    item.id,
+                                                                                                )
+                                                                                            }
+                                                                                        />
+                                                                                    </ListItemIcon>
+                                                                                    <ListItemText
+                                                                                        primary={
+                                                                                            <Box
+                                                                                                sx={{
+                                                                                                    display:
+                                                                                                        "flex",
+                                                                                                    alignItems:
+                                                                                                        "center",
+                                                                                                    gap: 1,
+                                                                                                }}
+                                                                                            >
+                                                                                                {
+                                                                                                    item.title
+                                                                                                }
+                                                                                                {item.state !==
+                                                                                                    "National" && (
+                                                                                                    <Chip
+                                                                                                        size="small"
+                                                                                                        label={
+                                                                                                            item.state
+                                                                                                        }
+                                                                                                    />
+                                                                                                )}
+                                                                                            </Box>
+                                                                                        }
+                                                                                        secondary={
+                                                                                            <>
+                                                                                                <Typography
+                                                                                                    variant="body2"
+                                                                                                    component="span"
+                                                                                                >
+                                                                                                    {
+                                                                                                        item.description
+                                                                                                    }
+                                                                                                </Typography>
+                                                                                                <br />
+                                                                                                <Typography
+                                                                                                    variant="caption"
+                                                                                                    color="text.secondary"
+                                                                                                >
+                                                                                                    Provider:{" "}
+                                                                                                    {
+                                                                                                        item.provider
+                                                                                                    }
+                                                                                                </Typography>
+                                                                                            </>
+                                                                                        }
+                                                                                        sx={{
+                                                                                            textDecoration:
+                                                                                                completedTasks.includes(
+                                                                                                    item.id,
+                                                                                                )
+                                                                                                    ? "line-through"
+                                                                                                    : "none",
+                                                                                        }}
+                                                                                    />
+                                                                                    <IconButton
+                                                                                        href={
+                                                                                            item.url
+                                                                                        }
+                                                                                        target="_blank"
+                                                                                        size="small"
+                                                                                    >
+                                                                                        <span className="material-icons">
+                                                                                            open_in_new
+                                                                                        </span>
+                                                                                    </IconButton>
+                                                                                </ListItem>
+                                                                            ),
+                                                                        )}
+                                                                    </List>
+                                                                </AccordionDetails>
+                                                            </Accordion>
+                                                        );
+                                                    },
+                                                )}
+                                            </Box>
+                                        </>
+                                    )}
+
+                                    {/* Search Mode - Results Grid */}
+                                    {mode === "search" && (
+                                        <Box>
+                                            <Typography
+                                                variant="h5"
+                                                gutterBottom
+                                            >
+                                                Search Results ({results.length}
+                                                )
+                                            </Typography>
+                                            <Grid container spacing={2}>
+                                                {results.map((item) => (
+                                                    <Grid
+                                                        item
+                                                        xs={12}
+                                                        md={6}
+                                                        key={item.id}
+                                                    >
+                                                        <Card variant="outlined">
+                                                            <CardContent>
+                                                                <Typography
+                                                                    variant="h6"
+                                                                    gutterBottom
+                                                                >
+                                                                    {item.title}
+                                                                </Typography>
+                                                                <Typography
+                                                                    variant="body2"
+                                                                    color="text.secondary"
+                                                                    paragraph
+                                                                >
+                                                                    {
+                                                                        item.description
+                                                                    }
+                                                                </Typography>
+                                                                <Box
+                                                                    sx={{
+                                                                        display:
+                                                                            "flex",
+                                                                        gap: 1,
+                                                                        flexWrap:
+                                                                            "wrap",
+                                                                        mb: 2,
+                                                                    }}
+                                                                >
+                                                                    <Chip
+                                                                        size="small"
+                                                                        label={
+                                                                            item.category
+                                                                        }
+                                                                        color="primary"
+                                                                        variant="outlined"
+                                                                    />
+                                                                    <Chip
+                                                                        size="small"
+                                                                        label={
+                                                                            item.provider
+                                                                        }
+                                                                    />
+                                                                    {item.state !==
+                                                                        "National" && (
+                                                                        <Chip
+                                                                            size="small"
+                                                                            label={
+                                                                                item.state
+                                                                            }
+                                                                            variant="outlined"
+                                                                        />
+                                                                    )}
+                                                                </Box>
+                                                                <Button
+                                                                    size="small"
+                                                                    href={
+                                                                        item.url
+                                                                    }
+                                                                    target="_blank"
+                                                                    endIcon={
+                                                                        <span className="material-icons">
+                                                                            open_in_new
+                                                                        </span>
+                                                                    }
+                                                                >
+                                                                    View details
+                                                                </Button>
+                                                            </CardContent>
+                                                        </Card>
+                                                    </Grid>
+                                                ))}
+                                            </Grid>
+                                        </Box>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Empty State */}
+                            {!loading &&
+                                results.length === 0 &&
+                                mode === "search" &&
+                                searchQuery && (
+                                    <Paper sx={{ p: 4, textAlign: "center" }}>
+                                        <Typography variant="h6" gutterBottom>
+                                            No results found
+                                        </Typography>
+                                        <Typography
+                                            variant="body2"
+                                            color="text.secondary"
+                                        >
+                                            Try adjusting your search terms or
+                                            filters
+                                        </Typography>
+                                    </Paper>
                                 )}
-                            </>
-                        )}
-
-                        {/* Empty State */}
-                        {!loading && results.length === 0 && mode === 'search' && searchQuery && (
-                            <Paper sx={{ p: 4, textAlign: 'center' }}>
-                                <Typography variant="h6" gutterBottom>
-                                    No results found
-                                </Typography>
-                                <Typography variant="body2" color="text.secondary">
-                                    Try adjusting your search terms or filters
-                                </Typography>
-                            </Paper>
-                        )}
-                    </Container>
-
-                    {/* Footer */}
-                    <Box component="footer" sx={{ bgcolor: '#000', color: 'white', py: 6, mt: 8 }}>
-                        <Container maxWidth="lg">
-                            <Grid container spacing={4}>
-                                <Grid item xs={12} md={3}>
-                                    <Typography variant="h6" gutterBottom>About this site</Typography>
-                                    <List dense>
-                                        <ListItem><ListItemText primary="About myGov" /></ListItem>
-                                        <ListItem><ListItemText primary="Help using myGov" /></ListItem>
-                                        <ListItem><ListItemText primary="Contact us" /></ListItem>
-                                    </List>
-                                </Grid>
-                                <Grid item xs={12} md={3}>
-                                    <Typography variant="h6" gutterBottom>Browse</Typography>
-                                    <List dense>
-                                        <ListItem><ListItemText primary="Raising kids" /></ListItem>
-                                        <ListItem><ListItemText primary="Living arrangements" /></ListItem>
-                                        <ListItem><ListItemText primary="Work" /></ListItem>
-                                    </List>
-                                </Grid>
-                                <Grid item xs={12} md={6}>
-                                    <Typography variant="body2" sx={{ mt: 2 }}>
-                                        We acknowledge the Traditional Custodians of the lands we live on. 
-                                        We pay our respects to all Aboriginal and Torres Strait Islander peoples.
-                                    </Typography>
-                                </Grid>
-                            </Grid>
                         </Container>
-                    </Box>
-                </>
-            );
-        }
 
-        // Render the app
-        ReactDOM.render(<App />, document.getElementById('root'));
-    </script>
-</body>
+                        {/* Footer */}
+                        <Box
+                            component="footer"
+                            sx={{
+                                bgcolor: "#000",
+                                color: "white",
+                                py: 6,
+                                mt: 8,
+                            }}
+                        >
+                            <Container maxWidth="lg">
+                                <Grid container spacing={4}>
+                                    <Grid item xs={12} md={3}>
+                                        <Typography variant="h6" gutterBottom>
+                                            About this site
+                                        </Typography>
+                                        <List dense>
+                                            <ListItem>
+                                                <ListItemText primary="About myGov" />
+                                            </ListItem>
+                                            <ListItem>
+                                                <ListItemText primary="Help using myGov" />
+                                            </ListItem>
+                                            <ListItem>
+                                                <ListItemText primary="Contact us" />
+                                            </ListItem>
+                                        </List>
+                                    </Grid>
+                                    <Grid item xs={12} md={3}>
+                                        <Typography variant="h6" gutterBottom>
+                                            Browse
+                                        </Typography>
+                                        <List dense>
+                                            <ListItem>
+                                                <ListItemText primary="Raising kids" />
+                                            </ListItem>
+                                            <ListItem>
+                                                <ListItemText primary="Living arrangements" />
+                                            </ListItem>
+                                            <ListItem>
+                                                <ListItemText primary="Work" />
+                                            </ListItem>
+                                        </List>
+                                    </Grid>
+                                    <Grid item xs={12} md={6}>
+                                        <Typography
+                                            variant="body2"
+                                            sx={{ mt: 2 }}
+                                        >
+                                            We acknowledge the Traditional
+                                            Custodians of the lands we live on.
+                                            We pay our respects to all
+                                            Aboriginal and Torres Strait
+                                            Islander peoples.
+                                        </Typography>
+                                    </Grid>
+                                </Grid>
+                            </Container>
+                        </Box>
+                    </>
+                );
+            }
+
+            // Render the app
+            ReactDOM.render(<App />, document.getElementById("root"));
+        </script>
+    </body>
 </html>

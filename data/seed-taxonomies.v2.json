@@ -1,86 +1,18 @@
 {
   "lifeEvents": {
-    "Having a baby": {
-      "keywords": [
-        "pregnancy",
-        "pregnant",
-        "baby",
-        "birth",
-        "maternity",
-        "paternity",
-        "newborn",
-        "expecting",
-        "prenatal",
-        "postnatal",
-        "midwife",
-        "obstetric",
-        "parental leave",
-        "baby bonus",
-        "childcare"
-      ],
-      "relatedCategories": [
-        "Raising Kids",
-        "Health and Disability"
-      ],
+    "Living arrangements": {
+      "keywords": [],
       "stages": {
-        "Before your baby arrives": [
-          "pregnancy",
-          "expecting",
-          "prenatal",
-          "before birth",
-          "antenatal",
-          "conception",
-          "fertility"
-        ],
-        "When your baby arrives": [
-          "birth",
-          "newborn",
-          "hospital",
-          "delivery",
-          "labour",
-          "cesarean",
-          "birthing"
-        ],
-        "As your baby grows": [
-          "infant",
-          "toddler",
-          "child care",
-          "immunisation",
-          "baby health",
-          "development",
-          "milestone"
-        ]
+        "Finding, renting and buying a home": [],
+        "Experiencing a natural disaster": [],
+        "Experiencing family and domestic violence": [],
+        "Travelling overseas": [],
+        "Experiencing crime and other risks online": [],
+        "Coming to Australia": []
       },
-      "pageKeywords": [
-        "help",
-        "raising",
-        "kids",
-        "mygov",
-        "living",
-        "arrangements",
-        "ageing",
-        "work",
-        "education",
-        "health",
-        "disability",
-        "having",
-        "feedback",
-        "2024",
-        "browse",
-        "search",
-        "menu",
-        "home",
-        "find",
-        "support",
-        "planning",
-        "thank",
-        "page",
-        "last",
-        "updated",
-        "june",
-        "using",
-        "contact"
-      ]
+      "relatedLifeEvents": [],
+      "relatedCategories": [],
+      "stageVariants": {}
     },
     "Work": {
       "keywords": [
@@ -97,10 +29,6 @@
         "jobseeker",
         "recruitment",
         "resume"
-      ],
-      "relatedCategories": [
-        "Education",
-        "Money and Finance"
       ],
       "stages": {
         "Recently unemployed": [
@@ -145,7 +73,11 @@
           "cap",
           "capped"
         ]
-      }
+      },
+      "relatedLifeEvents": [
+        "Education"
+      ],
+      "relatedCategories": []
     },
     "Ageing": {
       "keywords": [
@@ -160,10 +92,6 @@
         "retiree",
         "superannuation",
         "retirement village"
-      ],
-      "relatedCategories": [
-        "Health and Disability",
-        "Living Arrangements"
       ],
       "stages": {
         "Retirement": [
@@ -194,7 +122,11 @@
           "climacteric",
           "close"
         ]
-      }
+      },
+      "relatedLifeEvents": [
+        "Health and Disability"
+      ],
+      "relatedCategories": []
     },
     "Education": {
       "keywords": [
@@ -210,10 +142,6 @@
         "course",
         "scholarship",
         "hecs"
-      ],
-      "relatedCategories": [
-        "Work",
-        "Raising Kids"
       ],
       "stages": {
         "Vocational education and training": [
@@ -248,7 +176,12 @@
           "premium",
           "article"
         ]
-      }
+      },
+      "relatedLifeEvents": [
+        "Work",
+        "Raising Kids"
+      ],
+      "relatedCategories": []
     },
     "Health and Disability": {
       "keywords": [
@@ -265,10 +198,6 @@
         "chronic",
         "therapy",
         "diagnosis"
-      ],
-      "relatedCategories": [
-        "Ageing",
-        "Money and Finance"
       ],
       "stages": {
         "Seeking medical help": [
@@ -306,7 +235,11 @@
           "bereft",
           "posthumous"
         ]
-      }
+      },
+      "relatedLifeEvents": [
+        "Ageing"
+      ],
+      "relatedCategories": []
     },
     "Raising Kids": {
       "keywords": [
@@ -322,18 +255,7 @@
         "custody",
         "child support"
       ],
-      "relatedCategories": [
-        "Education",
-        "Having a baby"
-      ],
       "stages": {
-        "Having a baby": [
-          "pregnant",
-          "big",
-          "gone",
-          "gravid",
-          "bump"
-        ],
         "Toddlers and preschoolers": [
           "daycare",
           "adolescents",
@@ -362,87 +284,165 @@
           "chip",
           "freeing"
         ]
+      },
+      "relatedLifeEvents": [
+        "Education",
+        "Having a baby"
+      ],
+      "relatedCategories": [],
+      "activities": {
+        "Having a baby": {
+          "keywords": [
+            "pregnant",
+            "big",
+            "gone",
+            "gravid",
+            "bump"
+          ],
+          "stages": {
+            "Before your baby arrives": [
+              "pregnancy",
+              "expecting",
+              "prenatal",
+              "before birth",
+              "antenatal",
+              "conception",
+              "fertility"
+            ],
+            "When your baby arrives": [
+              "birth",
+              "newborn",
+              "hospital",
+              "delivery",
+              "labour",
+              "cesarean",
+              "birthing"
+            ],
+            "As your baby grows": [
+              "infant",
+              "toddler",
+              "child care",
+              "immunisation",
+              "baby health",
+              "development",
+              "milestone"
+            ]
+          },
+          "stageVariants": {
+            "Adopting a child": {
+              "keywords": [
+                "adoption",
+                "adopt",
+                "foster",
+                "permanent care",
+                "intercountry adoption"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives"
+              ]
+            },
+            "Surrogacy": {
+              "keywords": [
+                "surrogate",
+                "surrogacy",
+                "altruistic",
+                "gestational carrier"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives"
+              ]
+            },
+            "IVF": {
+              "keywords": [
+                "ivf",
+                "fertility",
+                "assisted reproduction",
+                "art",
+                "icsi",
+                "embryo"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives"
+              ]
+            },
+            "Multiple births": {
+              "keywords": [
+                "twins",
+                "triplets",
+                "multiple",
+                "multiples",
+                "twin pregnancy"
+              ],
+              "appliesToStages": [
+                "When your baby arrives"
+              ]
+            },
+            "Premature birth": {
+              "keywords": [
+                "premature",
+                "preterm",
+                "nicu",
+                "premmie",
+                "early birth"
+              ],
+              "appliesToStages": [
+                "When your baby arrives"
+              ]
+            },
+            "Stillborn baby": {
+              "keywords": [
+                "stillborn",
+                "stillbirth",
+                "loss",
+                "bereavement",
+                "miscarriage"
+              ],
+              "appliesToStages": [
+                "When your baby arrives"
+              ]
+            },
+            "Single parent": {
+              "keywords": [
+                "single parent",
+                "sole parent",
+                "single mother",
+                "single father"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives",
+                "As your baby grows"
+              ]
+            },
+            "LGBTQ+ parents": {
+              "keywords": [
+                "same sex",
+                "lgbtq",
+                "rainbow family",
+                "two mums",
+                "two dads"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives",
+                "As your baby grows"
+              ]
+            },
+            "Disability": {
+              "keywords": [
+                "special needs",
+                "disability",
+                "developmental delay",
+                "birth defect"
+              ],
+              "appliesToStages": [
+                "As your baby grows"
+              ]
+            }
+          }
+        }
       }
     }
   },
-  "categories": {
-    "Health and Disability": [
-      "health",
-      "medical",
-      "medicare",
-      "disability",
-      "ndis",
-      "mental health",
-      "hospital",
-      "doctor",
-      "treatment",
-      "pharmaceutical",
-      "therapy",
-      "rehabilitation"
-    ],
-    "Raising Kids": [
-      "child",
-      "children",
-      "parenting",
-      "family",
-      "school",
-      "childcare",
-      "youth",
-      "playground",
-      "sport",
-      "activities"
-    ],
-    "Money and Finance": [
-      "payment",
-      "benefit",
-      "tax",
-      "income",
-      "financial",
-      "money",
-      "debt",
-      "loan",
-      "centrelink",
-      "allowance",
-      "subsidy",
-      "grant"
-    ],
-    "Living Arrangements": [
-      "housing",
-      "rent",
-      "home",
-      "accommodation",
-      "homeless",
-      "tenant",
-      "mortgage",
-      "property",
-      "real estate",
-      "public housing"
-    ],
-    "Education": [
-      "learning",
-      "school",
-      "university",
-      "tafe",
-      "course",
-      "training",
-      "skills",
-      "qualification",
-      "certificate",
-      "diploma"
-    ],
-    "Work": [
-      "employment",
-      "job",
-      "career",
-      "business",
-      "workplace",
-      "industrial",
-      "fair work",
-      "leave",
-      "safety",
-      "compensation"
-    ]
-  },
+  "categories": {},
   "providers": {
     "Federal Government": {
       "Services Australia": [
@@ -566,71 +566,6 @@
         "charity",
         "welfare",
         "emergency relief"
-      ]
-    }
-  },
-  "stageVariants": {
-    "Having a baby": {
-      "Adopting a child": [
-        "adoption",
-        "adopt",
-        "foster",
-        "permanent care",
-        "intercountry adoption"
-      ],
-      "Surrogacy": [
-        "surrogate",
-        "surrogacy",
-        "altruistic",
-        "gestational carrier"
-      ],
-      "IVF": [
-        "ivf",
-        "fertility",
-        "assisted reproduction",
-        "art",
-        "icsi",
-        "embryo"
-      ],
-      "Multiple births": [
-        "twins",
-        "triplets",
-        "multiple",
-        "multiples",
-        "twin pregnancy"
-      ],
-      "Premature birth": [
-        "premature",
-        "preterm",
-        "nicu",
-        "premmie",
-        "early birth"
-      ],
-      "Stillborn baby": [
-        "stillborn",
-        "stillbirth",
-        "loss",
-        "bereavement",
-        "miscarriage"
-      ],
-      "Single parent": [
-        "single parent",
-        "sole parent",
-        "single mother",
-        "single father"
-      ],
-      "LGBTQ+ parents": [
-        "same sex",
-        "lgbtq",
-        "rainbow family",
-        "two mums",
-        "two dads"
-      ],
-      "Disability": [
-        "special needs",
-        "disability",
-        "developmental delay",
-        "birth defect"
       ]
     }
   }

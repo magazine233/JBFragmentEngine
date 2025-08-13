@@ -1,0 +1,1064 @@
+{
+  "lifeEvents": {
+    "Living arrangements": {
+      "keywords": [],
+      "stages": {
+        "Finding, renting and buying a home": [],
+        "Experiencing a natural disaster": [],
+        "Experiencing family and domestic violence": [],
+        "Travelling overseas": [],
+        "Experiencing crime and other risks online": [],
+        "Coming to Australia": []
+      },
+      "relatedLifeEvents": [],
+      "relatedCategories": [],
+      "stageVariants": {
+        "Social housing": {
+          "keywords": [
+            "social housing",
+            "public housing",
+            "waiting list"
+          ],
+          "appliesToStages": [
+            "Finding, renting and buying a home"
+          ]
+        },
+        "First home buyer": {
+          "keywords": [
+            "first home",
+            "stamp duty",
+            "owner-occupier"
+          ],
+          "appliesToStages": [
+            "Finding, renting and buying a home"
+          ]
+        },
+        "Disaster recovery": {
+          "keywords": [
+            "flood",
+            "bushfire",
+            "disaster relief",
+            "evacuation"
+          ],
+          "appliesToStages": [
+            "Experiencing a natural disaster"
+          ]
+        },
+        "Seeking safety": {
+          "keywords": [
+            "escape",
+            "safe house",
+            "refuge",
+            "protective order"
+          ],
+          "appliesToStages": [
+            "Experiencing family and domestic violence"
+          ]
+        },
+        "Study abroad": {
+          "keywords": [
+            "exchange program",
+            "student visa"
+          ],
+          "appliesToStages": [
+            "Travelling overseas"
+          ]
+        },
+        "Backpacking": {
+          "keywords": [
+            "budget travel",
+            "hostel",
+            "gap year"
+          ],
+          "appliesToStages": [
+            "Travelling overseas"
+          ]
+        },
+        "Online fraud": {
+          "keywords": [
+            "phishing",
+            "identity theft",
+            "scam",
+            "cybercrime"
+          ],
+          "appliesToStages": [
+            "Experiencing crime and other risks online"
+          ]
+        },
+        "Skilled migration": {
+          "keywords": [
+            "skilled visa",
+            "points test",
+            "occupation list"
+          ],
+          "appliesToStages": [
+            "Coming to Australia"
+          ]
+        },
+        "Family reunion": {
+          "keywords": [
+            "partner visa",
+            "sponsor",
+            "family stream"
+          ],
+          "appliesToStages": [
+            "Coming to Australia"
+          ]
+        },
+        "Humanitarian": {
+          "keywords": [
+            "asylum seeker",
+            "refugee",
+            "protection visa"
+          ],
+          "appliesToStages": [
+            "Coming to Australia"
+          ]
+        }
+      }
+    },
+    "Work": {
+      "keywords": [
+        "employment",
+        "job",
+        "career",
+        "workplace",
+        "employer",
+        "employee",
+        "salary",
+        "wages",
+        "redundancy",
+        "unemployment",
+        "jobseeker",
+        "recruitment",
+        "resume"
+      ],
+      "stages": {
+        "Recently unemployed": [
+          "etna",
+          "introduction",
+          "kast",
+          "moderne",
+          "mongolia"
+        ],
+        "Looking for work": [
+          "unemployed",
+          "jobless",
+          "oahu",
+          "exposure",
+          "blank"
+        ],
+        "Starting a job": [
+          "employment",
+          "hiring",
+          "engagement",
+          "attendant",
+          "supporter"
+        ],
+        "Currently employed": [
+          "unemployed",
+          "available",
+          "idle",
+          "live",
+          "hand"
+        ],
+        "Returning to work": [
+          "resuming",
+          "continuing",
+          "reinstating",
+          "continuation",
+          "contd"
+        ],
+        "Managing the cost of living": [
+          "inflation",
+          "rent",
+          "cao",
+          "cap",
+          "capped"
+        ]
+      },
+      "relatedLifeEvents": [
+        "Education"
+      ],
+      "relatedCategories": [],
+      "stageVariants": {
+        "Redundancy": {
+          "keywords": [
+            "redundant",
+            "retrenchment",
+            "severance"
+          ],
+          "appliesToStages": [
+            "Recently unemployed"
+          ]
+        },
+        "Involuntary termination": {
+          "keywords": [
+            "fired",
+            "dismissed",
+            "forced leave"
+          ],
+          "appliesToStages": [
+            "Recently unemployed"
+          ]
+        },
+        "JobSeeker support": {
+          "keywords": [
+            "jobseeker",
+            "newstart",
+            "centrelink"
+          ],
+          "appliesToStages": [
+            "Looking for work"
+          ]
+        },
+        "Career change": {
+          "keywords": [
+            "retraining",
+            "new skills",
+            "reskill"
+          ],
+          "appliesToStages": [
+            "Looking for work"
+          ]
+        },
+        "First job": {
+          "keywords": [
+            "entry level",
+            "intern",
+            "graduate job"
+          ],
+          "appliesToStages": [
+            "Starting a job"
+          ]
+        },
+        "Relocation": {
+          "keywords": [
+            "moving for work",
+            "relocation allowance"
+          ],
+          "appliesToStages": [
+            "Starting a job"
+          ]
+        },
+        "Flexible work": {
+          "keywords": [
+            "remote",
+            "hybrid",
+            "flex-time"
+          ],
+          "appliesToStages": [
+            "Currently employed"
+          ]
+        },
+        "Discrimination": {
+          "keywords": [
+            "harassment",
+            "bullying",
+            "unfair treatment"
+          ],
+          "appliesToStages": [
+            "Currently employed"
+          ]
+        },
+        "Parental leave return": {
+          "keywords": [
+            "maternity",
+            "paternity",
+            "childcare"
+          ],
+          "appliesToStages": [
+            "Returning to work"
+          ]
+        },
+        "Injury recovery": {
+          "keywords": [
+            "rehab",
+            "workers comp",
+            "light duties"
+          ],
+          "appliesToStages": [
+            "Returning to work"
+          ]
+        },
+        "Rent assistance": {
+          "keywords": [
+            "commonwealth rent",
+            "housing payment"
+          ],
+          "appliesToStages": [
+            "Managing the cost of living"
+          ]
+        },
+        "Utility relief": {
+          "keywords": [
+            "electricity",
+            "gas",
+            "energy rebate"
+          ],
+          "appliesToStages": [
+            "Managing the cost of living"
+          ]
+        }
+      }
+    },
+    "Ageing": {
+      "keywords": [
+        "retirement",
+        "pension",
+        "senior",
+        "elderly",
+        "aged care",
+        "super",
+        "aged",
+        "older",
+        "retiree",
+        "superannuation",
+        "retirement village"
+      ],
+      "stages": {
+        "Retirement": [
+          "retreat",
+          "retiree",
+          "retire",
+          "withdrawal",
+          "termination"
+        ],
+        "Health and safety as you get older": [
+          "recover",
+          "osha",
+          "age",
+          "recovered",
+          "aged"
+        ],
+        "Accessing aged care services": [
+          "caring",
+          "home",
+          "bed",
+          "service",
+          "medicare"
+        ],
+        "Planning for end of life": [
+          "dying",
+          "ended",
+          "rnd",
+          "climacteric",
+          "close"
+        ]
+      },
+      "relatedLifeEvents": [
+        "Health and Disability"
+      ],
+      "relatedCategories": [],
+      "stageVariants": {
+        "Early retirement": {
+          "keywords": [
+            "retire early",
+            "super access"
+          ],
+          "appliesToStages": [
+            "Retirement"
+          ]
+        },
+        "Semi-retirement": {
+          "keywords": [
+            "part-time work",
+            "phased retirement"
+          ],
+          "appliesToStages": [
+            "Retirement"
+          ]
+        },
+        "Falls prevention": {
+          "keywords": [
+            "mobility",
+            "hazards",
+            "home safety"
+          ],
+          "appliesToStages": [
+            "Health and safety as you get older"
+          ]
+        },
+        "Elder abuse": {
+          "keywords": [
+            "neglect",
+            "financial control",
+            "coercion"
+          ],
+          "appliesToStages": [
+            "Health and safety as you get older"
+          ]
+        },
+        "In-home support": {
+          "keywords": [
+            "home care",
+            "packages",
+            "carers"
+          ],
+          "appliesToStages": [
+            "Accessing aged care services"
+          ]
+        },
+        "Residential care": {
+          "keywords": [
+            "nursing home",
+            "aged care facility"
+          ],
+          "appliesToStages": [
+            "Accessing aged care services"
+          ]
+        },
+        "Advance care planning": {
+          "keywords": [
+            "living will",
+            "end-of-life care"
+          ],
+          "appliesToStages": [
+            "Planning for end of life"
+          ]
+        },
+        "Palliative care": {
+          "keywords": [
+            "pain management",
+            "terminal illness"
+          ],
+          "appliesToStages": [
+            "Planning for end of life"
+          ]
+        }
+      }
+    },
+    "Education": {
+      "keywords": [
+        "school",
+        "university",
+        "tafe",
+        "training",
+        "student",
+        "study",
+        "qualification",
+        "degree",
+        "apprentice",
+        "course",
+        "scholarship",
+        "hecs"
+      ],
+      "stages": {
+        "Vocational education and training": [
+          "vet",
+          "occupational",
+          "formation",
+          "professional",
+          "skills"
+        ],
+        "Higher education": [
+          "academia",
+          "university"
+        ],
+        "Help when studying": [
+          "chrestomathy",
+          "tutor",
+          "acupuncture",
+          "psychoanalysis",
+          "aeronautics"
+        ],
+        "Upgrading professional skills or qualifications": [
+          "training",
+          "able",
+          "capable",
+          "right",
+          "qualification"
+        ],
+        "Doing an apprenticeship": [
+          "time",
+          "formation",
+          "training",
+          "premium",
+          "article"
+        ]
+      },
+      "relatedLifeEvents": [
+        "Work",
+        "Raising Kids"
+      ],
+      "relatedCategories": [],
+      "stageVariants": {
+        "Apprenticeship": {
+          "keywords": [
+            "trade",
+            "hands-on",
+            "vocational training"
+          ],
+          "appliesToStages": [
+            "Vocational education and training"
+          ]
+        },
+        "Re-skilling": {
+          "keywords": [
+            "career change",
+            "new skills",
+            "tvet"
+          ],
+          "appliesToStages": [
+            "Vocational education and training"
+          ]
+        },
+        "International student": {
+          "keywords": [
+            "student visa",
+            "overseas",
+            "study abroad"
+          ],
+          "appliesToStages": [
+            "Higher education"
+          ]
+        },
+        "Mature-age student": {
+          "keywords": [
+            "adult learner",
+            "return to study"
+          ],
+          "appliesToStages": [
+            "Higher education"
+          ]
+        },
+        "Disability support": {
+          "keywords": [
+            "accessibility",
+            "learning support",
+            "inclusive"
+          ],
+          "appliesToStages": [
+            "Help when studying"
+          ]
+        },
+        "Financial hardship": {
+          "keywords": [
+            "study loan",
+            "emergency grant",
+            "student payment"
+          ],
+          "appliesToStages": [
+            "Help when studying"
+          ]
+        },
+        "Micro-credentials": {
+          "keywords": [
+            "short course",
+            "certification",
+            "digital badge"
+          ],
+          "appliesToStages": [
+            "Upgrading professional skills or qualifications"
+          ]
+        },
+        "Employer-funded training": {
+          "keywords": [
+            "upskill",
+            "on-the-job training"
+          ],
+          "appliesToStages": [
+            "Upgrading professional skills or qualifications"
+          ]
+        },
+        "School-based": {
+          "keywords": [
+            "VET in schools",
+            "part-time apprenticeship"
+          ],
+          "appliesToStages": [
+            "Doing an apprenticeship"
+          ]
+        },
+        "Mature-age apprenticeship": {
+          "keywords": [
+            "career change",
+            "adult apprentice"
+          ],
+          "appliesToStages": [
+            "Doing an apprenticeship"
+          ]
+        }
+      }
+    },
+    "Health and Disability": {
+      "keywords": [
+        "health",
+        "medical",
+        "medicare",
+        "disability",
+        "ndis",
+        "mental health",
+        "hospital",
+        "doctor",
+        "treatment",
+        "illness",
+        "chronic",
+        "therapy",
+        "diagnosis"
+      ],
+      "stages": {
+        "Seeking medical help": [
+          "care",
+          "recourse",
+          "sos",
+          "medicaid",
+          "healthcare"
+        ],
+        "Being diagnosed with a medical condition or disability": [
+          "necrosis",
+          "disease",
+          "cyanosis",
+          "facile",
+          "draw"
+        ],
+        "Mental health": [
+          "mind",
+          "health",
+          "self-care",
+          "psychology",
+          "well-being"
+        ],
+        "Caring for someone": [
+          "nursing",
+          "nurse",
+          "caregiving",
+          "care",
+          "caregiver"
+        ],
+        "Experiencing the death of a loved one": [
+          "bereaved",
+          "mourning",
+          "grief",
+          "bereft",
+          "posthumous"
+        ]
+      },
+      "relatedLifeEvents": [
+        "Ageing"
+      ],
+      "relatedCategories": [],
+      "stageVariants": {
+        "Telehealth": {
+          "keywords": [
+            "remote consultation",
+            "virtual GP"
+          ],
+          "appliesToStages": [
+            "Seeking medical help"
+          ]
+        },
+        "Bulk billing": {
+          "keywords": [
+            "no gap",
+            "medicare direct"
+          ],
+          "appliesToStages": [
+            "Seeking medical help"
+          ]
+        },
+        "Rare disease": {
+          "keywords": [
+            "genetic",
+            "orphan condition"
+          ],
+          "appliesToStages": [
+            "Being diagnosed with a medical condition or disability"
+          ]
+        },
+        "Late diagnosis": {
+          "keywords": [
+            "undiagnosed",
+            "adult diagnosis"
+          ],
+          "appliesToStages": [
+            "Being diagnosed with a medical condition or disability"
+          ]
+        },
+        "Crisis support": {
+          "keywords": [
+            "hotline",
+            "helpline",
+            "urgent care"
+          ],
+          "appliesToStages": [
+            "Mental health"
+          ]
+        },
+        "Ongoing therapy": {
+          "keywords": [
+            "psychologist",
+            "counselling"
+          ],
+          "appliesToStages": [
+            "Mental health"
+          ]
+        },
+        "Young carer": {
+          "keywords": [
+            "child carer",
+            "youth caregiver"
+          ],
+          "appliesToStages": [
+            "Caring for someone"
+          ]
+        },
+        "Dementia care": {
+          "keywords": [
+            "memory loss",
+            "alzheimers",
+            "support"
+          ],
+          "appliesToStages": [
+            "Caring for someone"
+          ]
+        },
+        "Bereavement support": {
+          "keywords": [
+            "grief counselling",
+            "support group"
+          ],
+          "appliesToStages": [
+            "Experiencing the death of a loved one"
+          ]
+        },
+        "Funeral planning": {
+          "keywords": [
+            "arrangement",
+            "memorial"
+          ],
+          "appliesToStages": [
+            "Experiencing the death of a loved one"
+          ]
+        }
+      }
+    },
+    "Raising Kids": {
+      "keywords": [
+        "child",
+        "children",
+        "parenting",
+        "family",
+        "school",
+        "childcare",
+        "youth",
+        "teenager",
+        "adolescent",
+        "custody",
+        "child support"
+      ],
+      "stages": {
+        "Toddlers and preschoolers": [
+          "daycare",
+          "adolescents",
+          "kindergarten",
+          "kindergartens",
+          "playschool"
+        ],
+        "Primary school children": [
+          "kindergarten",
+          "preschool",
+          "students",
+          "pupils",
+          "schools"
+        ],
+        "Teenagers": [
+          "adolescent",
+          "stripling",
+          "adolescence",
+          "adolescents",
+          "boys"
+        ],
+        "Separated parents": [
+          "broken",
+          "free",
+          "block",
+          "chip",
+          "freeing"
+        ]
+      },
+      "relatedLifeEvents": [
+        "Education",
+        "Having a baby"
+      ],
+      "relatedCategories": [],
+      "activities": {
+        "Having a baby": {
+          "keywords": [
+            "pregnant",
+            "big",
+            "gone",
+            "gravid",
+            "bump"
+          ],
+          "stages": {
+            "Before your baby arrives": [
+              "pregnancy",
+              "expecting",
+              "prenatal",
+              "before birth",
+              "antenatal",
+              "conception",
+              "fertility"
+            ],
+            "When your baby arrives": [
+              "birth",
+              "newborn",
+              "hospital",
+              "delivery",
+              "labour",
+              "cesarean",
+              "birthing"
+            ],
+            "As your baby grows": [
+              "infant",
+              "toddler",
+              "child care",
+              "immunisation",
+              "baby health",
+              "development",
+              "milestone"
+            ]
+          },
+          "stageVariants": {
+            "Adopting a child": {
+              "keywords": [
+                "adoption",
+                "adopt",
+                "foster",
+                "permanent care",
+                "intercountry adoption"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives"
+              ]
+            },
+            "Surrogacy": {
+              "keywords": [
+                "surrogate",
+                "surrogacy",
+                "altruistic",
+                "gestational carrier"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives"
+              ]
+            },
+            "IVF": {
+              "keywords": [
+                "ivf",
+                "fertility",
+                "assisted reproduction",
+                "art",
+                "icsi",
+                "embryo"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives"
+              ]
+            },
+            "Multiple births": {
+              "keywords": [
+                "twins",
+                "triplets",
+                "multiple",
+                "multiples",
+                "twin pregnancy"
+              ],
+              "appliesToStages": [
+                "When your baby arrives"
+              ]
+            },
+            "Premature birth": {
+              "keywords": [
+                "premature",
+                "preterm",
+                "nicu",
+                "premmie",
+                "early birth"
+              ],
+              "appliesToStages": [
+                "When your baby arrives"
+              ]
+            },
+            "Stillborn baby": {
+              "keywords": [
+                "stillborn",
+                "stillbirth",
+                "loss",
+                "bereavement",
+                "miscarriage"
+              ],
+              "appliesToStages": [
+                "When your baby arrives"
+              ]
+            },
+            "Single parent": {
+              "keywords": [
+                "single parent",
+                "sole parent",
+                "single mother",
+                "single father"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives",
+                "As your baby grows"
+              ]
+            },
+            "LGBTQ+ parents": {
+              "keywords": [
+                "same sex",
+                "lgbtq",
+                "rainbow family",
+                "two mums",
+                "two dads"
+              ],
+              "appliesToStages": [
+                "Before your baby arrives",
+                "As your baby grows"
+              ]
+            },
+            "Disability": {
+              "keywords": [
+                "special needs",
+                "disability",
+                "developmental delay",
+                "birth defect"
+              ],
+              "appliesToStages": [
+                "As your baby grows"
+              ]
+            }
+          }
+        }
+      }
+    }
+  },
+  "categories": {},
+  "providers": {
+    "Federal Government": {
+      "Services Australia": [
+        "centrelink",
+        "medicare",
+        "child support",
+        "services australia",
+        "mygov",
+        "express plus"
+      ],
+      "Australian Taxation Office": [
+        "tax",
+        "ato",
+        "gst",
+        "tfn",
+        "abn",
+        "bas",
+        "tax return"
+      ],
+      "Department of Health": [
+        "health.gov.au",
+        "immunisation",
+        "aged care",
+        "mental health",
+        "pbs",
+        "health services"
+      ],
+      "Department of Education": [
+        "education.gov.au",
+        "skills",
+        "training",
+        "schools",
+        "tertiary",
+        "vocational"
+      ],
+      "Department of Social Services": [
+        "dss.gov.au",
+        "welfare",
+        "family",
+        "community",
+        "disability",
+        "carers"
+      ],
+      "Fair Work": [
+        "fairwork",
+        "workplace",
+        "employment",
+        "industrial relations",
+        "awards",
+        "enterprise agreement"
+      ]
+    },
+    "State Government": {
+      "NSW": [
+        "nsw.gov.au",
+        "service.nsw",
+        "new south wales"
+      ],
+      "VIC": [
+        "vic.gov.au",
+        "service.vic",
+        "victoria",
+        "melbourne"
+      ],
+      "QLD": [
+        "qld.gov.au",
+        "queensland",
+        "brisbane"
+      ],
+      "WA": [
+        "wa.gov.au",
+        "western australia",
+        "perth"
+      ],
+      "SA": [
+        "sa.gov.au",
+        "south australia",
+        "adelaide"
+      ],
+      "TAS": [
+        "tas.gov.au",
+        "tasmania",
+        "hobart"
+      ],
+      "ACT": [
+        "act.gov.au",
+        "canberra",
+        "australian capital territory"
+      ],
+      "NT": [
+        "nt.gov.au",
+        "northern territory",
+        "darwin"
+      ]
+    },
+    "Non-Government": {
+      "Raising Children Network": [
+        "raisingchildren.net.au",
+        "parenting",
+        "child development"
+      ],
+      "Beyond Blue": [
+        "beyondblue",
+        "mental health",
+        "depression",
+        "anxiety"
+      ],
+      "Lifeline": [
+        "lifeline",
+        "crisis support",
+        "suicide prevention"
+      ],
+      "Red Cross": [
+        "redcross",
+        "emergency",
+        "blood donation",
+        "humanitarian"
+      ],
+      "Salvation Army": [
+        "salvos",
+        "charity",
+        "welfare",
+        "emergency relief"
+      ]
+    }
+  }
+}

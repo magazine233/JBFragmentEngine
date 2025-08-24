@@ -447,6 +447,39 @@ async function enrichWithTaxonomy(fragment) {
     fragment.task_order = detectTaskOrder(fragment.content_html);
   }
 
+  // Ensure all required array fields exist (even if empty)
+  const requiredArrayFields = [
+    'life_events',
+    'categories', 
+    'states',
+    'prerequisite_states',
+    'leads_to_states',
+    'concurrent_states',
+    'excludes_states',
+    'required_citizenship',
+    'required_residency',
+    'required_disabilities',
+    'required_employment_status',
+    'required_housing_status'
+  ];
+  
+  for (const field of requiredArrayFields) {
+    if (!fragment[field]) {
+      fragment[field] = [];
+    }
+  }
+  // Ensure required string fields
+  if (!fragment.provider) fragment.provider = 'unknown';
+  if (!fragment.governance) fragment.governance = 'unknown';
+  if (!fragment.component_type) fragment.component_type = 'content';
+  
+  // Ensure required boolean fields
+  if (fragment.has_form === undefined) fragment.has_form = false;
+  if (fragment.has_checklist === undefined) fragment.has_checklist = false;
+  
+  // Ensure required number fields
+  if (!fragment.popularity_sort) fragment.popularity_sort = 100;
+  
   return fragment;
 }
 

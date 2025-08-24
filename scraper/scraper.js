@@ -8,7 +8,7 @@ const Typesense = require('typesense');
 const fetch = require('node-fetch'); // Add this import
 const { extractFragment } = require('./extractors');
 const { enrichWithTaxonomy } = require('./taxonomies');
-const { contentFragmentSchema } = require('/config/typesense-schema');
+const { contentFragmentSchema } = require('../config/typesense-schema');
 const { fetchSitemapUrls } = require('./sitemap');
 const ScraperMonitor = require('./monitor');
 
@@ -22,7 +22,7 @@ class MyGovScraper {
     this.typesense = new Typesense.Client({
       nodes: [{ 
         host: process.env.TYPESENSE_HOST || 'localhost', 
-        port: process.env.TYPESENSE_PORT || '8108', 
+        port: parseInt(process.env.TYPESENSE_PORT || '8108', 10), 
         protocol: 'http' 
       }],
       apiKey: process.env.TYPESENSE_API_KEY || 'xyz123abc',
@@ -289,36 +289,8 @@ class MyGovScraper {
           for (const elem of elements) {
             const $elem = $(elem);
             
-            // Safely check if this element is already part of a heading section
-            // Use a more robust approach that doesn't rely on complex selectors
-            let isPartOfHeading = false;
-            try {
-              // Check if any parent is a heading or if closest heading exists
-              const headingSelectors = ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'];
-              for (const hSelector of headingSelectors) {
-                const $headings = $main.find(hSelector);
-                for (let h = 0; h < $headings.length; h++) {
-                  const $h = $headings.eq(h);
-                  // Check if this element comes after the heading in document order
-                  if ($h.get(0) && $elem.get(0) && 
-                      $h.get(0).compareDocumentPosition($elem.get(0)) & Node.DOCUMENT_POSITION_FOLLOWING) {
-                    // Check if there's another heading between them
-                    const nextHeading = $h.nextAll(headingSelectors.join(',')).first();
-                    if (!nextHeading.length || 
-                        (nextHeading.get(0).compareDocumentPosition($elem.get(0)) & Node.DOCUMENT_POSITION_PRECEDING)) {
-                      isPartOfHeading = true;
-                      break;
-                    }
-                  }
-                }
-                if (isPartOfHeading) break;
-              }
-            } catch (closestError) {
-              // If we can't determine hierarchy safely, skip this check
-              console.log(`Skipping hierarchy check for standalone element: ${closestError.message}`);
-            }
-            
-            if (!isPartOfHeading) {
+            // Cheerio environment: avoid DOM APIs; extract as standalone fragment
+            {
               try {
                 const fragment = this.extractStandaloneFragment($elem, url, breadcrumbs);
                 if (fragment) {
@@ -472,7 +444,7 @@ class MyGovScraper {
 
 // Run the scraper
 if (require.main === module) {
-  const cfg = require('/config/scraper-config');
+  const cfg = require('../config/scraper-config');
   const scraper = new MyGovScraper(cfg);
   const startUrl = process.env.TARGET_URL || 'https://my.gov.au';
   

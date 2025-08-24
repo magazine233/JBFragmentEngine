@@ -26,12 +26,12 @@ On a clean vm you'll need to install docker-compose, enable docker and add yours
 1. Clone the repository:
 ```bash
 git clone https://github.com/p0ss/FragmentEngine
-cd mygov-content-extractor
+cd FragmentEngine
 ```
 
 2. Copy environment configuration:
 ```bash
-cp .env.example .env
+cp .env-example .env
 ```
 
 3. Edit `.env` with your settings:

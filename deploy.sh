@@ -9,8 +9,10 @@ if [ ! -f .env ]; then
     exit 1
 fi
 
-# Load environment
-export $(cat .env | grep -v '^#' | xargs)
+# Load environment safely (supports spaces/quotes)
+set -a
+. ./.env
+set +a
 
 # Build images
 echo "🔨 Building Docker images..."

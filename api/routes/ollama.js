@@ -17,7 +17,7 @@ console.log("=================================");
 // Proxy endpoint for Ollama
 router.post("/chat", async (req, res) => {
   try {
-    let { prompt, model = "gemma3:27b" } = req.body; // Updated to match your model
+    let { prompt, model = "gemma:27b" } = req.body; // Align default with UI
 
     if (!prompt) {
       return res.status(400).json({ error: "Prompt is required" });

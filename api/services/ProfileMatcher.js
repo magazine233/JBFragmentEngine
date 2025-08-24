@@ -35,12 +35,13 @@ class ProfileMatcher {
     // Search with filters
     const searchParams = {
       q: '*',
+      query_by: 'title,content_text,search_keywords',
       filter_by: filters.join(' && '),
       per_page: 250
     };
     
     const results = await this.typesense
-      .collections('content_fragments_v2')
+      .collections('content_fragments')
       .documents()
       .search(searchParams);
     

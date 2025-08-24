@@ -22,27 +22,28 @@ router.get('/search', async (req, res) => {
 
     // Build filter query
     const filterBy = [];
+    const quote = (v) => `\"${String(v).replace(/\"/g, '\\"')}\"`;
     
     if (life_event) {
-      filterBy.push(`life_events:=${life_event}`);
+      filterBy.push(`life_events:=[${quote(life_event)}]`);
     }
     if (category) {
-      filterBy.push(`categories:=${category}`);
+      filterBy.push(`categories:=[${quote(category)}]`);
     }
     if (state) {
-      filterBy.push(`states:=${state}`);
+      filterBy.push(`states:=[${quote(state)}]`);
     }
     if (stage) {
-      filterBy.push(`stage:=${stage}`);
+      filterBy.push(`stage:=${quote(stage)}`);
     }
     if (stage_variant) {
-      filterBy.push(`stage_variant:=${stage_variant}`);
+      filterBy.push(`stage_variant:=${quote(stage_variant)}`);
     }
     if (provider) {
-      filterBy.push(`provider:=${provider}`);
+      filterBy.push(`provider:=${quote(provider)}`);
     }
     if (component_type) {
-      filterBy.push(`component_type:=${component_type}`);
+      filterBy.push(`component_type:=${quote(component_type)}`);
     }
 
     // Fields to retrieve
@@ -63,8 +64,8 @@ router.get('/search', async (req, res) => {
       query_by: 'title,content_text,search_keywords',
       filter_by: filterBy.join(' && '),
       sort_by,
-      page: parseInt(page),
-      per_page: parseInt(per_page),
+      page: parseInt(page, 10),
+      per_page: parseInt(per_page, 10),
       include_fields: includeFields.join(','),
       highlight_full_fields: 'content_text',
       highlight_affix_num_tokens: 4,
@@ -81,11 +82,12 @@ router.get('/search', async (req, res) => {
       .documents()
       .search(searchParameters);
 
+    const perPageNum = parseInt(per_page, 10) || 20;
     res.json({
       results: results.hits,
       found: results.found,
       page: results.page,
-      total_pages: Math.ceil(results.found / per_page),
+      total_pages: Math.ceil(results.found / perPageNum),
       request_params: results.request_params
     });
 
@@ -146,7 +148,8 @@ router.get('/hierarchy', async (req, res) => {
     let filterBy = '';
     if (parent_path) {
       // Filter by parent path in site_hierarchy
-      filterBy = `site_hierarchy:=${parent_path}`;
+      const quote = (v) => `\"${String(v).replace(/\"/g, '\\"')}\"`;
+      filterBy = `site_hierarchy:=[${quote(parent_path)}]`;
     }
 
     const results = await req.app.locals.typesense
@@ -155,13 +158,13 @@ router.get('/hierarchy', async (req, res) => {
       .search({
         q: '*',
         query_by: 'title',
-        filter_by: filterBy,
-        group_by: 'hierarchy_lvl0,hierarchy_lvl1',
+        filter_by: filterBy || undefined,
+        group_by: 'hierarchy_lvl0',
         group_limit: 10,
         per_page: 0
       });
 
-    res.json(results.grouped_hits);
+    res.json(results.grouped_hits || []);
 
   } catch (error) {
     console.error('Hierarchy error:', error);
@@ -313,7 +316,10 @@ router.get('/export/stream', async (req, res) => {
       if (format === 'csv' && page === 1) {
         // Write CSV header
         const Papa = require('papaparse');
-        const header = Papa.unparse([results.hits[0].document], {
+        if (!results.hits || results.hits.length === 0) {
+          break;
+        }
+        const header = Papa.unparse([results.hits[0].document || {}], {
           header: true,
           skipEmptyLines: true
         }).split('\n')[0];

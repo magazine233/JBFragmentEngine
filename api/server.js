@@ -3,6 +3,7 @@ const express = require('express');
 const cors = require('cors');
 const Typesense = require('typesense');
 const fragmentRoutes = require('./routes/fragments');
+const journeyRoutes = require('./routes/journey');
 
 const app = express();
 
@@ -16,7 +17,7 @@ app.use(express.json());
 const typesenseClient = new Typesense.Client({
   nodes: [{
     host: process.env.TYPESENSE_HOST || 'localhost',
-    port: process.env.TYPESENSE_PORT || '8108',
+    port: parseInt(process.env.TYPESENSE_PORT || '8108', 10),
     protocol: 'http'
   }],
   apiKey: process.env.TYPESENSE_API_KEY || 'xyz123abc',
@@ -28,6 +29,7 @@ app.locals.typesense = typesenseClient;
 
 // Routes
 app.use('/api/fragments', fragmentRoutes);
+app.use('/api/journey', journeyRoutes);
 
 // Try to load ollama routes if dependencies are available
 try {

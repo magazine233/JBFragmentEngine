@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const ProfileMatcher = require('../services/profileMatcher');
+const ProfileMatcher = require('../services/ProfileMatcher');
 
 // Convert life events to eligibility attributes
 const lifeEventToAttributes = {

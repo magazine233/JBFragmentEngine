@@ -158,6 +158,8 @@
                 Alert,
                 Divider,
                 InputAdornment,
+                Select,
+                InputLabel,
                 Radio,
                 RadioGroup,
                 FormControlLabel,
@@ -180,6 +182,8 @@
                 search: `${API_BASE_URL}/api/fragments/search`,
                 facets: `${API_BASE_URL}/api/fragments/facets`,
                 ollama: `${API_BASE_URL}/api/ollama/chat`,
+                llm: `${API_BASE_URL}/api/llm/chat`,
+                llmModels: `${API_BASE_URL}/api/llm/models`,
             };
 
             // Category to Life Event mappings - FIXED TO MATCH ACTUAL API DATA
@@ -307,7 +311,36 @@
                     },
                 ]);
                 const [chatInput, setChatInput] = useState("");
-                const [ollamaModel, setOllamaModel] = useState("gemma:27b"); // Default model
+                const [ollamaModel, setOllamaModel] = useState("gemma3:27b"); // Default model (kept for backward compat)
+                const [llmModel, setLlmModel] = useState("ollama:gemma3:27b");
+                const [availableModels, setAvailableModels] = useState([]);
+
+                // Load available LLM models from API
+                useEffect(() => {
+                    (async () => {
+                        try {
+                            const resp = await fetch(API_ENDPOINTS.llmModels);
+                            if (resp.ok) {
+                                const data = await resp.json();
+                                const list = data.models || [];
+                                setAvailableModels(list);
+                                if (list.length > 0) {
+                                    setLlmModel((prev) => prev || list[0].value);
+                                }
+                            } else {
+                                throw new Error("Failed to load models");
+                            }
+                        } catch (e) {
+                            console.warn("Falling back to default model list:", e.message);
+                            const fallback = [
+                                { value: "ollama:gemma3:27b", label: "Ollama • gemma3:27b" },
+                                { value: "ollama:llama3:8b", label: "Ollama • llama3:8b" },
+                                { value: "ollama:mistral:7b", label: "Ollama • mistral:7b" },
+                            ];
+                            setAvailableModels(fallback);
+                        }
+                    })();
+                }, []);
 
                 // Progress tracking
                 const [completedTasks, setCompletedTasks] = useState([]);
@@ -491,19 +524,16 @@ Remember to:
 
                         const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nAssistant:`;
 
-                        console.log(
-                            "Calling Ollama via API proxy with model:",
-                            ollamaModel,
-                        );
+                        console.log("Calling LLM via API proxy with model:", llmModel);
 
-                        // Call our API proxy instead of Ollama directly
-                        const response = await fetch(API_ENDPOINTS.ollama, {
+                        // Call generic LLM proxy (supports Ollama and remote APIs)
+                        const response = await fetch(API_ENDPOINTS.llm, {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
                             },
                             body: JSON.stringify({
-                                model: ollamaModel,
+                                model: llmModel,
                                 prompt: fullPrompt,
                             }),
                         });
@@ -542,8 +572,8 @@ Remember to:
                         ) {
                             errorMessage +=
                                 "The API server cannot reach Ollama. Please ensure Ollama is running (ollama serve).";
-                        } else if (error.message.includes("404")) {
-                            errorMessage += `Model "${ollamaModel}" not found. Try running: ollama pull ${ollamaModel}`;
+                        } else if (error.message.includes("404") || error.message.toLowerCase().includes("model")) {
+                            errorMessage += `Model not available. If using Ollama, try: ollama pull ${llmModel.replace('ollama:', '')}`;
                         } else {
                             errorMessage += error.message;
                         }
@@ -1121,7 +1151,22 @@ Remember to:
                                             </Fade>
                                         ))}
                                     </Box>
-                                    <Box sx={{ display: "flex", gap: 1 }}>
+                                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                                        <FormControl size="small" sx={{ minWidth: 260 }}>
+                                            <InputLabel id="model-select-label">Model</InputLabel>
+                                            <Select
+                                                labelId="model-select-label"
+                                                label="Model"
+                                                value={llmModel}
+                                                onChange={(e) => setLlmModel(e.target.value)}
+                                            >
+                                                {availableModels.map((m) => (
+                                                    <MenuItem key={m.value} value={m.value}>
+                                                        {m.label}
+                                                    </MenuItem>
+                                                ))}
+                                            </Select>
+                                        </FormControl>
                                         <TextField
                                             fullWidth
                                             variant="outlined"

@@ -4,6 +4,7 @@ const cors = require('cors');
 const Typesense = require('typesense');
 const fragmentRoutes = require('./routes/fragments');
 const journeyRoutes = require('./routes/journey');
+const llmRoutes = require('./routes/llm');
 
 const app = express();
 
@@ -30,6 +31,7 @@ app.locals.typesense = typesenseClient;
 // Routes
 app.use('/api/fragments', fragmentRoutes);
 app.use('/api/journey', journeyRoutes);
+app.use('/api/llm', llmRoutes);
 
 // Try to load ollama routes if dependencies are available
 try {

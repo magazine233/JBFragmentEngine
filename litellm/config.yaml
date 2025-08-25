@@ -1,0 +1,25 @@
+router_mode: true
+model_list:
+  # Ollama-backed models (optional; requires OLLAMA_URL reachable from container)
+  - model_name: "ollama/gemma3:27b"
+    litellm_params:
+      model: "ollama/gemma3:27b"
+      api_base: ${OLLAMA_URL}
+  - model_name: "ollama/llama3:8b"
+    litellm_params:
+      model: "ollama/llama3:8b"
+      api_base: ${OLLAMA_URL}
+  - model_name: "ollama/mistral:7b"
+    litellm_params:
+      model: "ollama/mistral:7b"
+      api_base: ${OLLAMA_URL}
+
+  # OpenAI (optional; requires OPENAI_API_KEY)
+  - model_name: "openai/gpt-4o-mini"
+    litellm_params:
+      model: "gpt-4o-mini"
+      api_key: ${OPENAI_API_KEY}
+  - model_name: "openai/gpt-4o"
+    litellm_params:
+      model: "gpt-4o"
+      api_key: ${OPENAI_API_KEY}

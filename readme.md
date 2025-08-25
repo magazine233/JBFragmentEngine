@@ -87,6 +87,11 @@ curl "http://localhost:3000/api/fragments/[fragment-id]"
 curl "http://localhost:3000/api/fragments/export"
 ```
 
+#### List available chat models (via LiteLLM or Ollama)
+```bash
+curl "http://localhost:3000/api/llm/models"
+```
+
 ### Integration Example
 
 ```javascript
@@ -161,6 +166,22 @@ cd scraper && npm start
 
 # Run API
 cd api && npm start
+```
+
+### Chat/LLM Integration
+
+This stack runs LiteLLM by default (via Docker Compose) to proxy requests to local Ollama and/or remote APIs. The UI auto-discovers models from LiteLLM and provides a dropdown to switch.
+
+- Configure in `.env`:
+  - `OLLAMA_URL` → where your local Ollama is reachable from within Docker.
+    - Linux: `http://172.17.0.1:11434`
+    - Mac/Windows: `http://host.docker.internal:11434`
+  - `OPENAI_API_KEY` → optional, enables OpenAI models in LiteLLM.
+- The API uses `LITELLM_URL=http://litellm:4000` by default (in-compose DNS).
+
+You can verify models available via:
+```bash
+curl http://localhost:3000/api/llm/models
 ```
 
 ### Adding New Taxonomies

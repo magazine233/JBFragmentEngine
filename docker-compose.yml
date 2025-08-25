@@ -1,5 +1,17 @@
 # docker-compose.yml
 services:
+  litellm:
+    image: ghcr.io/berriai/litellm:main
+    restart: unless-stopped
+    ports:
+      - "4000:4000"
+    environment:
+      - LITELLM_LOG=INFO
+      - OLLAMA_URL=${OLLAMA_URL:-http://172.17.0.1:11434}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+    volumes:
+      - ./litellm/config.yaml:/app/config.yaml:ro
+    command: ["--port", "4000", "--config", "/app/config.yaml"]
   typesense:
     image: typesense/typesense:0.25.1
     restart: unless-stopped
@@ -41,6 +53,7 @@ services:
       - "3000:3000"
     depends_on:
       - typesense
+      - litellm
     environment:
       - TYPESENSE_HOST=typesense
       - TYPESENSE_PORT=8108
@@ -48,6 +61,8 @@ services:
       - PORT=${PORT:-3000}
       - CORS_ORIGIN=${CORS_ORIGIN:-*}
       - OLLAMA_URL=${OLLAMA_URL:-http://172.17.0.1:11434}
+      - LITELLM_URL=${LITELLM_URL:-http://litellm:4000}
+      - LITELLM_API_KEY=${LITELLM_API_KEY:-}
     volumes:
       - ./api:/app
       - /app/node_modules # This preserves node_modules from the image

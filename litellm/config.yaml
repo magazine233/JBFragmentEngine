@@ -9,9 +9,17 @@ model_list:
     litellm_params:
       model: "ollama/llama3:8b"
       api_base: ${OLLAMA_URL}
+  - model_name: "ollama/llama3.2:3b"
+    litellm_params:
+      model: "ollama/llama3.2:3b"
+      api_base: ${OLLAMA_URL}
   - model_name: "ollama/mistral:7b"
     litellm_params:
       model: "ollama/mistral:7b"
+      api_base: ${OLLAMA_URL}
+  - model_name: "ollama/qwen2.5:7b"
+    litellm_params:
+      model: "ollama/qwen2.5:7b"
       api_base: ${OLLAMA_URL}
 
   # OpenAI (optional; requires OPENAI_API_KEY)
@@ -23,3 +31,27 @@ model_list:
     litellm_params:
       model: "gpt-4o"
       api_key: ${OPENAI_API_KEY}
+  - model_name: "openai/gpt-3.5-turbo"
+    litellm_params:
+      model: "gpt-3.5-turbo"
+      api_key: ${OPENAI_API_KEY}
+
+  # Anthropic Claude (optional; requires ANTHROPIC_API_KEY)
+  - model_name: "anthropic/claude-3-haiku-20240307"
+    litellm_params:
+      model: "claude-3-haiku-20240307"
+      api_key: ${ANTHROPIC_API_KEY}
+  - model_name: "anthropic/claude-3-sonnet-20240229"
+    litellm_params:
+      model: "claude-3-sonnet-20240229"
+      api_key: ${ANTHROPIC_API_KEY}
+
+  # Groq (optional; requires GROQ_API_KEY)
+  - model_name: "groq/llama-3.1-8b-instant"
+    litellm_params:
+      model: "groq/llama-3.1-8b-instant"
+      api_key: ${GROQ_API_KEY}
+  - model_name: "groq/mixtral-8x7b-32768"
+    litellm_params:
+      model: "groq/mixtral-8x7b-32768"
+      api_key: ${GROQ_API_KEY}

@@ -116,19 +116,21 @@ router.get('/journey/:profileId/visualization', async (req, res) => {
     const typesense = req.app.locals.typesense;
     
     // Get all life events from graph
-    const { results: allEvents } = await typesense
+    const tsRes = await typesense
       .collections('life_event_graph')
       .documents()
       .search({
         q: '*',
+        query_by: 'event_name,cluster',
         per_page: 250
       });
-    
+    const hits = tsRes.hits || [];
+
     // Calculate positions if not set
-    const positionedEvents = allEvents.hits.map(hit => {
+    const positionedEvents = hits.map(hit => {
       const event = hit.document;
       if (!event.position_x) {
-        const pos = calculateEventPosition(event, profile, allEvents.hits);
+        const pos = calculateEventPosition(event, profile, hits);
         event.position_x = pos.x;
         event.position_y = pos.y;
         event.position_z = pos.z;

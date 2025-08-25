@@ -316,30 +316,53 @@
                 const [availableModels, setAvailableModels] = useState([]);
 
                 // Load available LLM models from API
-                useEffect(() => {
-                    (async () => {
-                        try {
-                            const resp = await fetch(API_ENDPOINTS.llmModels);
-                            if (resp.ok) {
-                                const data = await resp.json();
-                                const list = data.models || [];
-                                setAvailableModels(list);
-                                if (list.length > 0) {
-                                    setLlmModel((prev) => prev || list[0].value);
+                const [modelStatus, setModelStatus] = useState(null);
+                const [modelRecommendations, setModelRecommendations] = useState(null);
+                const [loadingModels, setLoadingModels] = useState(false);
+                
+                const loadModels = async () => {
+                    setLoadingModels(true);
+                    try {
+                        const resp = await fetch(API_ENDPOINTS.llmModels);
+                        if (resp.ok) {
+                            const data = await resp.json();
+                            const list = data.models || [];
+                            setAvailableModels(list);
+                            setModelStatus(data.status);
+                            setModelRecommendations(data.recommendations);
+                            
+                            // Select first available model if current is unavailable
+                            const currentModel = list.find(m => m.value === llmModel);
+                            if (!currentModel || currentModel.status !== 'available') {
+                                const availableModel = list.find(m => m.status === 'available');
+                                if (availableModel) {
+                                    setLlmModel(availableModel.value);
+                                } else if (list.length > 0) {
+                                    setLlmModel(list[0].value);
                                 }
-                            } else {
-                                throw new Error("Failed to load models");
                             }
-                        } catch (e) {
-                            console.warn("Falling back to default model list:", e.message);
-                            const fallback = [
-                                { value: "ollama:gemma3:27b", label: "Ollama • gemma3:27b" },
-                                { value: "ollama:llama3:8b", label: "Ollama • llama3:8b" },
-                                { value: "ollama:mistral:7b", label: "Ollama • mistral:7b" },
-                            ];
-                            setAvailableModels(fallback);
+                        } else {
+                            throw new Error("Failed to load models");
                         }
-                    })();
+                    } catch (e) {
+                        console.warn("Falling back to default model list:", e.message);
+                        const fallback = [
+                            { 
+                                value: "ollama:gemma3:27b", 
+                                label: "Ollama • gemma3:27b (connection error)", 
+                                provider: "ollama",
+                                status: "unavailable"
+                            }
+                        ];
+                        setAvailableModels(fallback);
+                        setError("Could not load available models. Check your connection to the API server.");
+                    } finally {
+                        setLoadingModels(false);
+                    }
+                };
+                
+                useEffect(() => {
+                    loadModels();
                 }, []);
 
                 // Progress tracking
@@ -563,19 +586,34 @@ Remember to:
                         console.error("Chat error:", error);
 
                         let errorMessage = "Sorry, I encountered an error. ";
+                        let suggestion = null;
 
                         if (error.message.includes("Failed to fetch")) {
                             errorMessage +=
                                 "Could not connect to the API server. Please ensure the API is running on port 3000.";
-                        } else if (
-                            error.message.includes("Cannot connect to Ollama")
-                        ) {
-                            errorMessage +=
-                                "The API server cannot reach Ollama. Please ensure Ollama is running (ollama serve).";
-                        } else if (error.message.includes("404") || error.message.toLowerCase().includes("model")) {
-                            errorMessage += `Model not available. If using Ollama, try: ollama pull ${llmModel.replace('ollama:', '')}`;
                         } else {
-                            errorMessage += error.message;
+                            // Try to parse structured error from API
+                            try {
+                                const errorData = JSON.parse(error.message);
+                                errorMessage += errorData.error || error.message;
+                                suggestion = errorData.suggestion;
+                            } catch {
+                                // Handle direct API errors with structured response
+                                if (response && !response.ok) {
+                                    const errorData = await response.json();
+                                    errorMessage += errorData.error || error.message;
+                                    suggestion = errorData.suggestion;
+                                } else {
+                                    // Fallback to basic error handling
+                                    if (error.message.includes("Cannot connect to Ollama")) {
+                                        errorMessage += "The API server cannot reach Ollama. Please ensure Ollama is running (ollama serve).";
+                                    } else if (error.message.includes("404") || error.message.toLowerCase().includes("model")) {
+                                        errorMessage += `Model not available. If using Ollama, try: ollama pull ${llmModel.replace('ollama:', '')}`;
+                                    } else {
+                                        errorMessage += error.message;
+                                    }
+                                }
+                            }
                         }
 
                         // Replace loading message with error message
@@ -584,7 +622,7 @@ Remember to:
                                 msg.id === loadingId
                                     ? {
                                           type: "assistant",
-                                          text: errorMessage,
+                                          text: errorMessage + (suggestion ? `\n\n💡 Suggestion: ${suggestion}` : ''),
                                           id: loadingId,
                                           error: true,
                                       }
@@ -1092,6 +1130,36 @@ Remember to:
                                     <Typography variant="h5" gutterBottom>
                                         AI Assistant
                                     </Typography>
+                                    
+                                    {/* Provider Status and Recommendations */}
+                                    {modelRecommendations && (modelRecommendations.ollama || modelRecommendations.litellm) && (
+                                        <Alert severity="info" sx={{ mb: 2 }}>
+                                            <Typography variant="body2" sx={{ mb: 1 }}>
+                                                <strong>Expand your AI options:</strong>
+                                            </Typography>
+                                            {modelRecommendations.ollama && (
+                                                <Typography variant="body2" sx={{ mb: 1 }}>
+                                                    🦙 <strong>Ollama:</strong> {modelRecommendations.ollama}
+                                                </Typography>
+                                            )}
+                                            {modelRecommendations.litellm && (
+                                                <Typography variant="body2">
+                                                    🌐 <strong>LiteLLM:</strong> {modelRecommendations.litellm}
+                                                </Typography>
+                                            )}
+                                        </Alert>
+                                    )}
+
+                                    {modelStatus && !modelStatus.ollama?.available && !modelStatus.litellm?.available && !modelStatus.openai?.available && (
+                                        <Alert severity="warning" sx={{ mb: 2 }}>
+                                            <Typography variant="body2">
+                                                <strong>No AI providers available.</strong> 
+                                                {modelStatus.ollama?.error && ` Ollama: ${modelStatus.ollama.error}.`}
+                                                {modelStatus.litellm?.error && ` LiteLLM: ${modelStatus.litellm.error}.`}
+                                                {modelStatus.openai?.error && ` OpenAI: ${modelStatus.openai.error}.`}
+                                            </Typography>
+                                        </Alert>
+                                    )}
                                     <Box className="chat-messages">
                                         {chatMessages.map((msg, index) => (
                                             <Fade in key={msg.id || index}>
@@ -1152,7 +1220,7 @@ Remember to:
                                         ))}
                                     </Box>
                                     <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
-                                        <FormControl size="small" sx={{ minWidth: 260 }}>
+                                        <FormControl size="small" sx={{ minWidth: 320 }}>
                                             <InputLabel id="model-select-label">Model</InputLabel>
                                             <Select
                                                 labelId="model-select-label"
@@ -1161,12 +1229,88 @@ Remember to:
                                                 onChange={(e) => setLlmModel(e.target.value)}
                                             >
                                                 {availableModels.map((m) => (
-                                                    <MenuItem key={m.value} value={m.value}>
-                                                        {m.label}
+                                                    <MenuItem 
+                                                        key={m.value} 
+                                                        value={m.value}
+                                                        disabled={m.status === 'error'}
+                                                    >
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, width: '100%' }}>
+                                                            <span>{m.label}</span>
+                                                            {m.status === 'available' && (
+                                                                <span 
+                                                                    className="material-icons" 
+                                                                    style={{ fontSize: 16, color: '#4caf50' }}
+                                                                >
+                                                                    check_circle
+                                                                </span>
+                                                            )}
+                                                            {m.status === 'unavailable' && (
+                                                                <span 
+                                                                    className="material-icons" 
+                                                                    style={{ fontSize: 16, color: '#ff9800' }}
+                                                                >
+                                                                    warning
+                                                                </span>
+                                                            )}
+                                                            {m.status === 'error' && (
+                                                                <span 
+                                                                    className="material-icons" 
+                                                                    style={{ fontSize: 16, color: '#f44336' }}
+                                                                >
+                                                                    error
+                                                                </span>
+                                                            )}
+                                                        </Box>
                                                     </MenuItem>
                                                 ))}
                                             </Select>
                                         </FormControl>
+                                        {/* Refresh models button */}
+                                        <IconButton 
+                                            onClick={loadModels}
+                                            disabled={loadingModels}
+                                            size="small"
+                                            title="Refresh available models"
+                                        >
+                                            {loadingModels ? (
+                                                <CircularProgress size={16} />
+                                            ) : (
+                                                <span className="material-icons">refresh</span>
+                                            )}
+                                        </IconButton>
+
+                                        {/* Provider status indicators */}
+                                        {modelStatus && (
+                                            <Box sx={{ display: 'flex', gap: 0.5 }}>
+                                                {modelStatus.ollama?.available && (
+                                                    <Chip 
+                                                        size="small" 
+                                                        label="Ollama" 
+                                                        color="success" 
+                                                        variant="outlined"
+                                                        icon={<span className="material-icons" style={{fontSize: 14}}>check</span>}
+                                                    />
+                                                )}
+                                                {modelStatus.litellm?.available && (
+                                                    <Chip 
+                                                        size="small" 
+                                                        label="LiteLLM" 
+                                                        color="primary" 
+                                                        variant="outlined"
+                                                        icon={<span className="material-icons" style={{fontSize: 14}}>hub</span>}
+                                                    />
+                                                )}
+                                                {modelStatus.openai?.available && (
+                                                    <Chip 
+                                                        size="small" 
+                                                        label="OpenAI" 
+                                                        color="info" 
+                                                        variant="outlined"
+                                                        icon={<span className="material-icons" style={{fontSize: 14}}>cloud</span>}
+                                                    />
+                                                )}
+                                            </Box>
+                                        )}
                                         <TextField
                                             fullWidth
                                             variant="outlined"

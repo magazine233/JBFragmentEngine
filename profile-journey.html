@@ -28,10 +28,7 @@
             crossorigin
             src="https://unpkg.com/@mui/material@5.14.0/umd/material-ui.production.min.js"
         ></script>
-        <script
-            crossorigin
-            src="https://unpkg.com/@babel/standalone/babel.min.js"
-        ></script>
+        <script src="./babel.min.js"></script>
 
         <!-- Three.js for 3D visualization -->
         <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
@@ -350,6 +347,11 @@
 
             // API Configuration
             const API_BASE_URL = "http://localhost:3000";
+            const API_ENDPOINTS = {
+                journeyBuild: `${API_BASE_URL}/api/journey/profile/build`,
+                journeyData: (id) => `${API_BASE_URL}/api/journey/journey/${id}`,
+                journeyViz: (id) => `${API_BASE_URL}/api/journey/journey/${id}/visualization`,
+            };
 
             // Life Event Icons
             const lifeEventIcons = {
@@ -373,6 +375,8 @@
             function App() {
                 const [mode, setMode] = useState("profile");
                 const [profile, setProfile] = useState(loadProfile());
+                const [profileId, setProfileId] = useState(null);
+                const [apiError, setApiError] = useState(null);
                 const [journeyMapOpen, setJourneyMapOpen] = useState(false);
                 const [serviceMatcherOpen, setServiceMatcherOpen] =
                     useState(false);
@@ -426,7 +430,33 @@
                         "userProfile",
                         JSON.stringify(newProfile),
                     );
+                    // Rebuild server-side profile for recommender if API is available
+                    buildServerProfile(newProfile);
                 }
+
+                // Build / sync profile with API for recommender endpoints
+                async function buildServerProfile(p = profile) {
+                    try {
+                        const resp = await fetch(API_ENDPOINTS.journeyBuild, {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify(p),
+                        });
+                        if (!resp.ok) throw new Error(await resp.text());
+                        const data = await resp.json();
+                        setProfileId(data.profile_id || null);
+                        setApiError(null);
+                    } catch (e) {
+                        console.warn("Profile build failed:", e.message);
+                        setApiError("Recommender API unavailable — using local fallback.");
+                    }
+                }
+
+                // Build once on mount
+                useEffect(() => {
+                    buildServerProfile(profile);
+                    // eslint-disable-next-line react-hooks/exhaustive-deps
+                }, []);
 
                 // Calculate profile level based on completed events
                 function calculateLevel(profile) {
@@ -906,9 +936,16 @@
                 // Journey Map Visualization Component
                 function JourneyMap() {
                     const [hoveredEvent, setHoveredEvent] = useState(null);
+                    const [vizData, setVizData] = useState(null);
+                    const [vizError, setVizError] = useState(null);
 
                     useEffect(() => {
                         if (!journeyMapOpen || !mapRef.current) return;
+
+                        if (!window.THREE) {
+                            setVizError("Three.js not loaded. Check network access to cdnjs or provide a local fallback.");
+                            return;
+                        }
 
                         // Clear any existing content
                         while (mapRef.current.firstChild) {
@@ -916,6 +953,20 @@
                                 mapRef.current.firstChild,
                             );
                         }
+
+                        // Try to load visualization data from API first
+                        (async () => {
+                            if (!profileId) return;
+                            try {
+                                const resp = await fetch(API_ENDPOINTS.journeyViz(profileId));
+                                if (resp.ok) {
+                                    const data = await resp.json();
+                                    setVizData(data);
+                                }
+                            } catch (e) {
+                                console.warn("Journey viz API failed, using static scene:", e.message);
+                            }
+                        })();
 
                         // Initialize Three.js scene
                         const scene = new THREE.Scene();
@@ -1014,30 +1065,22 @@
                         meepleGroup.position.set(0, 0, 0);
                         scene.add(meepleGroup);
 
-                        // Create life event nodes
-                        const nodePositions = [
-                            { x: 5, z: 0, event: "Work", color: 0x3b82f6 },
-                            {
-                                x: -5,
-                                z: 0,
-                                event: "Having a baby",
-                                color: 0xec4899,
-                            },
-                            { x: 0, z: 5, event: "Education", color: 0xa78bfa },
-                            {
-                                x: 0,
-                                z: -5,
-                                event: "Health and caring",
-                                color: 0xef4444,
-                            },
-                            {
-                                x: 7,
-                                z: 7,
-                                event: "Housing and travel",
-                                color: 0xfbbf24,
-                            },
-                            { x: -7, z: -7, event: "Ageing", color: 0x8b5cf6 },
-                        ];
+                        // Create life event nodes: use API data if available
+                        const nodePositions = (vizData?.events || []).map((e, i) => ({
+                            x: e.position_x || Math.cos(i) * 6,
+                            z: e.position_z || Math.sin(i) * 6,
+                            event: e.event_name || e.cluster || `Event ${i+1}`,
+                            color: 0x3b82f6,
+                        }))
+                        .slice(0, 12);
+                        if (nodePositions.length === 0) {
+                            nodePositions.push(
+                                { x: 5, z: 0, event: "Work", color: 0x3b82f6 },
+                                { x: -5, z: 0, event: "Having a baby", color: 0xec4899 },
+                                { x: 0, z: 5, event: "Education", color: 0xa78bfa },
+                                { x: 0, z: -5, event: "Health and caring", color: 0xef4444 },
+                            );
+                        }
 
                         const nodes = [];
                         nodePositions.forEach((pos) => {
@@ -1243,6 +1286,11 @@
                                 </Box>
                             </DialogTitle>
                             <DialogContent sx={{ p: 0 }}>
+                                {vizError && (
+                                    <Alert severity="warning" sx={{ m: 2 }}>
+                                        {vizError}
+                                    </Alert>
+                                )}
                                 <Box id="journey-map" ref={mapRef} />
 
                                 {/* Map Controls */}
@@ -1357,11 +1405,33 @@
 
                     const loadMatchedServices = async () => {
                         setLoading(true);
-                        // Simulate API call with timeout
-                        await new Promise((resolve) =>
-                            setTimeout(resolve, 1000),
-                        );
+                        // Try API recommender first
+                        try {
+                            if (profileId) {
+                                const resp = await fetch(API_ENDPOINTS.journeyData(profileId));
+                                if (resp.ok) {
+                                    const data = await resp.json();
+                                    const services = (data.eligible_services || []).map((s, idx) => ({
+                                        id: s.id || idx,
+                                        name: s.title || s.service_name || s.hierarchy_lvl0 || s.provider || 'Service',
+                                        provider: s.provider || 'Unknown',
+                                        matchType: (s.eligibility_score >= 0.8) ? 'full' : (s.eligibility_score >= 0.4 ? 'partial' : 'potential'),
+                                        matchScore: Math.round((s.relevance_score || 0) * 100),
+                                        description: s.description || s.content_text || 'Suggested based on your profile',
+                                        eligibilityGaps: s.eligibility_reasons || [],
+                                    }));
+                                    if (services.length) {
+                                        setMatchedServices(services);
+                                        setLoading(false);
+                                        return;
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.warn("Recommender API failed, using fallback:", e.message);
+                        }
 
+                        // Fallback demo data
                         const services = [
                             {
                                 id: 1,
@@ -1713,6 +1783,11 @@
                         </AppBar>
 
                         <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+                            {apiError && (
+                                <Alert severity="warning" sx={{ mb: 2 }}>
+                                    {apiError}
+                                </Alert>
+                            )}
                             <ProfileSheet />
                         </Container>
 

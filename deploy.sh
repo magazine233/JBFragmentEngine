@@ -18,9 +18,15 @@ set +a
 echo "🔨 Building Docker images..."
 docker-compose build
 
-# Start services
+# Start services (conditionally include LiteLLM)
 echo "🐳 Starting services..."
-docker-compose up -d
+if [ "${ENABLE_LITELLM:-false}" = "true" ]; then
+    echo "  📡 LiteLLM enabled - starting with unified AI routing"
+    docker-compose --profile litellm up -d
+else
+    echo "  🦙 LiteLLM disabled - using direct provider calls"
+    docker-compose up -d
+fi
 
 # Wait for Typesense to be ready
 echo "⏳ Waiting for Typesense..."
@@ -47,8 +53,15 @@ fi
 echo "✨ Deployment complete!"
 echo "📊 API available at http://localhost:3000"
 echo "🔍 Typesense dashboard at http://localhost:8108"
+if [ "${ENABLE_LITELLM:-false}" = "true" ]; then
+    echo "📡 LiteLLM unified AI router at http://localhost:4000"
+fi
 echo ""
 echo "Next steps:"
 echo "  - Run initial crawl: docker-compose run --rm scraper"
 echo "  - Check API health: curl http://localhost:3000/health"
+echo "  - Test AI models: curl http://localhost:3000/api/llm/models"
+if [ "${ENABLE_LITELLM:-false}" = "true" ]; then
+    echo "  - Check LiteLLM health: curl http://localhost:4000/health"
+fi
 echo "  - View logs: docker-compose logs -f"

@@ -7,51 +7,117 @@ const fetch = require('node-fetch');
 router.get('/models', async (req, res) => {
   try {
     const models = [];
+    const status = {
+      litellm: { available: false, error: null },
+      ollama: { available: false, error: null, url: null },
+      openai: { available: false, error: null }
+    };
+    
+    const enableLiteLLM = process.env.ENABLE_LITELLM === 'true';
     const liteUrl = process.env.LITELLM_URL;
     const liteKey = process.env.LITELLM_API_KEY;
 
-    if (liteUrl) {
+    if (enableLiteLLM && liteUrl) {
       // Fetch models from LiteLLM (OpenAI-compatible /v1/models)
-      const resp = await fetch(`${liteUrl.replace(/\/$/, '')}/v1/models`, {
-        headers: liteKey ? { Authorization: `Bearer ${liteKey}` } : {}
-      });
-      if (resp.ok) {
-        const data = await resp.json();
-        const list = Array.isArray(data.data) ? data.data : [];
-        list.forEach(m => {
-          const id = m.id || m.name;
-          if (id) models.push({ value: id, label: id, provider: 'litellm' });
+      try {
+        const resp = await fetch(`${liteUrl.replace(/\/$/, '')}/v1/models`, {
+          headers: liteKey ? { Authorization: `Bearer ${liteKey}` } : {},
+          timeout: 5000
         });
+        if (resp.ok) {
+          const data = await resp.json();
+          const list = Array.isArray(data.data) ? data.data : [];
+          list.forEach(m => {
+            const id = m.id || m.name;
+            if (id) models.push({ 
+              value: id, 
+              label: `LiteLLM • ${id}`, 
+              provider: 'litellm',
+              status: 'available'
+            });
+          });
+          status.litellm.available = true;
+        } else {
+          status.litellm.error = `HTTP ${resp.status}: ${resp.statusText}`;
+        }
+      } catch (error) {
+        status.litellm.error = error.message;
       }
     } else {
       // Try Ollama
       const ollamaUrl = process.env.OLLAMA_URL || 'http://172.17.0.1:11434';
+      status.ollama.url = ollamaUrl;
+      
       try {
-        const resp = await fetch(`${ollamaUrl}/api/tags`);
+        const resp = await fetch(`${ollamaUrl}/api/tags`, { timeout: 3000 });
         if (resp.ok) {
           const data = await resp.json();
           (data.models || []).forEach(m => {
             const name = m.name;
-            if (name) models.push({ value: `ollama:${name}`, label: `Ollama • ${name}`, provider: 'ollama' });
+            if (name) models.push({ 
+              value: `ollama:${name}`, 
+              label: `Ollama • ${name}`, 
+              provider: 'ollama',
+              status: 'available'
+            });
           });
+          status.ollama.available = true;
+        } else {
+          status.ollama.error = `HTTP ${resp.status}: ${resp.statusText}`;
         }
-      } catch (_) {}
+      } catch (error) {
+        if (error.code === 'ECONNREFUSED') {
+          status.ollama.error = 'Connection refused - Ollama not running or unreachable';
+        } else if (error.code === 'ETIMEDOUT' || error.name === 'AbortError') {
+          status.ollama.error = 'Connection timeout - Ollama may be starting';
+        } else {
+          status.ollama.error = error.message;
+        }
+      }
 
       // Optional: add OpenAI defaults if API key present
       if (process.env.OPENAI_API_KEY) {
-        ['gpt-4o-mini', 'gpt-4o'].forEach(n => models.push({ value: `openai:${n}`, label: `OpenAI • ${n}`, provider: 'openai' }));
+        ['gpt-4o-mini', 'gpt-4o'].forEach(n => models.push({ 
+          value: `openai:${n}`, 
+          label: `OpenAI • ${n}`, 
+          provider: 'openai',
+          status: 'available'
+        }));
+        status.openai.available = true;
+      } else {
+        status.openai.error = 'API key not configured';
       }
     }
 
-    // Fallback defaults if none discovered
-    if (models.length === 0) {
-      models.push(
-        { value: 'ollama:gemma3:27b', label: 'Ollama • gemma3:27b', provider: 'ollama' },
-        { value: 'ollama:llama3:8b', label: 'Ollama • llama3:8b', provider: 'ollama' }
-      );
+    // Add unavailable models with status indicators for transparency
+    if (!status.ollama.available && !liteUrl) {
+      models.push({ 
+        value: 'ollama:gemma3:27b', 
+        label: 'Ollama • gemma3:27b (unavailable)', 
+        provider: 'ollama',
+        status: 'unavailable',
+        error: status.ollama.error
+      });
     }
 
-    return res.json({ models });
+    // Fallback if no models at all
+    if (models.length === 0) {
+      models.push({
+        value: 'none',
+        label: 'No models available - check configuration',
+        provider: 'none',
+        status: 'error'
+      });
+    }
+
+    return res.json({ 
+      models, 
+      status,
+      recommendations: {
+        ollama: !status.ollama.available && !liteUrl ? 'Run: ollama serve' : null,
+        litellm: !liteUrl ? 'Set LITELLM_URL environment variable to enable unified model access' : null
+      }
+    });
   } catch (error) {
     console.error('Models list error:', error);
     return res.status(500).json({ error: 'Failed to list models', details: error.message });
@@ -71,10 +137,11 @@ router.post('/chat', async (req, res) => {
       return res.status(400).json({ error: 'prompt and model are required' });
     }
 
-    // If LiteLLM is configured, use it for all requests
+    // If LiteLLM is enabled and configured, use it for all requests
+    const enableLiteLLM = process.env.ENABLE_LITELLM === 'true';
     const liteUrl = process.env.LITELLM_URL;
     const liteKey = process.env.LITELLM_API_KEY;
-    if (liteUrl) {
+    if (enableLiteLLM && liteUrl) {
       const url = `${liteUrl.replace(/\/$/, '')}/v1/chat/completions`;
       // Map provider:model to LiteLLM router model_name if needed
       let routedModel = model;
@@ -100,7 +167,18 @@ router.post('/chat', async (req, res) => {
       });
       if (!resp.ok) {
         const text = await resp.text();
-        return res.status(resp.status).json({ error: text });
+        let errorMsg = `LiteLLM error (${resp.status}): ${text}`;
+        if (resp.status === 404) {
+          errorMsg = `Model "${routedModel}" not found in LiteLLM. Check your LiteLLM configuration.`;
+        } else if (resp.status === 401 || resp.status === 403) {
+          errorMsg = 'LiteLLM authentication failed. Check LITELLM_API_KEY.';
+        }
+        return res.status(resp.status).json({ 
+          error: errorMsg,
+          provider: 'litellm',
+          model: routedModel,
+          url: url
+        });
       }
       const data = await resp.json();
       const content = data.choices?.[0]?.message?.content || '';
@@ -117,50 +195,123 @@ router.post('/chat', async (req, res) => {
 
     if (provider === 'ollama') {
       const OLLAMA_URL = process.env.OLLAMA_URL || 'http://172.17.0.1:11434';
-      const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: providerModel, prompt, stream: false })
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        return res.status(resp.status).json({ error: text });
+      try {
+        const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model: providerModel, prompt, stream: false }),
+          timeout: 60000 // 60 second timeout for generation
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          let errorMsg = `Ollama error (${resp.status}): ${text}`;
+          
+          try {
+            const errorJson = JSON.parse(text);
+            if (errorJson.error) {
+              if (errorJson.error.includes('not found') || errorJson.error.includes('model')) {
+                errorMsg = `Model "${providerModel}" not found. Try: ollama pull ${providerModel}`;
+              } else {
+                errorMsg = `Ollama: ${errorJson.error}`;
+              }
+            }
+          } catch {}
+          
+          return res.status(resp.status).json({ 
+            error: errorMsg,
+            provider: 'ollama',
+            model: providerModel,
+            url: OLLAMA_URL,
+            suggestion: resp.status === 404 ? `Run: ollama pull ${providerModel}` : null
+          });
+        }
+        const data = await resp.json();
+        return res.json({ response: data.response });
+      } catch (error) {
+        let errorMsg = 'Ollama connection failed';
+        let suggestion = null;
+        
+        if (error.code === 'ECONNREFUSED') {
+          errorMsg = `Cannot connect to Ollama at ${OLLAMA_URL}`;
+          suggestion = 'Start Ollama with: ollama serve';
+        } else if (error.code === 'ETIMEDOUT' || error.name === 'AbortError') {
+          errorMsg = 'Ollama request timed out - model may be loading or generating';
+          suggestion = 'Wait for model to finish loading, or try a smaller model';
+        } else {
+          errorMsg = `Ollama error: ${error.message}`;
+        }
+        
+        return res.status(503).json({
+          error: errorMsg,
+          provider: 'ollama',
+          model: providerModel,
+          url: OLLAMA_URL,
+          suggestion: suggestion
+        });
       }
-      const data = await resp.json();
-      return res.json({ response: data.response });
     }
 
     if (provider === 'openai') {
       const apiKey = process.env.OPENAI_API_KEY;
       if (!apiKey) {
-        return res.status(503).json({ error: 'OPENAI_API_KEY not configured on server' });
+        return res.status(503).json({ 
+          error: 'OpenAI API key not configured',
+          provider: 'openai',
+          suggestion: 'Set OPENAI_API_KEY environment variable'
+        });
       }
 
-      // Use responses API if available; otherwise fallback to chat.completions
-      const url = 'https://api.openai.com/v1/chat/completions';
-      const payload = {
-        model: providerModel,
-        messages: [
-          { role: 'system', content: 'You are a helpful Australian government services assistant.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.7
-      };
-      const resp = await fetch(url, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`
-        },
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) {
-        const text = await resp.text();
-        return res.status(resp.status).json({ error: text });
+      try {
+        const url = 'https://api.openai.com/v1/chat/completions';
+        const payload = {
+          model: providerModel,
+          messages: [
+            { role: 'system', content: 'You are a helpful Australian government services assistant.' },
+            { role: 'user', content: prompt }
+          ],
+          temperature: 0.7
+        };
+        const resp = await fetch(url, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${apiKey}`
+          },
+          body: JSON.stringify(payload)
+        });
+        if (!resp.ok) {
+          const text = await resp.text();
+          let errorMsg = `OpenAI error (${resp.status}): ${text}`;
+          let suggestion = null;
+          
+          if (resp.status === 401) {
+            errorMsg = 'OpenAI authentication failed. Check your API key.';
+            suggestion = 'Verify OPENAI_API_KEY is correct';
+          } else if (resp.status === 404) {
+            errorMsg = `Model "${providerModel}" not available in OpenAI API.`;
+            suggestion = 'Try: gpt-4o-mini, gpt-4o, or gpt-3.5-turbo';
+          } else if (resp.status === 429) {
+            errorMsg = 'OpenAI rate limit exceeded.';
+            suggestion = 'Wait a moment before trying again';
+          }
+          
+          return res.status(resp.status).json({ 
+            error: errorMsg,
+            provider: 'openai',
+            model: providerModel,
+            suggestion: suggestion
+          });
+        }
+        const data = await resp.json();
+        const content = data.choices?.[0]?.message?.content || '';
+        return res.json({ response: content });
+      } catch (error) {
+        return res.status(500).json({
+          error: `OpenAI request failed: ${error.message}`,
+          provider: 'openai',
+          model: providerModel
+        });
       }
-      const data = await resp.json();
-      const content = data.choices?.[0]?.message?.content || '';
-      return res.json({ response: content });
     }
 
     return res.status(400).json({ error: `Unsupported provider: ${provider}` });

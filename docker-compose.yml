@@ -1,5 +1,23 @@
 # docker-compose.yml
 services:
+  mcp-server:
+    build: ./mcp-server
+    restart: unless-stopped
+    depends_on:
+      - typesense
+    ports:
+      - "8081:8081"
+    environment:
+      - TYPESENSE_HOST=typesense
+      - TYPESENSE_PORT=8108
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz123abc}
+      - HTTP_PORT=8081
+    volumes:
+      - ./mcp-server:/app
+      - /app/node_modules
+    stdin_open: true
+    tty: true
+
   litellm:
     image: ghcr.io/berriai/litellm:main
     restart: unless-stopped
@@ -57,6 +75,7 @@ services:
       - "3000:3000"
     depends_on:
       - typesense
+      - mcp-server
     environment:
       - TYPESENSE_HOST=typesense
       - TYPESENSE_PORT=8108
@@ -70,6 +89,7 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - MCP_SERVER_HOST=mcp-server
     volumes:
       - ./api:/app
       - /app/node_modules # This preserves node_modules from the image

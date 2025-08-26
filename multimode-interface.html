@@ -84,6 +84,46 @@
                 background-color: #1976d2;
                 color: white;
             }
+            .chat-message.system {
+                justify-content: center;
+            }
+            .chat-message.system .chat-avatar {
+                background-color: #ff9800;
+                color: white;
+                font-size: 12px;
+            }
+            .chat-message.system .chat-bubble {
+                background-color: #fff3e0;
+                border: 1px solid #ffcc02;
+                color: #ef6c00;
+                font-style: italic;
+                font-size: 14px;
+            }
+            /* Markdown styling within chat messages */
+            .chat-bubble strong {
+                font-weight: 600;
+            }
+            .chat-bubble em {
+                font-style: italic;
+            }
+            .chat-bubble a {
+                color: inherit;
+                text-decoration: underline;
+                text-underline-offset: 2px;
+            }
+            .chat-bubble.user a {
+                color: #e3f2fd;
+            }
+            .chat-bubble code {
+                background-color: rgba(0, 0, 0, 0.1);
+                padding: 2px 4px;
+                border-radius: 3px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.9em;
+            }
+            .chat-bubble.user code {
+                background-color: rgba(255, 255, 255, 0.2);
+            }
             .content-section {
                 margin-bottom: 32px;
             }
@@ -183,6 +223,7 @@
                 facets: `${API_BASE_URL}/api/fragments/facets`,
                 ollama: `${API_BASE_URL}/api/ollama/chat`,
                 llm: `${API_BASE_URL}/api/llm/chat`,
+                llmWithContext: `${API_BASE_URL}/api/llm/chat-with-context`,
                 llmModels: `${API_BASE_URL}/api/llm/models`,
             };
 
@@ -320,6 +361,31 @@
                 const [modelRecommendations, setModelRecommendations] = useState(null);
                 const [loadingModels, setLoadingModels] = useState(false);
                 
+                // AI Summary state
+                const [aiSummary, setAiSummary] = useState(null);
+                const [loadingSummary, setLoadingSummary] = useState(false);
+                
+                // AI Reordering state
+                const [reorderedResults, setReorderedResults] = useState(null);
+                const [loadingReorder, setLoadingReorder] = useState(false);
+                
+                // Function to parse markdown to HTML
+                const parseMarkdown = (text) => {
+                    if (!text) return '';
+                    
+                    return text
+                        // Bold text
+                        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                        // Italic text
+                        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                        // Links
+                        .replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>')
+                        // Line breaks
+                        .replace(/\n/g, '<br>')
+                        // Code inline
+                        .replace(/`([^`]+)`/g, '<code>$1</code>');
+                };
+
                 const loadModels = async () => {
                     setLoadingModels(true);
                     try {
@@ -364,6 +430,130 @@
                 useEffect(() => {
                     loadModels();
                 }, []);
+
+                // Generate AI summary for search results
+                const generateSummary = async (searchResults) => {
+                    if (!searchResults || searchResults.length === 0 || !llmModel) return;
+                    
+                    setLoadingSummary(true);
+                    try {
+                        // Prepare content for summarization
+                        const resultsText = searchResults.map(result => 
+                            `Title: ${result.document.title}\n` +
+                            `Provider: ${result.document.provider || 'N/A'}\n` +
+                            `Content: ${result.document.content_text || 'No content'}\n` +
+                            `URL: ${result.document.url}`
+                        ).join('\n\n---\n\n');
+
+                        const summaryPrompt = `Please provide a concise summary of these search results. Focus on:
+1. What types of information/services are covered
+2. Key themes or topics
+3. Which government providers are involved
+4. Any patterns or connections between results
+
+IMPORTANT: Only summarize what is provided - do not add any new information or recommendations.
+
+Search Results:
+${resultsText}`;
+
+                        const response = await fetch(API_ENDPOINTS.llm, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                model: llmModel,
+                                prompt: summaryPrompt,
+                            }),
+                        });
+
+                        const data = await response.json();
+                        if (response.ok) {
+                            setAiSummary(data.response);
+                        } else {
+                            console.error('Summary generation failed:', data.error);
+                        }
+                    } catch (error) {
+                        console.error('Summary generation error:', error);
+                    } finally {
+                        setLoadingSummary(false);
+                    }
+                };
+
+                // Reorder content for better reading flow (Home page)
+                const reorderContentForFlow = async (contentResults) => {
+                    if (!contentResults || contentResults.length === 0 || !llmModel) return;
+                    
+                    setLoadingReorder(true);
+                    try {
+                        // Prepare content list with IDs and titles
+                        const contentList = contentResults.map((result, index) => ({
+                            id: result.id,
+                            index: index,
+                            title: result.title,
+                            description: result.description || '',
+                            category: result.category,
+                            provider: result.provider
+                        }));
+
+                        const reorderPrompt = `You are helping organize government information for better reading flow. 
+Given the following content fragments, reorder them to create a more logical and cohesive reading experience.
+
+IMPORTANT RULES:
+1. You MUST return ONLY a JSON array of indices in the new order
+2. You MUST use every index exactly once (no additions, no removals)
+3. Consider logical flow: general info → specific services → forms/applications → additional resources
+4. Group related topics together
+5. DO NOT generate any new content or explanations
+
+Content fragments:
+${JSON.stringify(contentList, null, 2)}
+
+Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 0, 1, 3, ...]`;
+
+                        const response = await fetch(API_ENDPOINTS.llm, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                            },
+                            body: JSON.stringify({
+                                model: llmModel,
+                                prompt: reorderPrompt,
+                            }),
+                        });
+
+                        const data = await response.json();
+                        if (response.ok) {
+                            try {
+                                // Extract JSON array from response (handle if model adds extra text)
+                                const responseText = data.response;
+                                const jsonMatch = responseText.match(/\[[\d,\s]+\]/);
+                                if (jsonMatch) {
+                                    const newOrder = JSON.parse(jsonMatch[0]);
+                                    
+                                    // Validate the order array
+                                    if (Array.isArray(newOrder) && 
+                                        newOrder.length === contentResults.length &&
+                                        new Set(newOrder).size === newOrder.length) {
+                                        
+                                        // Reorder the results based on AI suggestion
+                                        const reordered = newOrder.map(index => contentResults[index]);
+                                        setReorderedResults(reordered);
+                                        return reordered;
+                                    }
+                                }
+                            } catch (parseError) {
+                                console.error('Failed to parse reorder response:', parseError);
+                            }
+                        }
+                    } catch (error) {
+                        console.error('Content reordering error:', error);
+                    } finally {
+                        setLoadingReorder(false);
+                    }
+                    
+                    return null; // Return null if reordering fails
+                };
 
                 // Progress tracking
                 const [completedTasks, setCompletedTasks] = useState([]);
@@ -456,26 +646,39 @@
                         if (!response.ok) throw new Error("Failed to search");
                         const data = await response.json();
 
-                        setResults(
-                            data.results.map((hit) => ({
-                                id: hit.document.id,
-                                url: hit.document.url,
-                                title: hit.document.title,
-                                description: hit.document.content_text,
-                                content_html: hit.document.content_html,
-                                category:
-                                    hit.document.categories?.[0] || "General",
-                                lifeEvent:
-                                    hit.document.life_events?.[0] || "General",
-                                provider:
-                                    hit.document.provider ||
-                                    "Services Australia",
-                                state: hit.document.states?.[0] || "National",
-                                hierarchy:
-                                    hit.document.hierarchy_lvl0 ||
-                                    hit.document.title,
-                            })),
-                        );
+                        const processedResults = data.results.map((hit) => ({
+                            id: hit.document.id,
+                            url: hit.document.url,
+                            title: hit.document.title,
+                            description: hit.document.content_text,
+                            content_html: hit.document.content_html,
+                            category:
+                                hit.document.categories?.[0] || "General",
+                            lifeEvent:
+                                hit.document.life_events?.[0] || "General",
+                            provider:
+                                hit.document.provider ||
+                                "Services Australia",
+                            state: hit.document.states?.[0] || "National",
+                            hierarchy:
+                                hit.document.hierarchy_lvl0 ||
+                                hit.document.title,
+                            document: hit.document // Keep original document for summary
+                        }));
+                        
+                        setResults(processedResults);
+                        
+                        // Generate AI summary for search mode
+                        if (mode === "search" && data.results.length > 0) {
+                            setAiSummary(null); // Clear previous summary
+                            generateSummary(data.results);
+                        }
+                        
+                        // Reorder content for home mode
+                        if (mode === "home" && processedResults.length > 0) {
+                            setReorderedResults(null); // Clear previous reordering
+                            reorderContentForFlow(processedResults);
+                        }
                     } catch (err) {
                         setError("Failed to load results. Please try again.");
                         console.error(err);
@@ -547,19 +750,49 @@ Remember to:
 
                         const fullPrompt = `${systemPrompt}\n\nUser: ${userMessage}\n\nAssistant:`;
 
-                        console.log("Calling LLM via API proxy with model:", llmModel);
+                        console.log("Using MCP-powered context-aware chat with model:", llmModel);
 
-                        // Call generic LLM proxy (supports Ollama and remote APIs)
-                        const response = await fetch(API_ENDPOINTS.llm, {
+                        // Add progress indicator message
+                        const searchingId = `searching-${Date.now()}`;
+                        setChatMessages((prev) => [
+                            ...prev,
+                            {
+                                type: "system",
+                                text: "🔍 Searching government information database...",
+                                id: searchingId,
+                                timestamp: new Date().toLocaleTimeString(),
+                            },
+                        ]);
+
+                        // Small delay to ensure searching message is visible
+                        await new Promise(resolve => setTimeout(resolve, 500));
+
+                        // Call MCP-powered context-aware endpoint  
+                        const response = await fetch(API_ENDPOINTS.llmWithContext, {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",
                             },
                             body: JSON.stringify({
                                 model: llmModel,
-                                prompt: fullPrompt,
+                                prompt: userMessage, // Use original user message, not fullPrompt
+                                search_options: {
+                                    per_page: 5
+                                }
                             }),
                         });
+
+                        // Update searching message to show completion
+                        setChatMessages((prev) => 
+                            prev.map(msg => 
+                                msg.id === searchingId 
+                                    ? { ...msg, text: "✅ Search completed, generating response..." }
+                                    : msg
+                            )
+                        );
+
+                        // Small delay to show completion message
+                        await new Promise(resolve => setTimeout(resolve, 300));
 
                         const data = await response.json();
 
@@ -570,18 +803,41 @@ Remember to:
                             );
                         }
 
-                        // Replace loading message with actual response
-                        setChatMessages((prev) =>
-                            prev.map((msg) =>
-                                msg.id === loadingId
-                                    ? {
-                                          type: "assistant",
-                                          text: data.response,
-                                          id: loadingId,
-                                      }
-                                    : msg,
-                            ),
-                        );
+                        // Show sources found (if any)
+                        if (data.context && data.context.results_found > 0) {
+                            const sourcesId = `sources-${Date.now()}`;
+                            setChatMessages((prev) => [
+                                ...prev.filter(msg => msg.id !== loadingId && msg.id !== searchingId), // Remove loading and searching messages
+                                {
+                                    type: "system",
+                                    text: `✅ Found ${data.context.results_found} relevant result(s)`,
+                                    id: sourcesId,
+                                    timestamp: new Date().toLocaleTimeString(),
+                                    sources: data.context.sources
+                                },
+                                {
+                                    type: "assistant",
+                                    text: data.response,
+                                    id: loadingId,
+                                    context: data.context
+                                }
+                            ]);
+                        } else {
+                            // Replace loading message with actual response (no context found)
+                            setChatMessages((prev) =>
+                                prev.filter(msg => msg.id !== searchingId) // Remove searching message
+                                    .map((msg) =>
+                                        msg.id === loadingId
+                                            ? {
+                                                  type: "assistant",
+                                                  text: data.response,
+                                                  id: loadingId,
+                                                  context: data.context || null
+                                              }
+                                            : msg,
+                                    ),
+                            );
+                        }
                     } catch (error) {
                         console.error("Chat error:", error);
 
@@ -616,18 +872,19 @@ Remember to:
                             }
                         }
 
-                        // Replace loading message with error message
+                        // Replace loading message with error message and remove searching message
                         setChatMessages((prev) =>
-                            prev.map((msg) =>
-                                msg.id === loadingId
-                                    ? {
-                                          type: "assistant",
-                                          text: errorMessage + (suggestion ? `\n\n💡 Suggestion: ${suggestion}` : ''),
-                                          id: loadingId,
-                                          error: true,
-                                      }
-                                    : msg,
-                            ),
+                            prev.filter(msg => msg.id !== searchingId) // Remove searching message
+                                .map((msg) =>
+                                    msg.id === loadingId
+                                        ? {
+                                              type: "assistant",
+                                              text: errorMessage + (suggestion ? `\n\n💡 Suggestion: ${suggestion}` : ''),
+                                              id: loadingId,
+                                              error: true,
+                                          }
+                                        : msg,
+                                ),
                         );
                     }
                 };
@@ -1169,6 +1426,8 @@ Remember to:
                                                     <Avatar className="chat-avatar">
                                                         {msg.type === "user"
                                                             ? "U"
+                                                            : msg.type === "system"
+                                                            ? "🔍"  
                                                             : "AI"}
                                                     </Avatar>
                                                     <Paper
@@ -1191,11 +1450,12 @@ Remember to:
                                                                             16
                                                                         }
                                                                     />
-                                                                    {msg.text}
+                                                                    <span dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
                                                                 </Box>
                                                             )}
-                                                            {!msg.loading &&
-                                                                msg.text}
+                                                            {!msg.loading && (
+                                                                <span dangerouslySetInnerHTML={{ __html: parseMarkdown(msg.text) }} />
+                                                            )}
                                                         </Typography>
                                                         {msg.error && (
                                                             <Typography
@@ -1213,6 +1473,18 @@ Remember to:
                                                                     ollama serve
                                                                 </code>
                                                             </Typography>
+                                                        )}
+                                                        {msg.sources && (
+                                                            <Box sx={{ mt: 1 }}>
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    Sources:
+                                                                </Typography>
+                                                                {msg.sources.map((source, idx) => (
+                                                                    <Typography key={idx} variant="caption" sx={{ display: 'block', ml: 1 }}>
+                                                                        • {source.title} ({source.provider})
+                                                                    </Typography>
+                                                                ))}
+                                                            </Box>
                                                         )}
                                                     </Paper>
                                                 </Box>
@@ -1445,10 +1717,32 @@ Remember to:
                                                 .
                                             </Typography>
 
+                                            {/* AI Reordering Status */}
+                                            {loadingReorder && results.length > 0 && (
+                                                <Paper 
+                                                    sx={{ 
+                                                        p: 2, 
+                                                        mb: 3, 
+                                                        backgroundColor: '#f8f9fa',
+                                                        border: '1px solid #e9ecef'
+                                                    }}
+                                                >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                        <CircularProgress size={16} />
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            Optimizing content flow for better reading experience...
+                                                        </Typography>
+                                                    </Box>
+                                                </Paper>
+                                            )}
+
                                             {/* Group results hierarchically */}
                                             {(() => {
+                                                // Use reordered results if available, otherwise use original results
+                                                const resultsToDisplay = reorderedResults || results;
+                                                
                                                 // Group by category -> life event -> page title
-                                                const grouped = results.reduce(
+                                                const grouped = resultsToDisplay.reduce(
                                                     (acc, item) => {
                                                         const cat =
                                                             item.category ||
@@ -1988,6 +2282,40 @@ Remember to:
                                                 Search Results ({results.length}
                                                 )
                                             </Typography>
+                                            
+                                            {/* AI Summary Section */}
+                                            {(aiSummary || loadingSummary) && results.length > 0 && (
+                                                <Paper 
+                                                    sx={{ 
+                                                        p: 2, 
+                                                        mb: 3, 
+                                                        backgroundColor: '#f5f5f5',
+                                                        border: '1px solid #e0e0e0'
+                                                    }}
+                                                >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                                        <span className="material-icons" style={{ marginRight: 8, color: '#1976d2' }}>
+                                                            summarize
+                                                        </span>
+                                                        <Typography variant="h6" component="h3">
+                                                            AI Summary
+                                                        </Typography>
+                                                    </Box>
+                                                    {loadingSummary ? (
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <CircularProgress size={16} />
+                                                            <Typography variant="body2" color="text.secondary">
+                                                                Generating summary of search results...
+                                                            </Typography>
+                                                        </Box>
+                                                    ) : (
+                                                        <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>
+                                                            {aiSummary}
+                                                        </Typography>
+                                                    )}
+                                                </Paper>
+                                            )}
+                                            
                                             <Grid container spacing={2}>
                                                 {results.map((item) => (
                                                     <Grid

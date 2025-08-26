@@ -2,6 +2,7 @@
 const express = require('express');
 const router = express.Router();
 const fetch = require('node-fetch');
+const { MCPClient } = require('../utils/mcp-client');
 
 // GET /api/llm/models
 router.get('/models', async (req, res) => {
@@ -320,5 +321,306 @@ router.post('/chat', async (req, res) => {
     return res.status(500).json({ error: 'LLM request failed', details: error.message });
   }
 });
+
+// POST /api/llm/chat-with-context
+// Enhanced chat endpoint that uses MCP to search for relevant government service context
+router.post('/chat-with-context', async (req, res) => {
+  try {
+    const { prompt, model, search_options = {} } = req.body || {};
+    if (!prompt || !model) {
+      return res.status(400).json({ error: 'prompt and model are required' });
+    }
+
+    // Use MCP to get relevant context
+    const mcpClient = new MCPClient();
+    let context = '';
+    let searchResults = null;
+
+    try {
+      // Search for relevant government services
+      const searchResponse = await mcpClient.searchGovernmentServices(prompt, {
+        per_page: 5,
+        ...search_options
+      });
+
+      if (searchResponse && searchResponse.results && searchResponse.results.length > 0) {
+        searchResults = searchResponse.results;
+        context = searchResponse.results
+          .map(result => 
+            `Title: ${result.title}\n` +
+            `Provider: ${result.provider}\n` +
+            `Category: ${result.category}\n` +
+            `Content: ${result.content}\n` +
+            `URL: ${result.url}`
+          )
+          .join('\n\n---\n\n');
+      }
+    } catch (mcpError) {
+      console.warn('MCP search failed, continuing without context:', mcpError.message);
+      context = 'Unable to retrieve specific government service information.';
+    } finally {
+      mcpClient.disconnect();
+    }
+
+    // Build enhanced prompt with context
+    const systemPrompt = `You are a helpful Australian government services assistant. Use the following search results to answer the user's question. If the search results don't contain relevant information, provide general guidance and suggest where they might find more information.
+
+Government Services Context:
+${context || "No specific results found for this query."}
+
+Remember to:
+- Be helpful and concise
+- Reference specific services or providers when mentioned in the search results
+- Suggest visiting official government websites for the most up-to-date information
+- If discussing eligibility or requirements, note that these can vary and users should check official sources
+- Include relevant URLs from the context when helpful`;
+
+    const fullPrompt = `${systemPrompt}\n\nUser: ${prompt}\n\nAssistant:`;
+
+    // Route through the existing chat logic
+    const chatRequest = {
+      body: {
+        prompt: fullPrompt,
+        model: model
+      }
+    };
+
+    // Create a mock request/response cycle to reuse existing logic
+    let llmResponse = null;
+    let llmError = null;
+
+    const mockRes = {
+      status: (code) => ({
+        json: (data) => {
+          if (code >= 400) {
+            llmError = data;
+          } else {
+            llmResponse = data;
+          }
+          return mockRes;
+        }
+      }),
+      json: (data) => {
+        llmResponse = data;
+        return mockRes;
+      }
+    };
+
+    // Use existing chat logic
+    await handleChatRequest(chatRequest, mockRes);
+
+    if (llmError) {
+      return res.status(500).json({
+        ...llmError,
+        context_search: searchResults ? 'successful' : 'failed'
+      });
+    }
+
+    // Return enhanced response with context metadata
+    return res.json({
+      ...llmResponse,
+      context: {
+        search_performed: true,
+        results_found: searchResults ? searchResults.length : 0,
+        sources: searchResults ? searchResults.map(r => ({ 
+          title: r.title, 
+          provider: r.provider,
+          url: r.url 
+        })) : []
+      }
+    });
+
+  } catch (error) {
+    console.error('Enhanced chat error:', error);
+    return res.status(500).json({ 
+      error: 'Enhanced chat request failed', 
+      details: error.message 
+    });
+  }
+});
+
+// Helper function to extract the chat logic
+async function handleChatRequest(req, res) {
+  const { prompt, model } = req.body || {};
+  
+  // If LiteLLM is enabled and configured, use it for all requests
+  const enableLiteLLM = process.env.ENABLE_LITELLM === 'true';
+  const liteUrl = process.env.LITELLM_URL;
+  const liteKey = process.env.LITELLM_API_KEY;
+  if (enableLiteLLM && liteUrl) {
+    const url = `${liteUrl.replace(/\/$/, '')}/v1/chat/completions`;
+    // Map provider:model to LiteLLM router model_name if needed
+    let routedModel = model;
+    if (model.includes(':') && !model.includes('/')) {
+      const [prov, ...rest] = model.split(':');
+      routedModel = `${prov}/${rest.join(':')}`; // e.g., ollama/gemma3:27b
+    }
+    const payload = {
+      model: routedModel,
+      messages: [
+        { role: 'system', content: 'You are a helpful Australian government services assistant.' },
+        { role: 'user', content: prompt }
+      ],
+      temperature: 0.7
+    };
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...(liteKey ? { Authorization: `Bearer ${liteKey}` } : {})
+      },
+      body: JSON.stringify(payload)
+    });
+    if (!resp.ok) {
+      const text = await resp.text();
+      let errorMsg = `LiteLLM error (${resp.status}): ${text}`;
+      if (resp.status === 404) {
+        errorMsg = `Model "${routedModel}" not found in LiteLLM. Check your LiteLLM configuration.`;
+      } else if (resp.status === 401 || resp.status === 403) {
+        errorMsg = 'LiteLLM authentication failed. Check LITELLM_API_KEY.';
+      }
+      return res.status(resp.status).json({ 
+        error: errorMsg,
+        provider: 'litellm',
+        model: routedModel,
+        url: url
+      });
+    }
+    const data = await resp.json();
+    const content = data.choices?.[0]?.message?.content || '';
+    return res.json({ response: content });
+  }
+
+  // Otherwise fall back to provider parsing
+  const [provider, ...rest] = String(model).split(':');
+  const providerModel = rest.join(':');
+
+  if (!provider || !providerModel) {
+    return res.status(400).json({ error: 'Invalid model format. Use provider:model, e.g., ollama:llama3:8b' });
+  }
+
+  if (provider === 'ollama') {
+    const OLLAMA_URL = process.env.OLLAMA_URL || 'http://172.17.0.1:11434';
+    try {
+      const resp = await fetch(`${OLLAMA_URL}/api/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model: providerModel, prompt, stream: false }),
+        timeout: 60000 // 60 second timeout for generation
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        let errorMsg = `Ollama error (${resp.status}): ${text}`;
+        
+        try {
+          const errorJson = JSON.parse(text);
+          if (errorJson.error) {
+            if (errorJson.error.includes('not found') || errorJson.error.includes('model')) {
+              errorMsg = `Model "${providerModel}" not found. Try: ollama pull ${providerModel}`;
+            } else {
+              errorMsg = `Ollama: ${errorJson.error}`;
+            }
+          }
+        } catch {}
+        
+        return res.status(resp.status).json({ 
+          error: errorMsg,
+          provider: 'ollama',
+          model: providerModel,
+          url: OLLAMA_URL,
+          suggestion: resp.status === 404 ? `Run: ollama pull ${providerModel}` : null
+        });
+      }
+      const data = await resp.json();
+      return res.json({ response: data.response });
+    } catch (error) {
+      let errorMsg = 'Ollama connection failed';
+      let suggestion = null;
+      
+      if (error.code === 'ECONNREFUSED') {
+        errorMsg = `Cannot connect to Ollama at ${OLLAMA_URL}`;
+        suggestion = 'Start Ollama with: ollama serve';
+      } else if (error.code === 'ETIMEDOUT' || error.name === 'AbortError') {
+        errorMsg = 'Ollama request timed out - model may be loading or generating';
+        suggestion = 'Wait for model to finish loading, or try a smaller model';
+      } else {
+        errorMsg = `Ollama error: ${error.message}`;
+      }
+      
+      return res.status(503).json({
+        error: errorMsg,
+        provider: 'ollama',
+        model: providerModel,
+        url: OLLAMA_URL,
+        suggestion: suggestion
+      });
+    }
+  }
+
+  if (provider === 'openai') {
+    const apiKey = process.env.OPENAI_API_KEY;
+    if (!apiKey) {
+      return res.status(503).json({ 
+        error: 'OpenAI API key not configured',
+        provider: 'openai',
+        suggestion: 'Set OPENAI_API_KEY environment variable'
+      });
+    }
+
+    try {
+      const url = 'https://api.openai.com/v1/chat/completions';
+      const payload = {
+        model: providerModel,
+        messages: [
+          { role: 'system', content: 'You are a helpful Australian government services assistant.' },
+          { role: 'user', content: prompt }
+        ],
+        temperature: 0.7
+      };
+      const resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        const text = await resp.text();
+        let errorMsg = `OpenAI error (${resp.status}): ${text}`;
+        let suggestion = null;
+        
+        if (resp.status === 401) {
+          errorMsg = 'OpenAI authentication failed. Check your API key.';
+          suggestion = 'Verify OPENAI_API_KEY is correct';
+        } else if (resp.status === 404) {
+          errorMsg = `Model "${providerModel}" not available in OpenAI API.`;
+          suggestion = 'Try: gpt-4o-mini, gpt-4o, or gpt-3.5-turbo';
+        } else if (resp.status === 429) {
+          errorMsg = 'OpenAI rate limit exceeded.';
+          suggestion = 'Wait a moment before trying again';
+        }
+        
+        return res.status(resp.status).json({ 
+          error: errorMsg,
+          provider: 'openai',
+          model: providerModel,
+          suggestion: suggestion
+        });
+      }
+      const data = await resp.json();
+      const content = data.choices?.[0]?.message?.content || '';
+      return res.json({ response: content });
+    } catch (error) {
+      return res.status(500).json({
+        error: `OpenAI request failed: ${error.message}`,
+        provider: 'openai',
+        model: providerModel
+      });
+    }
+  }
+
+  return res.status(400).json({ error: `Unsupported provider: ${provider}` });
+}
 
 module.exports = router;

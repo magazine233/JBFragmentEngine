@@ -89,6 +89,27 @@ services:
     profiles:
       - scrapers
 
+  # Unified scraper that can crawl multiple domains in one run
+  scraper:
+    build: ./scraper
+    depends_on:
+      - typesense
+    environment:
+      - TYPESENSE_HOST=typesense
+      - TYPESENSE_PORT=8108
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz123abc}
+      # Comma-separated list of targets; override via TARGET_URLS env
+      - TARGET_URLS=${TARGET_URLS:-https://my.gov.au,https://www.servicesaustralia.gov.au}
+      - MAX_DEPTH=${MAX_DEPTH:-3}
+      - MAX_LINKS_PER_PAGE=${MAX_LINKS_PER_PAGE:-12}
+      - CONCURRENCY=${CONCURRENCY:-5}
+    command: ["node", "multi-scrape.js"]
+    volumes:
+      - ./scraper:/app
+      - /app/node_modules # This preserves node_modules from the image
+      - ./config:/config # Mount config at root level
+      - ./data:/data
+
   api:
     build: ./api
     ports:

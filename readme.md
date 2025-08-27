@@ -37,7 +37,8 @@ cp .env-example .env
 3. Edit `.env` with your settings:
 ```bash
 TYPESENSE_API_KEY=your-secure-key-here
-TARGET_URL=https://my.gov.au
+# Optional: unified scraper targets (comma-separated)
+# TARGET_URLS=https://my.gov.au,https://www.servicesaustralia.gov.au
 ```
 
 4. Deploy the system:
@@ -50,15 +51,25 @@ chmod +x deploy.sh
 
 ## Usage
 
-### Running a Crawl
+### Running a Crawl (Unified Scraper)
 
 ```bash
-# Run a full crawl
+# Run a full crawl of default targets (my.gov.au + servicesaustralia.gov.au)
 docker-compose run --rm scraper
 
-# Or with custom settings
-docker-compose run --rm -e MAX_DEPTH=2 -e TARGET_URL=https://example.gov.au scraper
+# Or specify multiple targets explicitly
+TARGET_URLS="https://my.gov.au,https://www.servicesaustralia.gov.au,https://www.ato.gov.au" \
+  docker-compose run --rm -e TARGET_URLS="$TARGET_URLS" scraper
+
+# Tuning options
+docker-compose run --rm -e MAX_DEPTH=2 -e CONCURRENCY=8 scraper
 ```
+
+If you prefer targeted runs, the compose file also includes:
+- `scraper-mygov`
+- `scraper-servicesaustralia`
+
+However, the unified `scraper` service is recommended to keep a single crawl version and simplify pruning/indexing across domains.
 
 ### API Examples
 # Check if API is running

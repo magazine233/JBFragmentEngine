@@ -11,13 +11,8 @@ docker-compose up -d typesense
 echo "⏳ Waiting for Typesense to be ready..."
 sleep 10
 
-# Run MyGov scraper first
-echo "🏛️ Scraping my.gov.au for general government services..."
-docker-compose run --rm scraper-mygov
-
-# Run Services Australia scraper
-echo "💰 Scraping servicesaustralia.gov.au for welfare and support services..."
-docker-compose run --rm scraper-servicesaustralia
+echo "🏛️ Scraping multiple government sites via unified scraper..."
+docker-compose run --rm scraper
 
 echo "✅ Content index expansion complete!"
 echo "📈 Your guided mode should now have much better service recommendations."

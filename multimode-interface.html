@@ -32,6 +32,8 @@
             crossorigin
             src="https://unpkg.com/@babel/standalone/babel.min.js"
         ></script>
+        <!-- Three.js for Journey visualization -->
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
         <style>
             body {
@@ -225,6 +227,10 @@
                 llm: `${API_BASE_URL}/api/llm/chat`,
                 llmWithContext: `${API_BASE_URL}/api/llm/chat-with-context`,
                 llmModels: `${API_BASE_URL}/api/llm/models`,
+                // Journey/Profile endpoints
+                journeyBuild: `${API_BASE_URL}/api/journey/profile/build`,
+                journeyData: (id) => `${API_BASE_URL}/api/journey/journey/${id}`,
+                journeyViz: (id) => `${API_BASE_URL}/api/journey/journey/${id}/visualization`,
             };
 
             // Category to Life Event mappings - FIXED TO MATCH ACTUAL API DATA
@@ -383,8 +389,8 @@
                 const [reorderedResults, setReorderedResults] = useState(null);
                 const [loadingReorder, setLoadingReorder] = useState(false);
                 
-                // Guided Mode Profile Builder state
-                const [userProfile, setUserProfile] = useState({
+                // Shared Profile state (persisted across modes)
+                const defaultProfile = () => ({
                     id: "user_" + Date.now(),
                     name: "Guest User",
                     age: null,
@@ -398,15 +404,58 @@
                     is_carer: false,
                     has_disability: false,
                     current_life_events: [],
+                    completed_life_events: [],
                     marital_status: null,
                     study_status: null,
+                    level: 1,
+                    experience_points: 0,
                 });
+                const [userProfile, setUserProfile] = useState(() => {
+                    try {
+                        const stored = localStorage.getItem('userProfile');
+                        return stored ? JSON.parse(stored) : defaultProfile();
+                    } catch (e) {
+                        return defaultProfile();
+                    }
+                });
+                const [profileId, setProfileId] = useState(null);
+                const [profileApiError, setProfileApiError] = useState(null);
                 const [guidedChatMessages, setGuidedChatMessages] = useState([]);
                 const [guidedChatInput, setGuidedChatInput] = useState("");
                 const [currentQuestion, setCurrentQuestion] = useState(0);
                 const [isProfileComplete, setIsProfileComplete] = useState(false);
                 const [matchedServices, setMatchedServices] = useState([]);
                 const [loadingServices, setLoadingServices] = useState(false);
+                
+                // Journey visualization state/refs
+                const journeyMapRef = useRef(null);
+                const journeySceneRef = useRef(null);
+                const journeyRendererRef = useRef(null);
+                const journeyCameraRef = useRef(null);
+                const [journeyVizData, setJourneyVizData] = useState(null);
+                
+                // Persist profile and sync to server recommender
+                const buildServerProfile = async (p) => {
+                    try {
+                        const resp = await fetch(API_ENDPOINTS.journeyBuild, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(p)
+                        });
+                        if (!resp.ok) throw new Error(await resp.text());
+                        const data = await resp.json();
+                        setProfileId(data.profile_id || null);
+                        setProfileApiError(null);
+                    } catch (e) {
+                        console.warn('Profile build failed:', e.message);
+                        setProfileApiError('Recommender API unavailable — using local fallback.');
+                    }
+                };
+
+                useEffect(() => {
+                    try { localStorage.setItem('userProfile', JSON.stringify(userProfile)); } catch (e) {}
+                    buildServerProfile(userProfile);
+                }, [userProfile]);
                 
                 // Function to parse markdown to HTML
                 const parseMarkdown = (text) => {
@@ -1583,6 +1632,239 @@ Remember to:
 
                 const getIcon = (name) => iconMap[name] || "circle";
 
+                // Profile editor component
+                function ProfileView() {
+                    const [editMode, setEditMode] = useState(false);
+                    const [temp, setTemp] = useState(userProfile);
+
+                    const save = () => {
+                        setUserProfile(temp);
+                        setEditMode(false);
+                    };
+
+                    return (
+                        <Paper sx={{ p: 3, mb: 3 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
+                                <Avatar sx={{ width: 64, height: 64, bgcolor: '#66d3ee', color: '#0d47a1' }}>
+                                    <span className="material-icons">person</span>
+                                </Avatar>
+                                <Box sx={{ flex: 1 }}>
+                                    <Typography variant="h6">{temp.name || 'Guest User'}</Typography>
+                                    {profileApiError && (
+                                        <Typography variant="body2" color="warning.main">{profileApiError}</Typography>
+                                    )}
+                                </Box>
+                                {!editMode ? (
+                                    <Button variant="outlined" onClick={() => setEditMode(true)} startIcon={<span className="material-icons">edit</span>}>Edit</Button>
+                                ) : (
+                                    <Box sx={{ display: 'flex', gap: 1 }}>
+                                        <Button variant="contained" onClick={save}>Save</Button>
+                                        <Button variant="text" onClick={() => { setTemp(userProfile); setEditMode(false); }}>Cancel</Button>
+                                    </Box>
+                                )}
+                            </Box>
+
+                            <Grid container spacing={2}>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Typography variant="body2" color="text.secondary">Age</Typography>
+                                    {editMode ? (
+                                        <TextField size="small" type="number" fullWidth value={temp.age || ''} onChange={(e)=>setTemp({ ...temp, age: e.target.value ? parseInt(e.target.value) : null })} />
+                                    ) : (
+                                        <Typography>{userProfile.age ?? 'Not set'}</Typography>
+                                    )}
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Typography variant="body2" color="text.secondary">Income</Typography>
+                                    {editMode ? (
+                                        <TextField size="small" type="number" fullWidth value={temp.income || ''} onChange={(e)=>setTemp({ ...temp, income: e.target.value ? parseInt(e.target.value) : null })} InputProps={{ startAdornment: (<InputAdornment position='start'>$</InputAdornment>) }} />
+                                    ) : (
+                                        <Typography>{userProfile.income ? `$${userProfile.income.toLocaleString()}` : 'Not set'}</Typography>
+                                    )}
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Typography variant="body2" color="text.secondary">Employment</Typography>
+                                    {editMode ? (
+                                        <Select size="small" fullWidth value={temp.employment_status || ''} onChange={(e)=>setTemp({ ...temp, employment_status: e.target.value || null })}>
+                                            <MenuItem value=''>Not set</MenuItem>
+                                            <MenuItem value='employed'>Employed</MenuItem>
+                                            <MenuItem value='part_time'>Part-time</MenuItem>
+                                            <MenuItem value='casual'>Casual</MenuItem>
+                                            <MenuItem value='unemployed'>Unemployed</MenuItem>
+                                            <MenuItem value='student'>Student</MenuItem>
+                                            <MenuItem value='retired'>Retired</MenuItem>
+                                            <MenuItem value='self_employed'>Self-employed</MenuItem>
+                                        </Select>
+                                    ) : (
+                                        <Typography>{userProfile.employment_status || 'Not set'}</Typography>
+                                    )}
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <Typography variant="body2" color="text.secondary">Housing</Typography>
+                                    {editMode ? (
+                                        <Select size="small" fullWidth value={temp.housing_status || ''} onChange={(e)=>setTemp({ ...temp, housing_status: e.target.value || null })}>
+                                            <MenuItem value=''>Not set</MenuItem>
+                                            <MenuItem value='owner'>Own home</MenuItem>
+                                            <MenuItem value='buying'>Mortgage</MenuItem>
+                                            <MenuItem value='renting_private'>Renting (private)</MenuItem>
+                                            <MenuItem value='renting_public'>Public/social housing</MenuItem>
+                                            <MenuItem value='staying_with_others'>Staying with others</MenuItem>
+                                            <MenuItem value='homeless'>No fixed address</MenuItem>
+                                        </Select>
+                                    ) : (
+                                        <Typography>{userProfile.housing_status || 'Not set'}</Typography>
+                                    )}
+                                </Grid>
+
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControlLabel control={<Checkbox checked={!!(editMode ? temp.has_children : userProfile.has_children)} onChange={(e)=> editMode ? setTemp({ ...temp, has_children: e.target.checked }) : setUserProfile({ ...userProfile, has_children: e.target.checked }) } />} label="Has children" />
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControlLabel control={<Checkbox checked={!!(editMode ? temp.is_carer : userProfile.is_carer)} onChange={(e)=> editMode ? setTemp({ ...temp, is_carer: e.target.checked }) : setUserProfile({ ...userProfile, is_carer: e.target.checked }) } />} label="Carer" />
+                                </Grid>
+                                <Grid item xs={12} sm={6} md={3}>
+                                    <FormControlLabel control={<Checkbox checked={!!(editMode ? temp.has_disability : userProfile.has_disability)} onChange={(e)=> editMode ? setTemp({ ...temp, has_disability: e.target.checked }) : setUserProfile({ ...userProfile, has_disability: e.target.checked }) } />} label="Disability" />
+                                </Grid>
+                            </Grid>
+
+                            <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
+                                <Button variant="contained" onClick={() => setMode('journey')} endIcon={<span className='material-icons'>map</span>}>Open Journey</Button>
+                                <Button variant="outlined" onClick={() => setMode('guided')} endIcon={<span className='material-icons'>psychology</span>}>Continue Guided</Button>
+                            </Box>
+                        </Paper>
+                    );
+                }
+
+                // Journey visualization component
+                function JourneyView() {
+                    useEffect(() => {
+                        let cleanup = () => {};
+                        const init = async () => {
+                            try {
+                                // Ensure server-side profile exists
+                                if (!profileId) {
+                                    await buildServerProfile(userProfile);
+                                }
+                                const pid = profileId;
+                                // Fetch visualization data
+                                if (pid) {
+                                    const resp = await fetch(API_ENDPOINTS.journeyViz(pid));
+                                    if (resp.ok) {
+                                        const data = await resp.json();
+                                        setJourneyVizData(data);
+                                    }
+                                }
+                            } catch (e) {
+                                console.warn('Journey viz load failed:', e.message);
+                            }
+
+                            if (!journeyMapRef.current || !window.THREE) return;
+
+                            // Three.js setup
+                            const scene = new THREE.Scene();
+                            const camera = new THREE.PerspectiveCamera(
+                                60,
+                                journeyMapRef.current.clientWidth / journeyMapRef.current.clientHeight,
+                                0.1,
+                                1000
+                            );
+                            camera.position.set(0, 25, 35);
+                            const renderer = new THREE.WebGLRenderer({ antialias: true });
+                            renderer.setSize(journeyMapRef.current.clientWidth, journeyMapRef.current.clientHeight);
+                            journeyMapRef.current.innerHTML = '';
+                            journeyMapRef.current.appendChild(renderer.domElement);
+
+                            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+                            scene.add(ambient);
+                            const dir = new THREE.DirectionalLight(0xffffff, 0.6);
+                            dir.position.set(10, 20, 10);
+                            scene.add(dir);
+
+                            const ground = new THREE.Mesh(
+                                new THREE.PlaneGeometry(200, 200),
+                                new THREE.MeshPhongMaterial({ color: 0xddeaf6 })
+                            );
+                            ground.rotation.x = -Math.PI / 2;
+                            scene.add(ground);
+
+                            // Meeple avatar
+                            const group = new THREE.Group();
+                            const body = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2, 12), new THREE.MeshPhongMaterial({ color: 0x1976d2 }));
+                            body.position.y = 1; group.add(body);
+                            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshPhongMaterial({ color: 0x1976d2 }));
+                            head.position.y = 2.5; group.add(head);
+                            scene.add(group);
+
+                            const nodes = [];
+                            const positions = (journeyVizData?.events || []).slice(0, 10).map((e, i) => ({
+                                x: e.position_x || Math.cos(i) * 6,
+                                z: e.position_z || Math.sin(i) * 6,
+                                label: e.event_name || e.cluster || `Event ${i+1}`,
+                                color: 0x3b82f6
+                            }));
+                            if (positions.length === 0) {
+                                positions.push(
+                                    { x: 5, z: 0, label: 'Work', color: 0x3b82f6 },
+                                    { x: -5, z: 0, label: 'Having a baby', color: 0xec4899 },
+                                    { x: 0, z: 5, label: 'Education', color: 0xa78bfa },
+                                    { x: 0, z: -5, label: 'Health and caring', color: 0xef4444 }
+                                );
+                            }
+
+                            positions.forEach((p) => {
+                                const node = new THREE.Mesh(
+                                    new THREE.CylinderGeometry(1, 1, 0.5, 16),
+                                    new THREE.MeshPhongMaterial({ color: p.color, emissive: p.color, emissiveIntensity: 0.2 })
+                                );
+                                node.position.set(p.x, 0.25, p.z);
+                                scene.add(node);
+                                nodes.push(node);
+                            });
+
+                            let angle = 0;
+                            const animate = () => {
+                                requestAnimationFrame(animate);
+                                group.rotation.y += 0.01;
+                                angle += 0.002;
+                                camera.position.x = Math.sin(angle) * 30;
+                                camera.position.z = Math.cos(angle) * 30;
+                                camera.lookAt(0, 0, 0);
+                                renderer.render(scene, camera);
+                            };
+                            animate();
+
+                            journeySceneRef.current = scene;
+                            journeyRendererRef.current = renderer;
+                            journeyCameraRef.current = camera;
+
+                            const handleResize = () => {
+                                if (!journeyMapRef.current) return;
+                                camera.aspect = journeyMapRef.current.clientWidth / journeyMapRef.current.clientHeight;
+                                camera.updateProjectionMatrix();
+                                renderer.setSize(journeyMapRef.current.clientWidth, journeyMapRef.current.clientHeight);
+                            };
+                            window.addEventListener('resize', handleResize);
+                            cleanup = () => {
+                                window.removeEventListener('resize', handleResize);
+                                try { renderer.dispose(); } catch (e) {}
+                            };
+                        };
+                        init();
+                        return () => cleanup();
+                    }, []);
+
+                    return (
+                        <Paper sx={{ p: 0, mb: 3 }}>
+                            <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <Typography variant="h6">Journey Map</Typography>
+                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                    <Button size="small" variant="outlined" onClick={() => setMode('profile')}>Edit Profile</Button>
+                                </Box>
+                            </Box>
+                            <Box id="journey-map" ref={journeyMapRef} sx={{ width: '100%', height: 500, bgcolor: '#eaf4fb' }} />
+                        </Paper>
+                    );
+                }
+
                 return (
                     <>
                         <AppBar
@@ -1612,6 +1894,7 @@ Remember to:
                                         "& .Mui-selected": { color: "#1976d2" },
                                     }}
                                 >
+                                    <Tab label="Profile" value="profile" icon={<span className="material-icons">person</span>} iconPosition="end" />
                                     <Tab 
                                         label="Guided" 
                                         value="guided"
@@ -1644,6 +1927,7 @@ Remember to:
                                         }
                                         iconPosition="end"
                                     />
+                                    <Tab label="Journey" value="journey" icon={<span className="material-icons">map</span>} iconPosition="end" />
                                 </Tabs>
 
                                 <Button
@@ -2006,6 +2290,11 @@ Remember to:
                                         )}
                                     </Box>
                                 </Paper>
+                            )}
+
+                            {/* Profile Mode */}
+                            {mode === "profile" && (
+                                <ProfileView />
                             )}
 
                             {/* Guided Mode - Chat-based Profile Builder */}
@@ -2490,6 +2779,11 @@ Remember to:
                                         </Button>
                                     </Box>
                                 </Paper>
+                            )}
+
+                            {/* Journey Mode */}
+                            {mode === "journey" && (
+                                <JourneyView />
                             )}
 
                             {/* Results Display */}

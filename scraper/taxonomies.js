@@ -539,35 +539,32 @@ function detectStageVariant(content, variants) {
 
 // Also fix the detectProvider function to better identify federal services
 function detectProvider(url, content, providersData) {
-  // Medicare, Centrelink, etc. are federal Services Australia
-  const servicesAustraliaKeywords = [
-    "medicare",
-    "centrelink",
-    "child support",
-    "mygov",
-    "my.gov.au",
-    "services australia",
-    "express plus",
-  ];
-
   const urlLower = url.toLowerCase();
   const contentLower = content.toLowerCase();
 
-  // Check for Services Australia content first
-  if (
-    servicesAustraliaKeywords.some(
-      (keyword) => urlLower.includes(keyword) || contentLower.includes(keyword),
-    )
-  ) {
+  // First check URL domain for accurate provider attribution
+  if (urlLower.includes('servicesaustralia.gov.au')) {
     return { governance: "Federal Government", provider: "Services Australia" };
   }
+  
+  if (urlLower.includes('my.gov.au')) {
+    return { governance: "Federal Government", provider: "Australian Government" };
+  }
 
-  // Continue with existing provider detection logic...
+  if (urlLower.includes('ato.gov.au')) {
+    return { governance: "Federal Government", provider: "Australian Taxation Office" };
+  }
+
+  if (urlLower.includes('health.gov.au')) {
+    return { governance: "Federal Government", provider: "Department of Health" };
+  }
+
+  // Check for provider patterns from taxonomy
   for (const [governance, providers] of Object.entries(providersData)) {
     for (const [provider, patterns] of Object.entries(providers)) {
       if (
         patterns.some(
-          (pattern) => url.includes(pattern) || content.includes(pattern),
+          (pattern) => urlLower.includes(pattern) || contentLower.includes(pattern),
         )
       ) {
         return { governance, provider };
@@ -575,14 +572,26 @@ function detectProvider(url, content, providersData) {
     }
   }
 
+  // Medicare, Centrelink keywords (for content-based detection when URL isn't clear)
+  const servicesAustraliaKeywords = [
+    "medicare",
+    "centrelink", 
+    "child support",
+    "jobseeker",
+    "austudy",
+    "newstart"
+  ];
+
+  if (
+    servicesAustraliaKeywords.some(
+      (keyword) => contentLower.includes(keyword)
+    )
+  ) {
+    return { governance: "Federal Government", provider: "Services Australia" };
+  }
+
   // Default based on domain
-  if (url.includes(".gov.au")) {
-    if (url.includes("australia.gov.au") || url.includes("my.gov.au")) {
-      return {
-        governance: "Federal Government",
-        provider: "Australian Government",
-      };
-    }
+  if (urlLower.includes(".gov.au")) {
     // Try to detect state from URL
     const stateMatch = url.match(/\.(\w{2,3})\.gov\.au/);
     if (stateMatch) {
@@ -592,6 +601,12 @@ function detectProvider(url, content, providersData) {
         provider: `${state} Government`,
       };
     }
+    
+    // Default federal
+    return {
+      governance: "Federal Government",
+      provider: "Australian Government",
+    };
   }
 
   return { governance: "Non-Government", provider: "External Provider" };

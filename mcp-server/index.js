@@ -45,6 +45,32 @@ const GetFacetsSchema = z.object({
   query: z.string().optional().describe("Optional search query to get facets for"),
 });
 
+const AnalyzeFilterCombinationsSchema = z.object({
+  existing_filters: z.object({
+    category: z.string().optional(),
+    life_event: z.string().optional(),
+    provider: z.string().optional(),
+    state: z.string().optional(),
+  }).optional().describe("Currently applied filters"),
+  max_options: z.number().min(3).max(10).default(6).describe("Maximum number of options to suggest"),
+});
+
+const RankContentByRelevanceSchema = z.object({
+  content_titles: z.array(z.object({
+    id: z.string(),
+    title: z.string(),
+    category: z.string().optional(),
+    life_event: z.string().optional(),
+    provider: z.string().optional(),
+  })).describe("Array of content items with titles and metadata to rank"),
+  user_profile: z.object({
+    category: z.string().optional(),
+    life_event: z.string().optional(),
+    provider: z.string().optional(),
+    state: z.string().optional(),
+  }).describe("User's filter selections representing their life circumstances"),
+});
+
 // Create MCP server
 const server = new Server(
   {
@@ -112,6 +138,67 @@ server.setRequestHandler(ListToolsRequestSchema, async () => {
             }
           }
         }
+      },
+      {
+        name: "analyze_filter_combinations",
+        description: "Analyze filter combinations to suggest optimal next filtering options with result counts. Helps build user's intersectional life experience profile by suggesting the most relevant filter choices.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            existing_filters: {
+              type: "object",
+              description: "Currently applied filters",
+              properties: {
+                category: { type: "string", description: "Current category filter" },
+                life_event: { type: "string", description: "Current life event filter" },
+                provider: { type: "string", description: "Current provider filter" },
+                state: { type: "string", description: "Current state filter" }
+              }
+            },
+            max_options: {
+              type: "number",
+              description: "Maximum number of options to suggest (3-10, default: 6)",
+              minimum: 3,
+              maximum: 10,
+              default: 6
+            }
+          }
+        }
+      },
+      {
+        name: "rank_content_by_relevance", 
+        description: "Rank content titles by individual specificity and life impact priority for personalized content ordering. Only uses titles and metadata, not full content.",
+        inputSchema: {
+          type: "object",
+          properties: {
+            content_titles: {
+              type: "array",
+              description: "Array of content items with titles and metadata to rank",
+              items: {
+                type: "object",
+                properties: {
+                  id: { type: "string", description: "Content item ID" },
+                  title: { type: "string", description: "Content title/heading" },
+                  category: { type: "string", description: "Content category" },
+                  life_event: { type: "string", description: "Associated life event" },
+                  provider: { type: "string", description: "Service provider" }
+                },
+                required: ["id", "title"]
+              }
+            },
+            user_profile: {
+              type: "object", 
+              description: "User's filter selections representing their life circumstances",
+              properties: {
+                category: { type: "string", description: "User's selected category" },
+                life_event: { type: "string", description: "User's selected life event" },
+                provider: { type: "string", description: "User's selected provider" },
+                state: { type: "string", description: "User's selected state" }
+              }
+            }
+          },
+          required: ["content_titles", "user_profile"]
+        }
       }
     ]
   };
@@ -160,6 +247,188 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
                 life_events: response.facet_counts?.find(f => f.field_name === "life_events")?.counts || [],
                 providers: response.facet_counts?.find(f => f.field_name === "provider")?.counts || [],
                 states: response.facet_counts?.find(f => f.field_name === "states")?.counts || [],
+              }, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "analyze_filter_combinations": {
+        const params = AnalyzeFilterCombinationsSchema.parse(args);
+        const existingFilters = params.existing_filters || {};
+        const maxOptions = params.max_options;
+
+        // Get all available facets first
+        const facetsResponse = await typesenseClient
+          .collections("content_fragments")
+          .documents()
+          .search({
+            q: "*",
+            query_by: "title,content_text",
+            facet_by: "categories,life_events,provider,states",
+            per_page: 0,
+          });
+
+        const facets = {
+          categories: facetsResponse.facet_counts?.find(f => f.field_name === "categories")?.counts || [],
+          life_events: facetsResponse.facet_counts?.find(f => f.field_name === "life_events")?.counts || [],
+          providers: facetsResponse.facet_counts?.find(f => f.field_name === "provider")?.counts || [],
+          states: facetsResponse.facet_counts?.find(f => f.field_name === "states")?.counts || [],
+        };
+
+        // Analyze combinations based on existing filters
+        const suggestions = [];
+        
+        // If no filters applied, suggest top categories
+        if (!existingFilters.category && !existingFilters.life_event && !existingFilters.provider && !existingFilters.state) {
+          const topCategories = facets.categories
+            .sort((a, b) => b.count - a.count)
+            .slice(0, maxOptions)
+            .map(cat => ({
+              type: 'category',
+              value: cat.value,
+              label: cat.value,
+              count: cat.count,
+              description: `${cat.count} results in ${cat.value}`
+            }));
+          suggestions.push(...topCategories);
+        } else {
+          // Build current filter conditions for testing combinations
+          const testCombinations = async (filterType, filterValues) => {
+            const results = [];
+            for (const filterValue of filterValues) {
+              // Test this filter combination
+              const testFilters = { ...existingFilters };
+              testFilters[filterType] = filterValue.value;
+
+              const filterConditions = [];
+              if (testFilters.category) filterConditions.push(`categories:=[${testFilters.category}]`);
+              if (testFilters.life_event) filterConditions.push(`life_events:=[${testFilters.life_event}]`);
+              if (testFilters.provider) filterConditions.push(`provider:=${testFilters.provider}`);
+              if (testFilters.state && testFilters.state !== "National") filterConditions.push(`states:=[${testFilters.state}]`);
+
+              try {
+                const testResponse = await typesenseClient
+                  .collections("content_fragments")
+                  .documents()
+                  .search({
+                    q: "*",
+                    query_by: "title,content_text",
+                    filter_by: filterConditions.length > 0 ? filterConditions.join(" && ") : undefined,
+                    per_page: 0,
+                  });
+
+                if (testResponse.found > 0) {
+                  results.push({
+                    type: filterType,
+                    value: filterValue.value,
+                    label: filterValue.value,
+                    count: testResponse.found,
+                    description: `${testResponse.found} results for ${filterValue.value}`,
+                    priority: testResponse.found // Higher count = higher priority for now
+                  });
+                }
+              } catch (error) {
+                console.error(`Error testing ${filterType}=${filterValue.value}:`, error);
+              }
+            }
+            return results;
+          };
+
+          // Test next logical filter progression
+          if (!existingFilters.category) {
+            const categoryOptions = await testCombinations('category', facets.categories.slice(0, 8));
+            suggestions.push(...categoryOptions);
+          } else if (!existingFilters.life_event) {
+            const lifeEventOptions = await testCombinations('life_event', facets.life_events.slice(0, 8));
+            suggestions.push(...lifeEventOptions);
+          } else if (!existingFilters.provider) {
+            const providerOptions = await testCombinations('provider', facets.providers.slice(0, 8));
+            suggestions.push(...providerOptions);
+          } else if (!existingFilters.state) {
+            const stateOptions = await testCombinations('state', facets.states.slice(0, 8));
+            suggestions.push(...stateOptions);
+          }
+        }
+
+        // Sort by priority (count) and limit to max_options
+        const finalSuggestions = suggestions
+          .sort((a, b) => b.priority - a.priority)
+          .slice(0, maxOptions);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                current_filters: existingFilters,
+                suggestions: finalSuggestions,
+                total_available_facets: {
+                  categories: facets.categories.length,
+                  life_events: facets.life_events.length,
+                  providers: facets.providers.length,
+                  states: facets.states.length,
+                }
+              }, null, 2)
+            }
+          ]
+        };
+      }
+
+      case "rank_content_by_relevance": {
+        const params = RankContentByRelevanceSchema.parse(args);
+        const { content_titles, user_profile } = params;
+
+        // Scoring algorithm: Individual specificity first, then life impact
+        const rankedContent = content_titles.map(content => {
+          let score = 0;
+          let specificity = 0;
+          let lifeImpact = 0;
+
+          // Specificity scoring (higher = more specific to user)
+          if (content.category === user_profile.category) specificity += 30;
+          if (content.life_event === user_profile.life_event) specificity += 25;
+          if (content.provider === user_profile.provider) specificity += 20;
+
+          // Life impact scoring based on title keywords (higher = more immediate impact)
+          const title = content.title.toLowerCase();
+          
+          // High impact keywords (immediate action needed)
+          if (title.includes('apply') || title.includes('application')) lifeImpact += 15;
+          if (title.includes('payment') || title.includes('benefit')) lifeImpact += 15;
+          if (title.includes('deadline') || title.includes('due') || title.includes('expires')) lifeImpact += 20;
+          if (title.includes('emergency') || title.includes('urgent')) lifeImpact += 25;
+          
+          // Medium impact keywords (important but less immediate)
+          if (title.includes('eligibility') || title.includes('qualify')) lifeImpact += 10;
+          if (title.includes('how to') || title.includes('guide')) lifeImpact += 8;
+          if (title.includes('support') || title.includes('help')) lifeImpact += 10;
+          
+          // Lower impact (informational)
+          if (title.includes('about') || title.includes('information') || title.includes('overview')) lifeImpact += 5;
+
+          // Combine scores: Specificity is weighted more heavily
+          score = (specificity * 2) + lifeImpact;
+
+          return {
+            ...content,
+            score,
+            specificity_score: specificity,
+            life_impact_score: lifeImpact,
+          };
+        });
+
+        // Sort by score (highest first)
+        rankedContent.sort((a, b) => b.score - a.score);
+
+        return {
+          content: [
+            {
+              type: "text",
+              text: JSON.stringify({
+                user_profile,
+                ranked_content: rankedContent,
+                ranking_explanation: "Content ranked by individual specificity (category, life event, provider matches) weighted 2x, plus life impact priority (action urgency, benefit availability, etc.)"
               }, null, 2)
             }
           ]
@@ -262,6 +531,206 @@ app.post('/search', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('HTTP Search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint for analyzing filter combinations
+app.post('/analyze-combinations', async (req, res) => {
+  try {
+    // Call the handler directly instead of using server.request
+    const params = AnalyzeFilterCombinationsSchema.parse(req.body);
+    const existingFilters = params.existing_filters || {};
+    const maxOptions = params.max_options;
+
+    // Get all available facets first
+    const facetsResponse = await typesenseClient
+      .collections("content_fragments")
+      .documents()
+      .search({
+        q: "*",
+        query_by: "title,content_text",
+        facet_by: "categories,life_events,provider,states",
+        per_page: 0,
+      });
+
+    const facets = {
+      categories: facetsResponse.facet_counts?.find(f => f.field_name === "categories")?.counts || [],
+      life_events: facetsResponse.facet_counts?.find(f => f.field_name === "life_events")?.counts || [],
+      providers: facetsResponse.facet_counts?.find(f => f.field_name === "provider")?.counts || [],
+      states: facetsResponse.facet_counts?.find(f => f.field_name === "states")?.counts || [],
+    };
+
+    // Analyze combinations based on existing filters
+    const suggestions = [];
+    
+    // If no filters applied, suggest top categories
+    if (!existingFilters.category && !existingFilters.life_event && !existingFilters.provider && !existingFilters.state) {
+      const topCategories = facets.categories
+        .sort((a, b) => b.count - a.count)
+        .slice(0, maxOptions)
+        .map(cat => ({
+          type: 'category',
+          value: cat.value,
+          label: cat.value,
+          count: cat.count,
+          description: `${cat.count} results in ${cat.value}`,
+          priority: cat.count // Add priority for consistency
+        }));
+      suggestions.push(...topCategories);
+    } else {
+      // Build current filter conditions for testing combinations
+      const testCombinations = async (filterType, filterValues) => {
+        const results = [];
+        for (const filterValue of filterValues) {
+          // Test this filter combination
+          const testFilters = { ...existingFilters };
+          testFilters[filterType] = filterValue.value;
+
+          const filterConditions = [];
+          if (testFilters.category) filterConditions.push(`categories:=[${testFilters.category}]`);
+          if (testFilters.life_event) filterConditions.push(`life_events:=[${testFilters.life_event}]`);
+          if (testFilters.provider) filterConditions.push(`provider:=${testFilters.provider}`);
+          if (testFilters.state && testFilters.state !== "National") filterConditions.push(`states:=[${testFilters.state}]`);
+          
+          console.log(`Testing combination for ${filterType}=${filterValue.value}:`, filterConditions);
+
+          try {
+            const testResponse = await typesenseClient
+              .collections("content_fragments")
+              .documents()
+              .search({
+                q: "*",
+                query_by: "title,content_text",
+                filter_by: filterConditions.length > 0 ? filterConditions.join(" && ") : undefined,
+                per_page: 0,
+              });
+
+            console.log(`Results for ${filterType}=${filterValue.value}: ${testResponse.found} found`);
+            
+            if (testResponse.found > 0) {
+              results.push({
+                type: filterType,
+                value: filterValue.value,
+                label: filterValue.value,
+                count: testResponse.found,
+                description: `${testResponse.found} results for ${filterValue.value}`,
+                priority: testResponse.found
+              });
+            }
+          } catch (error) {
+            console.error(`Error testing ${filterType}=${filterValue.value}:`, error);
+          }
+        }
+        return results;
+      };
+
+      // Test next logical filter progression with category-specific filtering
+      if (!existingFilters.category) {
+        const categoryOptions = await testCombinations('category', facets.categories.slice(0, 8));
+        suggestions.push(...categoryOptions);
+      } else if (!existingFilters.life_event) {
+        // Filter life events to be more relevant to the selected category
+        let relevantLifeEvents = facets.life_events;
+        
+        // Category-specific life event filtering
+        if (existingFilters.category === 'Family and relationships') {
+          relevantLifeEvents = facets.life_events.filter(le => 
+            le.value.toLowerCase().includes('baby') ||
+            le.value.toLowerCase().includes('marriage') ||
+            le.value.toLowerCase().includes('divorce') ||
+            le.value.toLowerCase().includes('family') ||
+            le.value.toLowerCase().includes('child') ||
+            le.value.toLowerCase().includes('relationship') ||
+            le.value.toLowerCase().includes('caring') ||
+            le.value.toLowerCase().includes('domestic')
+          );
+        } else if (existingFilters.category === 'Health and caring') {
+          relevantLifeEvents = facets.life_events.filter(le => 
+            le.value.toLowerCase().includes('illness') ||
+            le.value.toLowerCase().includes('health') ||
+            le.value.toLowerCase().includes('disability') ||
+            le.value.toLowerCase().includes('mental') ||
+            le.value.toLowerCase().includes('caring') ||
+            le.value.toLowerCase().includes('medical')
+          );
+        } else if (existingFilters.category === 'Work and Money') {
+          relevantLifeEvents = facets.life_events.filter(le => 
+            le.value.toLowerCase().includes('job') ||
+            le.value.toLowerCase().includes('work') ||
+            le.value.toLowerCase().includes('unemploy') ||
+            le.value.toLowerCase().includes('retire') ||
+            le.value.toLowerCase().includes('study') ||
+            le.value.toLowerCase().includes('financial')
+          );
+        } else if (existingFilters.category === 'Housing and Travel') {
+          relevantLifeEvents = facets.life_events.filter(le => 
+            le.value.toLowerCase().includes('moving') ||
+            le.value.toLowerCase().includes('travel') ||
+            le.value.toLowerCase().includes('home') ||
+            le.value.toLowerCase().includes('house') ||
+            le.value.toLowerCase().includes('rental')
+          );
+        }
+        
+        // If no category-specific matches found, use top life events
+        if (relevantLifeEvents.length === 0) {
+          relevantLifeEvents = facets.life_events.slice(0, 8);
+        }
+        
+        const lifeEventOptions = await testCombinations('life_event', relevantLifeEvents.slice(0, 8));
+        suggestions.push(...lifeEventOptions);
+      } else if (!existingFilters.provider) {
+        // Only suggest providers that actually have content for this category + life event combination
+        const providerOptions = await testCombinations('provider', facets.providers.slice(0, 6));
+        suggestions.push(...providerOptions);
+      } else if (!existingFilters.state) {
+        const stateOptions = await testCombinations('state', facets.states.slice(0, 6));
+        suggestions.push(...stateOptions);
+      }
+    }
+
+    // Sort by priority (count) and limit to max_options
+    const finalSuggestions = suggestions
+      .sort((a, b) => b.priority - a.priority)
+      .slice(0, maxOptions);
+
+    const result = {
+      current_filters: existingFilters,
+      suggestions: finalSuggestions,
+      total_available_facets: {
+        categories: facets.categories.length,
+        life_events: facets.life_events.length,
+        providers: facets.providers.length,
+        states: facets.states.length,
+      }
+    };
+    
+    console.log('MCP Analysis result:', JSON.stringify(result, null, 2));
+    
+    res.json(result);
+  } catch (error) {
+    console.error('HTTP Analyze Combinations error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Endpoint for ranking content by relevance
+app.post('/rank-content', async (req, res) => {
+  try {
+    const result = await server.request({
+      method: 'tools/call',
+      params: {
+        name: 'rank_content_by_relevance',
+        arguments: req.body
+      }
+    });
+    
+    // Parse the JSON content from the MCP response
+    const jsonContent = JSON.parse(result.content[0].text);
+    res.json(jsonContent);
+  } catch (error) {
+    console.error('HTTP Rank Content error:', error);
     res.status(500).json({ error: error.message });
   }
 });

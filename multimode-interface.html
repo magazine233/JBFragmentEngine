@@ -242,7 +242,7 @@
                     "Becoming an older Australian",
                     "Accessing aged care",
                 ],
-                "Family and relationships": [
+                "Family and Relationships": [
                     "Getting together",
                     "Making it work",
                     "Breaking up",
@@ -322,7 +322,21 @@
             };
 
             function App() {
-                const [mode, setMode] = useState("browse"); // browse, home, search, chat
+                const [mode, setMode] = useState("guided"); // browse, home, search, chat, guided
+                const [expandedAccordions, setExpandedAccordions] = useState(new Set());
+
+                // Handle accordion toggle
+                const handleAccordionToggle = (accordionId) => {
+                    setExpandedAccordions(prev => {
+                        const newSet = new Set(prev);
+                        if (newSet.has(accordionId)) {
+                            newSet.delete(accordionId);
+                        } else {
+                            newSet.add(accordionId);
+                        }
+                        return newSet;
+                    });
+                };
                 const [facetsData, setFacetsData] = useState(null);
                 const [results, setResults] = useState([]);
                 const [loading, setLoading] = useState(false);
@@ -368,6 +382,31 @@
                 // AI Reordering state
                 const [reorderedResults, setReorderedResults] = useState(null);
                 const [loadingReorder, setLoadingReorder] = useState(false);
+                
+                // Guided Mode Profile Builder state
+                const [userProfile, setUserProfile] = useState({
+                    id: "user_" + Date.now(),
+                    name: "Guest User",
+                    age: null,
+                    income: null,
+                    citizenship: ["Australian"],
+                    residency_state: "National",
+                    employment_status: null,
+                    housing_status: null,
+                    has_children: false,
+                    children: [],
+                    is_carer: false,
+                    has_disability: false,
+                    current_life_events: [],
+                    marital_status: null,
+                    study_status: null,
+                });
+                const [guidedChatMessages, setGuidedChatMessages] = useState([]);
+                const [guidedChatInput, setGuidedChatInput] = useState("");
+                const [currentQuestion, setCurrentQuestion] = useState(0);
+                const [isProfileComplete, setIsProfileComplete] = useState(false);
+                const [matchedServices, setMatchedServices] = useState([]);
+                const [loadingServices, setLoadingServices] = useState(false);
                 
                 // Function to parse markdown to HTML
                 const parseMarkdown = (text) => {
@@ -555,6 +594,582 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                     return null; // Return null if reordering fails
                 };
 
+                // Profile Building Questions
+                const profileQuestions = [
+                    {
+                        id: 'age',
+                        question: "Hi! I'm here to help you find the government services you're eligible for. Let's start with some basic information. How old are you?",
+                        type: 'number',
+                        field: 'age',
+                        validation: (value) => value > 0 && value < 120,
+                        followUp: (age) => age < 25 ? "Great! There are specific services available for young people." : age >= 67 ? "There are specific services for older Australians." : "Thanks!"
+                    },
+                    {
+                        id: 'employment',
+                        question: "What's your current employment status?",
+                        type: 'choice',
+                        field: 'employment_status',
+                        options: [
+                            { value: 'employed', label: 'Employed full-time' },
+                            { value: 'part_time', label: 'Employed part-time' },
+                            { value: 'casual', label: 'Casual employment' },
+                            { value: 'unemployed', label: 'Unemployed/Looking for work' },
+                            { value: 'student', label: 'Student' },
+                            { value: 'retired', label: 'Retired' },
+                            { value: 'self_employed', label: 'Self-employed' },
+                            { value: 'unable_to_work', label: 'Unable to work due to illness/disability' }
+                        ]
+                    },
+                    {
+                        id: 'income',
+                        question: "What's your approximate annual income before tax? (You can skip this if you prefer)",
+                        type: 'number',
+                        field: 'income',
+                        optional: true,
+                        prefix: '$',
+                        followUp: (income) => income && income < 30000 ? "You may be eligible for low-income support services." : ""
+                    },
+                    {
+                        id: 'housing',
+                        question: "What's your housing situation?",
+                        type: 'choice',
+                        field: 'housing_status',
+                        options: [
+                            { value: 'owner', label: "I own my home" },
+                            { value: 'buying', label: "I'm paying off a mortgage" },
+                            { value: 'renting_private', label: 'Renting privately' },
+                            { value: 'renting_public', label: 'Public/social housing' },
+                            { value: 'staying_with_others', label: 'Staying with family/friends' },
+                            { value: 'homeless', label: 'No fixed address/experiencing homelessness' }
+                        ]
+                    },
+                    {
+                        id: 'family',
+                        question: "Do you have children under 18 living with you?",
+                        type: 'boolean',
+                        field: 'has_children',
+                        followUpQuestion: {
+                            condition: true,
+                            question: "How many children do you have?",
+                            type: 'number',
+                            field: 'children_count'
+                        }
+                    },
+                    {
+                        id: 'carer',
+                        question: "Are you a carer for someone (like a family member with disability, illness, or an elderly person)?",
+                        type: 'boolean',
+                        field: 'is_carer',
+                        followUp: (isCarer) => isCarer ? "There are specific support services available for carers." : ""
+                    },
+                    {
+                        id: 'disability',
+                        question: "Do you have a disability or long-term health condition that affects your daily life?",
+                        type: 'boolean',
+                        field: 'has_disability',
+                        followUp: (hasDisability) => hasDisability ? "There are support services and payments available for people with disabilities." : ""
+                    },
+                    {
+                        id: 'life_events',
+                        question: "Are you currently experiencing any of these life events?",
+                        type: 'multiple_choice',
+                        field: 'current_life_events',
+                        options: [
+                            { value: 'having_baby', label: 'Having a baby' },
+                            { value: 'relationship_change', label: 'Relationship breakdown/divorce' },
+                            { value: 'job_loss', label: 'Lost my job recently' },
+                            { value: 'starting_work', label: 'Starting a new job' },
+                            { value: 'moving_house', label: 'Moving house' },
+                            { value: 'studying', label: 'Starting or continuing studies' },
+                            { value: 'health_change', label: 'Significant health change' },
+                            { value: 'domestic_violence', label: 'Experiencing domestic violence' },
+                            { value: 'none', label: 'None of these apply to me' }
+                        ]
+                    }
+                ];
+
+                // Initialize chat with first question
+                useEffect(() => {
+                    if (mode === "guided" && guidedChatMessages.length === 0) {
+                        setGuidedChatMessages([{
+                            type: 'assistant',
+                            text: profileQuestions[0].question,
+                            id: `msg-${Date.now()}`
+                        }]);
+                    }
+                }, [mode]);
+
+                // Handle chat responses and profile building
+                const handleChatResponse = (response) => {
+                    const question = profileQuestions[currentQuestion];
+                    if (!question) return;
+
+                    // Add user message
+                    const userMessage = {
+                        type: 'user',
+                        text: response,
+                        id: `msg-${Date.now()}`
+                    };
+                    
+                    // Update profile
+                    const updatedProfile = { ...userProfile };
+                    
+                    if (question.type === 'choice' || question.type === 'boolean') {
+                        updatedProfile[question.field] = response;
+                    } else if (question.type === 'number') {
+                        updatedProfile[question.field] = parseInt(response);
+                    } else if (question.type === 'multiple_choice') {
+                        updatedProfile[question.field] = Array.isArray(response) ? response : [response];
+                    }
+
+                    setUserProfile(updatedProfile);
+                    
+                    // Generate assistant response
+                    let assistantText = "";
+                    if (question.followUp && typeof question.followUp === 'function') {
+                        assistantText = question.followUp(response);
+                    }
+                    
+                    // Move to next question
+                    const nextQuestionIndex = currentQuestion + 1;
+                    
+                    if (nextQuestionIndex < profileQuestions.length) {
+                        if (assistantText) {
+                            assistantText += " ";
+                        }
+                        assistantText += profileQuestions[nextQuestionIndex].question;
+                        setCurrentQuestion(nextQuestionIndex);
+                    } else {
+                        // Profile complete
+                        if (assistantText) {
+                            assistantText += " ";
+                        }
+                        assistantText += "Perfect! I've gathered all the information I need. Let me find services that match your situation...";
+                        setIsProfileComplete(true);
+                        setTimeout(() => matchServices(updatedProfile), 1000);
+                    }
+
+                    const assistantMessage = {
+                        type: 'assistant',
+                        text: assistantText,
+                        id: `msg-${Date.now() + 1}`
+                    };
+
+                    setGuidedChatMessages(prev => [...prev, userMessage, assistantMessage]);
+                };
+
+                // Match services based on profile
+                const matchServices = async (profile) => {
+                    setLoadingServices(true);
+                    
+                    // Build broader category-based search criteria (more flexible approach)
+                    const relevantCategories = new Set();
+                    
+                    // Age-based categories
+                    if (profile.age < 25) {
+                        relevantCategories.add("Education and identity");
+                        relevantCategories.add("Work and Money");
+                    } else if (profile.age >= 67) {
+                        relevantCategories.add("Health and caring");
+                    }
+
+                    // Employment-based categories
+                    if (profile.employment_status === 'unemployed' || profile.employment_status === 'student') {
+                        relevantCategories.add("Work and Money");
+                    }
+
+                    // Family-based categories
+                    if (profile.has_children) {
+                        relevantCategories.add("Family and Relationships");
+                    }
+
+                    // Housing-based categories
+                    if (profile.housing_status === 'homeless' || profile.housing_status === 'renting_private') {
+                        relevantCategories.add("Housing and Travel");
+                    }
+
+                    // Disability/health-based categories
+                    if (profile.has_disability) {
+                        relevantCategories.add("Health and caring");
+                    }
+
+                    // Carer-based categories
+                    if (profile.is_carer) {
+                        relevantCategories.add("Health and caring");
+                        relevantCategories.add("Family and Relationships");
+                    }
+
+                    // Life event categories
+                    if (profile.current_life_events && profile.current_life_events.length > 0) {
+                        profile.current_life_events.forEach(event => {
+                            if (event === 'having_baby') {
+                                relevantCategories.add("Family and Relationships");
+                            } else if (event === 'job_loss' || event === 'starting_work') {
+                                relevantCategories.add("Work and Money");
+                            } else if (event === 'health_change') {
+                                relevantCategories.add("Health and caring");
+                            } else if (event === 'moving_house') {
+                                relevantCategories.add("Housing and Travel");
+                            } else if (event === 'studying') {
+                                relevantCategories.add("Education and identity");
+                            } else if (event === 'relationship_change') {
+                                relevantCategories.add("Family and Relationships");
+                            }
+                        });
+                    }
+
+                    // If no specific criteria, include basic categories everyone might need
+                    if (relevantCategories.size === 0) {
+                        relevantCategories.add("Health and caring");
+                        relevantCategories.add("Work and Money");
+                    }
+
+                    // Search for services in each relevant category
+                    let allServices = [];
+                    
+                    try {
+                        for (const category of Array.from(relevantCategories)) {
+                            const params = new URLSearchParams({
+                                q: "*",
+                                include_html: "true",
+                                per_page: "15", // Get more results per category
+                            });
+
+                            params.append("category", category);
+
+                            const response = await fetch(`${API_ENDPOINTS.search}?${params}`);
+                            if (response.ok) {
+                                const data = await response.json();
+                                console.log(`Search results for category "${category}":`, data.found, 'results found');
+                                if (data.results) {
+                                    // Process each result and add eligibility scoring
+                                    const processedResults = data.results.map((hit) => ({
+                                        id: hit.document.id,
+                                        url: hit.document.url,
+                                        title: hit.document.title,
+                                        description: hit.document.content_text,
+                                        content_html: hit.document.content_html,
+                                        category: hit.document.categories?.[0] || category,
+                                        lifeEvent: hit.document.life_events?.[0] || "General",
+                                        provider: hit.document.provider || "Services Australia",
+                                        state: hit.document.states?.[0] || "National",
+                                        document: hit.document,
+                                        // Add eligibility scoring
+                                        eligibility_score: calculateEligibilityScore(hit.document, profile),
+                                        match_reason: getMatchReason(hit.document, profile, { category })
+                                    }));
+                                    
+                                    allServices.push(...processedResults);
+                                }
+                            }
+                        }
+
+                        // Remove duplicates and sort by score
+                        const uniqueServices = allServices.filter((service, index, self) => 
+                            index === self.findIndex(s => s.id === service.id)
+                        );
+                        
+                        const topServices = uniqueServices
+                            .sort((a, b) => b.eligibility_score - a.eligibility_score)
+                            .slice(0, 8);
+
+                        console.log('Matched services:', topServices);
+                        console.log('First service details:', topServices[0]);
+                        setMatchedServices(topServices);
+
+                        // Add completion message
+                        const completionMessage = {
+                            type: 'assistant',
+                            text: `Great! I found ${topServices.length} services that match your situation. These are personalized recommendations based on your profile.`,
+                            id: `msg-${Date.now()}`
+                        };
+                        setGuidedChatMessages(prev => [...prev, completionMessage]);
+
+                    } catch (error) {
+                        console.error('Error matching services:', error);
+                        const errorMessage = {
+                            type: 'assistant',
+                            text: "I encountered an issue finding services. Please try again or use the Browse mode to explore available services.",
+                            id: `msg-${Date.now()}`
+                        };
+                        setGuidedChatMessages(prev => [...prev, errorMessage]);
+                    }
+
+                    setLoadingServices(false);
+                };
+
+                // Calculate eligibility score based on profile
+                const calculateEligibilityScore = (service, profile) => {
+                    let score = 0.5; // Base score
+
+                    // Age matching
+                    if (service.title && profile.age) {
+                        if (profile.age < 25 && (service.title.toLowerCase().includes('youth') || service.title.toLowerCase().includes('young'))) {
+                            score += 0.3;
+                        } else if (profile.age >= 67 && (service.title.toLowerCase().includes('age') || service.title.toLowerCase().includes('pension'))) {
+                            score += 0.3;
+                        }
+                    }
+
+                    // Employment matching
+                    if (profile.employment_status === 'unemployed' && service.title && 
+                        (service.title.toLowerCase().includes('job') || service.title.toLowerCase().includes('work') || service.title.toLowerCase().includes('seek'))) {
+                        score += 0.2;
+                    }
+
+                    // Family matching
+                    if (profile.has_children && service.title &&
+                        (service.title.toLowerCase().includes('family') || service.title.toLowerCase().includes('child') || service.title.toLowerCase().includes('parent'))) {
+                        score += 0.2;
+                    }
+
+                    return Math.min(score, 1.0);
+                };
+
+                // Get human-readable match reason
+                const getMatchReason = (service, profile, criterion) => {
+                    const reasons = [];
+                    
+                    if (criterion.life_event) {
+                        reasons.push(`Relevant for: ${criterion.life_event}`);
+                    }
+                    if (profile.employment_status === 'unemployed') {
+                        reasons.push("Job seeker support");
+                    }
+                    if (profile.has_children) {
+                        reasons.push("Family support");
+                    }
+                    if (profile.age < 25) {
+                        reasons.push("Youth services");
+                    }
+                    if (profile.age >= 67) {
+                        reasons.push("Senior services");
+                    }
+
+                    return reasons.length > 0 ? reasons.join(", ") : "General eligibility";
+                };
+
+                // Guided Mode: Get AI-suggested filter options using MCP
+                const getGuidedOptions = async (currentProfile = {}) => {
+                    setLoadingGuidedOptions(true);
+                    try {
+                        // Use MCP server directly to analyze filter combinations
+                        const response = await fetch('http://localhost:8081/analyze-combinations', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                            },
+                            body: JSON.stringify({
+                                existing_filters: currentProfile,
+                                max_options: 6
+                            })
+                        });
+
+                        if (response.ok) {
+                            const data = await response.json();
+                            console.log('MCP Analysis result:', data);
+                            
+                            // Convert MCP suggestions to UI options
+                            const mcpOptions = data.suggestions || [];
+                            const uiOptions = mcpOptions.map((suggestion, index) => ({
+                                id: `${suggestion.type}-${index}`,
+                                label: suggestion.label,
+                                description: suggestion.description,
+                                type: suggestion.type,
+                                value: suggestion.value,
+                                count: suggestion.count
+                            }));
+                            
+                            setGuidedOptions(uiOptions);
+                        } else {
+                            throw new Error(`MCP server error: ${response.status}`);
+                        }
+                    } catch (error) {
+                        console.error('Error getting guided options from MCP:', error);
+                        
+                        // Fallback: Use real Typesense facets instead of made-up options
+                        try {
+                            const facetsResponse = await fetch(API_ENDPOINTS.facets);
+                            if (facetsResponse.ok) {
+                                const facetsData = await facetsResponse.json();
+                                console.log('Facets data structure:', facetsData);
+                                let fallbackOptions = [];
+                                
+                                if (!currentProfile.category) {
+                                    // Show real categories from Typesense (it's an array, not object)
+                                    fallbackOptions = (facetsData.categories || []).slice(0, 6).map((cat) => ({
+                                        id: cat.value.toLowerCase().replace(/\s+/g, '-'),
+                                        label: cat.value,
+                                        type: 'category',
+                                        value: cat.value,
+                                        description: `${cat.count} results available`,
+                                        count: cat.count
+                                    }));
+                                } else if (!currentProfile.life_event) {
+                                    // Show real life events from Typesense (it's an array, not object)
+                                    // Filter life events for the selected category like the working Browse mode does
+                                    const allowedEvents = categoryToLifeEvents[currentProfile.category] || [];
+                                    const filteredLifeEvents = facetsData.life_events
+                                        ?.filter((event) => allowedEvents.includes(event.value))
+                                        ?.sort((a, b) => b.count - a.count) || [];
+                                    
+                                    fallbackOptions = filteredLifeEvents.slice(0, 6).map((event) => ({
+                                        id: event.value.toLowerCase().replace(/\s+/g, '-'),
+                                        label: event.value,
+                                        type: 'life_event',
+                                        value: event.value,
+                                        description: `${event.count} results for this situation`,
+                                        count: event.count
+                                    }));
+                                    
+                                    // If no category-specific life events, show top general ones
+                                    if (fallbackOptions.length === 0) {
+                                        fallbackOptions = (facetsData.life_events || []).slice(0, 6).map((event) => ({
+                                            id: event.value.toLowerCase().replace(/\s+/g, '-'),
+                                            label: event.value,
+                                            type: 'life_event',
+                                            value: event.value,
+                                            description: `${event.count} results for this situation`,
+                                            count: event.count
+                                        }));
+                                    }
+                                } else {
+                                    // Show real providers from Typesense (it's an array, not object)
+                                    fallbackOptions = (facetsData.providers || []).slice(0, 4).map((provider) => ({
+                                        id: provider.value.toLowerCase().replace(/\s+/g, '-'),
+                                        label: provider.value,
+                                        type: 'provider',
+                                        value: provider.value,
+                                        description: `${provider.count} results from this provider`,
+                                        count: provider.count
+                                    }));
+                                }
+                                
+                                setGuidedOptions(fallbackOptions);
+                            } else {
+                                // Ultimate fallback - minimal hardcoded options
+                                setGuidedOptions([
+                                    { id: 'family', label: 'Family and relationships', type: 'category', value: 'Family and relationships', description: 'Family results' },
+                                    { id: 'health', label: 'Health and caring', type: 'category', value: 'Health and caring', description: 'Health results' },
+                                    { id: 'work', label: 'Work and Money', type: 'category', value: 'Work and Money', description: 'Employment and financial results' }
+                                ]);
+                            }
+                        } catch (facetsError) {
+                            console.error('Error loading facets for fallback:', facetsError);
+                            setGuidedOptions([]);
+                        }
+                    }
+                    setLoadingGuidedOptions(false);
+                };
+
+                // Load and filter results for guided mode
+                const loadGuidedResults = async (profile) => {
+                    console.log('Loading guided results for profile:', profile);
+                    setLoading(true);
+                    setError(null);
+                    setResults([]);
+                    setReorderedResults(null);
+
+                    try {
+                        const params = new URLSearchParams({
+                            q: "*", // Get all content
+                            include_html: "true",
+                            per_page: "100",
+                        });
+
+                        // Add filters based on guided profile
+                        // Note: Use snake_case like Browse mode (life_event not lifeEvent)
+                        if (profile.category) {
+                            params.append("category", profile.category);
+                        }
+                        if (profile.life_event) {
+                            params.append("life_event", profile.life_event); // Use snake_case like Browse mode
+                        }
+                        if (profile.provider && profile.provider !== "All providers") {
+                            params.append("provider", profile.provider);
+                        }
+                        if (profile.state && profile.state !== "All states") {
+                            params.append("state", profile.state);
+                        }
+
+                        const apiUrl = `${API_ENDPOINTS.search}?${params}`;
+                        console.log('API URL:', apiUrl);
+                        const response = await fetch(apiUrl);
+                        
+                        if (!response.ok) {
+                            throw new Error("Failed to load results");
+                        }
+
+                        const data = await response.json();
+                        console.log('API response data:', data);
+                        
+                        // Temporarily disable filtering to see if that's the issue
+                        const filteredResults = data.results || [];
+                        
+                        // TODO: Re-enable filtering once we confirm search is working
+                        // const filteredResults = data.results.filter(item => {
+                        //     const title = (item.title || '').toLowerCase().trim();
+                        //     const content = (item.description || '').toLowerCase().trim();
+                        //     const htmlContent = (item.content_html || '').trim();
+                        //     
+                        //     // Skip if no meaningful content
+                        //     if (!title && !content && !htmlContent) return false;
+                        //     
+                        //     // Skip obvious non-content items
+                        //     const isNonContent = 
+                        //         title === 'footer' ||
+                        //         title === 'navigation' ||
+                        //         title === 'menu' ||
+                        //         title === 'header' ||
+                        //         (content.includes('terms of use') && content.includes('privacy')) ||
+                        //         (title.includes('sign in') && content.includes('password'));
+                        //
+                        //     // Keep items that have meaningful content
+                        //     const hasContent = title.length > 3 || content.length > 20 || htmlContent.length > 50;
+                        //
+                        //     return !isNonContent && hasContent;
+                        // });
+
+                        console.log('Total results from API:', data.results.length);
+                        console.log('Filtered results:', filteredResults.length);
+                        console.log('Sample results:', filteredResults.slice(0, 3).map(r => ({ 
+                            title: r.title, 
+                            desc: r.description?.substring(0, 100),
+                            content_html: r.content_html ? 'HAS HTML' : 'NO HTML',
+                            url: r.url 
+                        })));
+                        console.log('Full first result:', filteredResults[0]);
+
+                        // Process results similar to the normal loadResults function
+                        const processedResults = filteredResults.map((item) => ({
+                            id: item.id,
+                            title: item.title,
+                            description: item.description,
+                            content_html: item.content_html,
+                            url: item.url,
+                            category: item.category,
+                            life_event: item.life_event || "General",
+                            provider: item.provider || "Services Australia",
+                            state: item.state || "National",
+                            hierarchy: item.hierarchy_lvl0 || item.title,
+                            document: item
+                        }));
+
+                        setResults(processedResults);
+
+                        // Apply AI reordering for guided mode (same as home mode)
+                        if (processedResults.length > 0) {
+                            reorderContentForFlow(processedResults);
+                        }
+
+                    } catch (error) {
+                        console.error('Error loading guided results:', error);
+                        setError("Failed to load personalized results. Please try again.");
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
                 // Progress tracking
                 const [completedTasks, setCompletedTasks] = useState([]);
 
@@ -578,6 +1193,8 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                         }
                     }
                 }, [selections, mode]);
+
+                // Note: Old guided options useEffect removed - now using chat-based approach
 
                 const loadFacets = async () => {
                     try {
@@ -942,10 +1559,10 @@ Remember to:
 
                 const iconMap = {
                     "Health and caring": "favorite",
-                    "Family and relationships": "people",
-                    "Work and money": "attach_money",
-                    "Housing and travel": "home",
-                    "Disasters and crime": "warning",
+                    "Family and Relationships": "people",
+                    "Work and Money": "attach_money",
+                    "Housing and Travel": "home",
+                    "Disasters and Crime": "warning",
                     "Education and identity": "school",
                     "Having a baby": "child_friendly",
                     "Growing up": "child_care",
@@ -995,6 +1612,16 @@ Remember to:
                                         "& .Mui-selected": { color: "#1976d2" },
                                     }}
                                 >
+                                    <Tab 
+                                        label="Guided" 
+                                        value="guided"
+                                        icon={
+                                            <span className="material-icons">
+                                                psychology
+                                            </span>
+                                        }
+                                        iconPosition="end"
+                                    />
                                     <Tab label="Home" value="home" />
                                     <Tab label="Browse" value="browse" />
                                     <Tab
@@ -1379,6 +2006,260 @@ Remember to:
                                         )}
                                     </Box>
                                 </Paper>
+                            )}
+
+                            {/* Guided Mode - Chat-based Profile Builder */}
+                            {mode === "guided" && (
+                                <Box sx={{ display: 'flex', height: '70vh', bgcolor: '#f9f9f9', borderRadius: 2, overflow: 'hidden' }}>
+                                    {/* Chat Area */}
+                                    <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                                        {/* Chat Messages */}
+                                        <Box 
+                                            sx={{ 
+                                                flex: 1, 
+                                                overflow: 'auto', 
+                                                p: 2,
+                                                display: 'flex',
+                                                flexDirection: 'column',
+                                                gap: 2
+                                            }}
+                                        >
+                                            {guidedChatMessages.map((msg) => (
+                                                <Box 
+                                                    key={msg.id}
+                                                    sx={{ 
+                                                        display: 'flex',
+                                                        justifyContent: msg.type === 'user' ? 'flex-end' : 'flex-start',
+                                                        mb: 1
+                                                    }}
+                                                >
+                                                    <Paper 
+                                                        sx={{ 
+                                                            p: 2, 
+                                                            maxWidth: '70%',
+                                                            bgcolor: msg.type === 'user' ? 'primary.main' : 'white',
+                                                            color: msg.type === 'user' ? 'white' : 'text.primary',
+                                                            borderRadius: 2
+                                                        }}
+                                                    >
+                                                        <Typography variant="body1">
+                                                            {msg.text}
+                                                        </Typography>
+                                                    </Paper>
+                                                </Box>
+                                            ))}
+                                            
+                                            {loadingServices && (
+                                                <Box sx={{ display: 'flex', justifyContent: 'flex-start', mb: 1 }}>
+                                                    <Paper sx={{ p: 2, bgcolor: 'white', borderRadius: 2 }}>
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <CircularProgress size={20} />
+                                                            <Typography variant="body1">
+                                                                Finding services for you...
+                                                            </Typography>
+                                                        </Box>
+                                                    </Paper>
+                                                </Box>
+                                            )}
+                                        </Box>
+
+                                        {/* Chat Input Area */}
+                                        {!isProfileComplete && (
+                                            <Box sx={{ p: 2, borderTop: '1px solid #eee', bgcolor: 'white' }}>
+                                                {profileQuestions[currentQuestion]?.type === 'choice' && (
+                                                    <Box sx={{ mb: 2 }}>
+                                                        <Grid container spacing={1}>
+                                                            {profileQuestions[currentQuestion].options.map((option) => (
+                                                                <Grid item xs={12} sm={6} key={option.value}>
+                                                                    <Button
+                                                                        fullWidth
+                                                                        variant="outlined"
+                                                                        onClick={() => handleChatResponse(option.value)}
+                                                                        sx={{ 
+                                                                            justifyContent: 'flex-start',
+                                                                            textAlign: 'left',
+                                                                            py: 1
+                                                                        }}
+                                                                    >
+                                                                        {option.label}
+                                                                    </Button>
+                                                                </Grid>
+                                                            ))}
+                                                        </Grid>
+                                                    </Box>
+                                                )}
+
+                                                {profileQuestions[currentQuestion]?.type === 'boolean' && (
+                                                    <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+                                                        <Button
+                                                            variant="contained"
+                                                            onClick={() => handleChatResponse('true')}
+                                                        >
+                                                            Yes
+                                                        </Button>
+                                                        <Button
+                                                            variant="outlined"
+                                                            onClick={() => handleChatResponse('false')}
+                                                        >
+                                                            No
+                                                        </Button>
+                                                    </Box>
+                                                )}
+
+                                                {profileQuestions[currentQuestion]?.type === 'multiple_choice' && (
+                                                    <Box sx={{ mb: 2 }}>
+                                                        <Grid container spacing={1}>
+                                                            {profileQuestions[currentQuestion].options.map((option) => (
+                                                                <Grid item xs={12} sm={6} key={option.value}>
+                                                                    <Button
+                                                                        fullWidth
+                                                                        variant="outlined"
+                                                                        onClick={() => {
+                                                                            if (option.value === 'none') {
+                                                                                handleChatResponse([]);
+                                                                            } else {
+                                                                                handleChatResponse([option.value]);
+                                                                            }
+                                                                        }}
+                                                                        sx={{ 
+                                                                            justifyContent: 'flex-start',
+                                                                            textAlign: 'left',
+                                                                            py: 1
+                                                                        }}
+                                                                    >
+                                                                        {option.label}
+                                                                    </Button>
+                                                                </Grid>
+                                                            ))}
+                                                        </Grid>
+                                                    </Box>
+                                                )}
+
+                                                {profileQuestions[currentQuestion]?.type === 'number' && (
+                                                    <Box sx={{ mb: 2, display: 'flex', gap: 2 }}>
+                                                        <TextField
+                                                            fullWidth
+                                                            type="number"
+                                                            value={guidedChatInput}
+                                                            onChange={(e) => setGuidedChatInput(e.target.value)}
+                                                            onKeyPress={(e) => {
+                                                                if (e.key === 'Enter' && guidedChatInput.trim()) {
+                                                                    handleChatResponse(guidedChatInput.trim());
+                                                                    setGuidedChatInput('');
+                                                                }
+                                                            }}
+                                                            placeholder="Enter your answer..."
+                                                            InputProps={{
+                                                                startAdornment: profileQuestions[currentQuestion].prefix && (
+                                                                    <InputAdornment position="start">
+                                                                        {profileQuestions[currentQuestion].prefix}
+                                                                    </InputAdornment>
+                                                                ),
+                                                            }}
+                                                        />
+                                                        <Button
+                                                            variant="contained"
+                                                            onClick={() => {
+                                                                if (guidedChatInput.trim()) {
+                                                                    handleChatResponse(guidedChatInput.trim());
+                                                                    setGuidedChatInput('');
+                                                                }
+                                                            }}
+                                                            disabled={!guidedChatInput.trim()}
+                                                        >
+                                                            Send
+                                                        </Button>
+                                                        {profileQuestions[currentQuestion].optional && (
+                                                            <Button
+                                                                variant="outlined"
+                                                                onClick={() => {
+                                                                    handleChatResponse('');
+                                                                    setGuidedChatInput('');
+                                                                }}
+                                                            >
+                                                                Skip
+                                                            </Button>
+                                                        )}
+                                                    </Box>
+                                                )}
+                                            </Box>
+                                        )}
+                                    </Box>
+
+                                    {/* Results Panel */}
+                                    {isProfileComplete && matchedServices.length > 0 && (
+                                        <Box sx={{ width: '50%', borderLeft: '1px solid #eee', bgcolor: 'white' }}>
+                                            <Box sx={{ p: 2, borderBottom: '1px solid #eee' }}>
+                                                <Typography variant="h6" gutterBottom>
+                                                    Your Personalized Services
+                                                </Typography>
+                                                <Typography variant="body2" color="text.secondary">
+                                                    Based on your profile, here are the services most relevant to you:
+                                                </Typography>
+                                            </Box>
+                                            
+                                            <Box sx={{ overflow: 'auto', height: 'calc(70vh - 80px)', p: 2 }}>
+                                                <Stack spacing={2}>
+                                                    {matchedServices.map((service) => (
+                                                        <Card key={service.id} sx={{ border: '1px solid #eee' }}>
+                                                            <CardContent sx={{ pb: 1 }}>
+                                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 1 }}>
+                                                                    <Typography variant="h6" sx={{ fontSize: '1rem' }}>
+                                                                        {service.title || 'Government Service'}
+                                                                    </Typography>
+                                                                    <Chip 
+                                                                        label={`${Math.round(service.eligibility_score * 100)}% Match`}
+                                                                        color={service.eligibility_score > 0.8 ? 'success' : service.eligibility_score > 0.6 ? 'warning' : 'default'}
+                                                                        size="small"
+                                                                    />
+                                                                </Box>
+                                                                
+                                                                <Typography variant="body2" color="text.secondary" gutterBottom>
+                                                                    {service.provider || 'Services Australia'}
+                                                                </Typography>
+                                                                
+                                                                <Typography variant="body2" paragraph>
+                                                                    {service.description ? 
+                                                                        (service.description.length > 150 ? 
+                                                                            service.description.substring(0, 150) + '...' : 
+                                                                            service.description) :
+                                                                        'This service may be relevant to your current situation. Click "Learn More" for full details.'
+                                                                    }
+                                                                </Typography>
+                                                                
+                                                                <Typography variant="caption" color="primary" gutterBottom sx={{ display: 'block' }}>
+                                                                    Why this matches: {service.match_reason}
+                                                                </Typography>
+                                                                
+                                                                {service.url ? (
+                                                                    <Button 
+                                                                        size="small" 
+                                                                        variant="contained"
+                                                                        href={service.url}
+                                                                        target="_blank"
+                                                                        rel="noopener noreferrer"
+                                                                        sx={{ mt: 1 }}
+                                                                    >
+                                                                        Learn More
+                                                                    </Button>
+                                                                ) : (
+                                                                    <Button 
+                                                                        size="small" 
+                                                                        variant="outlined"
+                                                                        disabled
+                                                                        sx={{ mt: 1 }}
+                                                                    >
+                                                                        Details Not Available
+                                                                    </Button>
+                                                                )}
+                                                            </CardContent>
+                                                        </Card>
+                                                    ))}
+                                                </Stack>
+                                            </Box>
+                                        </Box>
+                                    )}
+                                </Box>
                             )}
 
                             {/* Chat Mode */}
@@ -1782,26 +2663,34 @@ Remember to:
                                                     ([
                                                         category,
                                                         eventGroups,
-                                                    ]) => (
-                                                        <Box
-                                                            key={category}
-                                                            sx={{ mb: 5 }}
-                                                        >
-                                                            {/* H2 - Category */}
-                                                            <Typography
-                                                                variant="h4"
-                                                                component="h2"
-                                                                gutterBottom
-                                                                sx={{
-                                                                    fontWeight: 500,
-                                                                    borderBottom:
-                                                                        "2px solid #e0e0e0",
-                                                                    pb: 1,
-                                                                    mb: 3,
-                                                                }}
+                                                    ]) => {
+                                                        const categoryId = `category-${category.replace(/\s+/g, '-')}`;
+                                                        return (
+                                                            <Accordion
+                                                                key={category}
+                                                                expanded={expandedAccordions.has(categoryId)}
+                                                                onChange={() => handleAccordionToggle(categoryId)}
+                                                                sx={{ mb: 2 }}
                                                             >
-                                                                {category}
-                                                            </Typography>
+                                                                <AccordionSummary
+                                                                    expandIcon={<span>▼</span>}
+                                                                    sx={{
+                                                                        '& .MuiAccordionSummary-content': {
+                                                                            my: 1,
+                                                                        },
+                                                                    }}
+                                                                >
+                                                                    <Typography
+                                                                        variant="h4"
+                                                                        component="h2"
+                                                                        sx={{
+                                                                            fontWeight: 500,
+                                                                        }}
+                                                                    >
+                                                                        {category}
+                                                                    </Typography>
+                                                                </AccordionSummary>
+                                                                <AccordionDetails>
 
                                                             {Object.entries(
                                                                 eventGroups,
@@ -1809,66 +2698,41 @@ Remember to:
                                                                 ([
                                                                     event,
                                                                     pageGroups,
-                                                                ]) => (
-                                                                    <Box
-                                                                        key={
-                                                                            event
-                                                                        }
-                                                                        sx={{
-                                                                            mb: 4,
-                                                                        }}
-                                                                    >
-                                                                        {/* H3 - Life Event (only if different from selection) */}
-                                                                        {event !==
-                                                                            selections.lifeEvent && (
-                                                                            <Typography
-                                                                                variant="h5"
-                                                                                component="h3"
-                                                                                gutterBottom
-                                                                                sx={{
-                                                                                    fontWeight: 500,
-                                                                                    color: "#1976d2",
-                                                                                    mb: 2,
-                                                                                }}
-                                                                            >
-                                                                                {
-                                                                                    event
-                                                                                }
-                                                                            </Typography>
-                                                                        )}
-
-                                                                        {Object.entries(
-                                                                            pageGroups,
-                                                                        ).map(
-                                                                            ([
-                                                                                pageTitle,
-                                                                                items,
-                                                                            ]) => (
-                                                                                <Box
-                                                                                    key={
-                                                                                        pageTitle
-                                                                                    }
-                                                                                    sx={{
-                                                                                        mb: 3,
-                                                                                    }}
+                                                                ]) => {
+                                                                    const eventId = `event-${category.replace(/\s+/g, '-')}-${event.replace(/\s+/g, '-')}`;
+                                                                    return (
+                                                                        <Box key={event} sx={{ mb: 2 }}>
+                                                                            {/* H3 - Life Event (only if different from selection) */}
+                                                                            {event !== selections.lifeEvent && (
+                                                                                <Accordion
+                                                                                    expanded={expandedAccordions.has(eventId)}
+                                                                                    onChange={() => handleAccordionToggle(eventId)}
+                                                                                    sx={{ mb: 1 }}
                                                                                 >
-                                                                                    {/* H4 - Page Title */}
-                                                                                    <Typography
-                                                                                        variant="h6"
-                                                                                        component="h4"
-                                                                                        gutterBottom
+                                                                                    <AccordionSummary
+                                                                                        expandIcon={<span>▼</span>}
                                                                                         sx={{
-                                                                                            fontWeight: 500,
-                                                                                            mb: 2,
+                                                                                            '& .MuiAccordionSummary-content': {
+                                                                                                my: 0.5,
+                                                                                            },
                                                                                         }}
                                                                                     >
-                                                                                        {
-                                                                                            pageTitle
-                                                                                        }
-                                                                                    </Typography>
-
-                                                                                    {/* Render content fragments as they originally appeared */}
-                                                                                    {items.map(
+                                                                                        <Typography
+                                                                                            variant="h5"
+                                                                                            component="h3"
+                                                                                            sx={{
+                                                                                                fontWeight: 500,
+                                                                                                color: "#1976d2",
+                                                                                            }}
+                                                                                        >
+                                                                                            {event}
+                                                                                        </Typography>
+                                                                                    </AccordionSummary>
+                                                                                    <AccordionDetails>
+                                                                                        {Object.entries(pageGroups).map(([pageTitle, items]) => (
+                                                                                            <Box key={pageTitle} sx={{ mb: 3 }}>
+                                                                                                {/* Render content fragments as they originally appeared */}
+                                                                                                {items.map(
                                                                                         (
                                                                                             item,
                                                                                         ) => (
@@ -1913,15 +2777,6 @@ Remember to:
                                                                                                     }}
                                                                                                 >
                                                                                                     Source:{" "}
-                                                                                                    {
-                                                                                                        item.provider
-                                                                                                    }
-                                                                                                    {item.state !==
-                                                                                                        "National" &&
-                                                                                                        ` (${item.state})`}
-                                                                                                    {
-                                                                                                        " - "
-                                                                                                    }
                                                                                                     <Link
                                                                                                         href={
                                                                                                             item.url
@@ -1929,23 +2784,86 @@ Remember to:
                                                                                                         target="_blank"
                                                                                                         sx={{
                                                                                                             color: "inherit",
+                                                                                                            textDecoration: "underline",
                                                                                                         }}
                                                                                                     >
-                                                                                                        View
-                                                                                                        original
+                                                                                                        {pageTitle} | {item.provider}
                                                                                                     </Link>
                                                                                                 </Typography>
                                                                                             </Box>
                                                                                         ),
                                                                                     )}
-                                                                                </Box>
-                                                                            ),
-                                                                        )}
-                                                                    </Box>
-                                                                ),
+                                                                                            </Box>
+                                                                                        ))}
+                                                                                    </AccordionDetails>
+                                                                                </Accordion>
+                                                                            )}
+                                                                            
+                                                                            {/* Handle case where event matches selection - render pages directly */}
+                                                                            {event === selections.lifeEvent && (
+                                                                                Object.entries(pageGroups).map(([pageTitle, items]) => (
+                                                                                    <Box key={pageTitle} sx={{ mb: 3 }}>
+                                                                                        {/* Render content fragments as they originally appeared */}
+                                                                                        {items.map((item) => (
+                                                                                            <Box
+                                                                                                key={item.id}
+                                                                                                sx={{
+                                                                                                    mb: 3,
+                                                                                                }}
+                                                                                            >
+                                                                                                {item.content_html ? (
+                                                                                                    <Box
+                                                                                                        className="fragment-content"
+                                                                                                        dangerouslySetInnerHTML={{
+                                                                                                            __html: item.content_html,
+                                                                                                        }}
+                                                                                                    />
+                                                                                                ) : (
+                                                                                                    <Box className="fragment-content">
+                                                                                                        <Typography
+                                                                                                            variant="body1"
+                                                                                                            paragraph
+                                                                                                        >
+                                                                                                            {item.description}
+                                                                                                        </Typography>
+                                                                                                    </Box>
+                                                                                                )}
+                                                                                                
+                                                                                                {/* Source attribution */}
+                                                                                                <Typography
+                                                                                                    variant="caption"
+                                                                                                    sx={{
+                                                                                                        display: "block",
+                                                                                                        color: "text.secondary",
+                                                                                                        fontStyle: "italic",
+                                                                                                        mb: 2,
+                                                                                                    }}
+                                                                                                >
+                                                                                                    Source:{" "}
+                                                                                                    <Link
+                                                                                                        href={item.url}
+                                                                                                        target="_blank"
+                                                                                                        sx={{
+                                                                                                            color: "inherit",
+                                                                                                            textDecoration: "underline",
+                                                                                                        }}
+                                                                                                    >
+                                                                                                        {pageTitle} | {item.provider}
+                                                                                                    </Link>
+                                                                                                </Typography>
+                                                                                            </Box>
+                                                                                        ))}
+                                                                                    </Box>
+                                                                                ))
+                                                                            )}
+                                                                        </Box>
+                                                                    );
+                                                                }
                                                             )}
-                                                        </Box>
-                                                    ),
+                                                                </AccordionDetails>
+                                                            </Accordion>
+                                                        );
+                                                    }
                                                 );
                                             })()}
                                         </Box>

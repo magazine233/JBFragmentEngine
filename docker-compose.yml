@@ -51,7 +51,7 @@ services:
           memory: 2g
           cpus: "1.0"
 
-  scraper:
+  scraper-mygov:
     build: ./scraper
     depends_on:
       - typesense
@@ -59,7 +59,7 @@ services:
       - TYPESENSE_HOST=typesense
       - TYPESENSE_PORT=8108
       - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz123abc}
-      - TARGET_URL=${TARGET_URL:-https://my.gov.au}
+      - TARGET_URL=https://my.gov.au
       - MAX_DEPTH=${MAX_DEPTH:-3}
       - MAX_LINKS_PER_PAGE=${MAX_LINKS_PER_PAGE:-10}
       - CONCURRENCY=${CONCURRENCY:-5}
@@ -68,6 +68,26 @@ services:
       - /app/node_modules # This preserves node_modules from the image
       - ./config:/config # Mount config at root level
       - ./data:/data
+
+  scraper-servicesaustralia:
+    build: ./scraper
+    depends_on:
+      - typesense
+    environment:
+      - TYPESENSE_HOST=typesense
+      - TYPESENSE_PORT=8108
+      - TYPESENSE_API_KEY=${TYPESENSE_API_KEY:-xyz123abc}
+      - TARGET_URL=https://www.servicesaustralia.gov.au
+      - MAX_DEPTH=${MAX_DEPTH:-3}
+      - MAX_LINKS_PER_PAGE=${MAX_LINKS_PER_PAGE:-15}
+      - CONCURRENCY=${CONCURRENCY:-5}
+    volumes:
+      - ./scraper:/app
+      - /app/node_modules # This preserves node_modules from the image
+      - ./config:/config # Mount config at root level
+      - ./data:/data
+    profiles:
+      - scrapers
 
   api:
     build: ./api

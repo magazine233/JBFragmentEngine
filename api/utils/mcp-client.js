@@ -76,6 +76,62 @@ class MCPClient {
     }
   }
 
+  async analyzeFilterCombinations(existingFilters = {}, maxOptions = 6) {
+    if (!this.isConnected) {
+      await this.connect();
+    }
+
+    try {
+      const response = await fetch(`${this.mcpServerUrl}/analyze-combinations`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          existing_filters: existingFilters,
+          max_options: maxOptions
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('MCP Filter Analysis error:', error);
+      throw error;
+    }
+  }
+
+  async rankContentByRelevance(contentTitles, userProfile) {
+    if (!this.isConnected) {
+      await this.connect();
+    }
+
+    try {
+      const response = await fetch(`${this.mcpServerUrl}/rank-content`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          content_titles: contentTitles,
+          user_profile: userProfile
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+
+      return await response.json();
+    } catch (error) {
+      console.error('MCP Content Ranking error:', error);
+      throw error;
+    }
+  }
+
   disconnect() {
     this.isConnected = false;
   }

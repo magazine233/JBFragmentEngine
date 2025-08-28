@@ -2,8 +2,41 @@
 const { parseStringPromise } = require('xml2js');
 const fetch = require('node-fetch');
 
-async function fetchSitemapUrls(baseUrl) {
+async function fetchTextWithRetries(url, attempts = 3) {
+  const ua = 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119 Safari/537.36';
+  const headersBase = {
+    'User-Agent': ua,
+    'Accept': 'application/xml,text/xml,application/xhtml+xml,text/html;q=0.9,*/*;q=0.8',
+    'Accept-Language': 'en-AU,en;q=0.9',
+    'Connection': 'keep-alive'
+  };
+  const timeouts = [12000, 16000, 25000];
+  let lastErr;
+  for (let i = 0; i < attempts; i++) {
+    const timeout = timeouts[Math.min(i, timeouts.length - 1)];
+    const headers = i === 0 ? headersBase : { ...headersBase, 'Cache-Control': 'no-cache' };
+    try {
+      const res = await fetch(url, { timeout, redirect: 'follow', headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      return await res.text();
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts - 1) {
+        await new Promise(r => setTimeout(r, 500 * (i + 1)));
+        continue;
+      }
+    }
+  }
+  throw lastErr;
+}
+
+async function fetchSitemapUrls(baseUrl, visited = new Set(), depth = 0) {
   const urls = new Set();
+  const MAX_DEPTH = 3;
+  const MAX_CHILD_SITEMAPS = 50;
+  if (depth > MAX_DEPTH) return Array.from(urls);
+  if (visited.has(baseUrl)) return Array.from(urls);
+  visited.add(baseUrl);
   
   try {
     // Try common sitemap locations
@@ -15,17 +48,16 @@ async function fetchSitemapUrls(baseUrl) {
     
     for (const sitemapUrl of sitemapUrls) {
       try {
-        const response = await fetch(sitemapUrl);
-        if (!response.ok) continue;
-        
-        const xml = await response.text();
+        const xml = await fetchTextWithRetries(sitemapUrl);
         const result = await parseStringPromise(xml);
         
         // Handle sitemap index
         if (result.sitemapindex) {
           const sitemaps = result.sitemapindex.sitemap || [];
+          let processed = 0;
           for (const sitemap of sitemaps) {
-            const childUrls = await fetchSitemapUrls(sitemap.loc[0]);
+            if (processed++ > MAX_CHILD_SITEMAPS) break;
+            const childUrls = await fetchSitemapUrls(sitemap.loc[0], visited, depth + 1);
             childUrls.forEach(url => urls.add(url));
           }
         }

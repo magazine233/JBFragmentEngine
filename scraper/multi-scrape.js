@@ -14,8 +14,8 @@ async function main() {
 
   console.log(`Starting multi-site crawl for ${targets.length} target(s)`);
 
-  const scraper = new MyGovScraper(cfg);
   for (const url of targets) {
+    const scraper = new MyGovScraper(cfg); // fresh instance per target to reset state
     console.log(`\n=== Crawling target: ${url} ===`);
     try {
       await scraper.run(url);
@@ -28,4 +28,3 @@ async function main() {
 }
 
 main().catch(err => { console.error(err); process.exit(1); });
-

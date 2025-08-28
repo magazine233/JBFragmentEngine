@@ -118,6 +118,8 @@ module.exports = {
 
       // sorting helper (pre‑negated so ascending sort → highest first)
       { name: 'popularity_sort', type: 'int32' },
+      // Evidence-based life event stress weighting (Holmes & Rahe SRRS)
+      { name: 'srrs_score', type: 'int32', optional: true, facet: true },
       
       { name: 'prerequisite_states', type: 'string[]', facet: true },
       { name: 'leads_to_states', type: 'string[]', facet: true },

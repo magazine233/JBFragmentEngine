@@ -39,8 +39,23 @@ class MyGovScraper {
   async prepareCollection() {
     const collName = contentFragmentSchema.name;
     try {
-      await this.typesense.collections(collName).retrieve();
-      console.log('Collection exists, ready for upsert');
+      const info = await this.typesense.collections(collName).retrieve();
+      const numDocs = info?.num_documents ?? 'unknown';
+      const fieldsCount = Array.isArray(info?.fields) ? info.fields.length : 'unknown';
+      console.log(`Collection exists, ready for upsert (documents: ${numDocs}, fields: ${fieldsCount})`);
+
+      // Ensure required fields exist (migrations for new fields)
+      const existingFieldNames = new Set((info.fields || []).map(f => f.name));
+      const missingFields = (contentFragmentSchema.fields || []).filter(f => !existingFieldNames.has(f.name));
+      if (missingFields.length > 0) {
+        console.log('Adding missing fields to collection:', missingFields.map(f => f.name).join(', '));
+        try {
+          await this.typesense.collections(collName).update({ fields: missingFields });
+          console.log('✅ Collection fields updated.');
+        } catch (e) {
+          console.warn('⚠️ Failed to update collection fields:', e.message);
+        }
+      }
     } catch (_) {
       console.log('Creating new collection...');
       await this.typesense.collections().create(contentFragmentSchema);
@@ -50,20 +65,39 @@ class MyGovScraper {
   async run(startUrl) {
     await this.prepareCollection();
 
-    const browser = await puppeteer.launch({ 
-      headless: 'new', 
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      // Use system Chromium if available (for Docker)
-      executablePath: process.env.PUPPETEER_EXECUTABLE_PATH
-    });
+    const launchArgsBase = ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage'];
+    const execPath = process.env.PUPPETEER_EXECUTABLE_PATH;
+    const launchOpts = { headless: 'new', args: launchArgsBase, executablePath: execPath };
+    console.log('Launching headless Chrome with options:', JSON.stringify({ args: launchArgsBase, executablePath: execPath }));
+
+    const withTimeout = (p, ms, label) => {
+      return Promise.race([
+        p,
+        new Promise((_, rej) => setTimeout(() => rej(new Error(`${label} timed out after ${ms} ms`)), ms))
+      ]);
+    };
+
+    let browser;
+    try {
+      browser = await withTimeout(puppeteer.launch(launchOpts), 30000, 'Chrome launch');
+    } catch (e1) {
+      console.warn('Initial Chrome launch failed:', e1.message);
+      const fallbackArgs = [...launchArgsBase, '--no-zygote', '--single-process'];
+      const fallbackOpts = { headless: 'new', args: fallbackArgs, executablePath: execPath };
+      console.log('Retrying Chrome launch with fallback options:', JSON.stringify({ args: fallbackArgs, executablePath: execPath }));
+      browser = await withTimeout(puppeteer.launch(fallbackOpts), 45000, 'Chrome fallback launch');
+    }
+    const ver = await browser.version().catch(() => 'unknown');
+    console.log('✅ Headless Chrome launched (version:', ver, ')');
     
     try {
+      console.log('Fetching robots.txt and sitemap for target:', startUrl);
       const robots = await this.fetchRobots(startUrl);
       
       // Try sitemap first
       const sitemapUrls = await fetchSitemapUrls(startUrl);
       if (sitemapUrls.length > 0) {
-        console.log(`Found ${sitemapUrls.length} URLs from sitemap`);
+        console.log(`Found ${sitemapUrls.length} URLs from sitemap for ${startUrl}`);
         // Crawl sitemap URLs with higher priority
         await Promise.all(
           sitemapUrls.slice(0, this.cfg.maxPages).map(url => 
@@ -85,14 +119,21 @@ class MyGovScraper {
   }
 
   async fetchRobots(seed) {
+    const robotsUrl = new URL('/robots.txt', seed).href;
     try {
-      const robotsUrl = new URL('/robots.txt', seed).href;
-      const res = await fetch(robotsUrl);
-      if (!res.ok) throw new Error();
+      const headers = {
+        'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119 Safari/537.36',
+        'Accept': 'text/plain,*/*;q=0.8',
+        'Accept-Language': 'en-AU,en;q=0.9',
+        'Connection': 'keep-alive'
+      };
+      const res = await fetch(robotsUrl, { timeout: 10000, redirect: 'follow', headers });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const body = await res.text();
+      console.log(`robots.txt loaded from ${robotsUrl} (${body.length} bytes)`);
       return robotsParser(robotsUrl, body);
-    } catch {
-      console.log('No robots.txt found, proceeding without restrictions');
+    } catch (e) {
+      console.warn(`robots.txt unavailable at ${robotsUrl}: ${e.message}. Proceeding without restrictions.`);
       return { isAllowed: () => true };
     }
   }

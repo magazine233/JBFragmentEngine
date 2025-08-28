@@ -51,7 +51,7 @@ router.get('/search', async (req, res) => {
       'id', 'url', 'title', 'content_text',
       'hierarchy_lvl0', 'hierarchy_lvl1', 'hierarchy_lvl2',
       'life_events', 'categories', 'states', 'stage', 'stage_variant',
-      'provider', 'governance', 'component_type',
+      'provider', 'governance', 'component_type', 'srrs_score',
       'last_modified', 'task_order'
     ];
     
@@ -77,10 +77,27 @@ router.get('/search', async (req, res) => {
       delete searchParameters.filter_by;
     }
 
-    const results = await req.app.locals.typesense
-      .collections('content_fragments')
-      .documents()
-      .search(searchParameters);
+    let results;
+    try {
+      results = await req.app.locals.typesense
+        .collections('content_fragments')
+        .documents()
+        .search(searchParameters);
+    } catch (e) {
+      const errMsg = (e && e.message) ? e.message : String(e);
+      const sortWasSRRS = String(sort_by || '').includes('srrs_score');
+      if (sortWasSRRS) {
+        console.warn('Typesense search failed with SRRS sort, retrying without SRRS:', errMsg);
+        const fallbackParams = { ...searchParameters };
+        delete fallbackParams.sort_by;
+        results = await req.app.locals.typesense
+          .collections('content_fragments')
+          .documents()
+          .search(fallbackParams);
+      } else {
+        throw e;
+      }
+    }
 
     const perPageNum = parseInt(per_page, 10) || 20;
     res.json({

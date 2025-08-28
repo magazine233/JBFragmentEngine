@@ -15,8 +15,12 @@
         "victim support",
         "compensation"
       ],
-      "relatedCategories": ["Disasters and Crime", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 65
     },
     "Being arrested and charged with a crime": {
       "keywords": [
@@ -32,8 +36,12 @@
         "lawyer",
         "defendant"
       ],
-      "relatedCategories": ["Disasters and Crime", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 63
     },
     "Being involved in a lawsuit": {
       "keywords": [
@@ -49,8 +57,12 @@
         "lawyer",
         "solicitor"
       ],
-      "relatedCategories": ["Disasters and Crime", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 38
     },
     "Being sentenced and serving your sentence": {
       "keywords": [
@@ -65,8 +77,12 @@
         "custody",
         "parole"
       ],
-      "relatedCategories": ["Disasters and Crime", "Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 63
     },
     "Being released from prison": {
       "keywords": [
@@ -84,7 +100,8 @@
         "Housing and Travel",
         "Work and Money"
       ],
-      "stages": {}
+      "stages": {},
+      "srrs": 45
     },
     "Experiencing domestic violence": {
       "keywords": [
@@ -108,7 +125,8 @@
         "Family and Relationships",
         "Health and caring"
       ],
-      "stages": {}
+      "stages": {},
+      "srrs": 60
     },
     "Leaving a violent relationship": {
       "keywords": [
@@ -127,7 +145,8 @@
         "Housing and Travel",
         "Family and Relationships"
       ],
-      "stages": {}
+      "stages": {},
+      "srrs": 65
     },
     "Being removed from your family": {
       "keywords": [
@@ -140,8 +159,12 @@
         "placement",
         "guardian"
       ],
-      "relatedCategories": ["Disasters and Crime", "Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 63
     },
     "Experiencing a war": {
       "keywords": [
@@ -155,8 +178,12 @@
         "refugee",
         "asylum"
       ],
-      "relatedCategories": ["Disasters and Crime", "Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 80
     },
     "Experiencing terrorist act": {
       "keywords": [
@@ -169,8 +196,12 @@
         "terror victim",
         "trauma"
       ],
-      "relatedCategories": ["Disasters and Crime", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 80
     },
     "Experiencing a major industrial accident": {
       "keywords": [
@@ -188,7 +219,8 @@
         "Work and Money",
         "Health and caring"
       ],
-      "stages": {}
+      "stages": {},
+      "srrs": 70
     },
     "Experiencing a pandemic": {
       "keywords": [
@@ -209,7 +241,8 @@
         "Health and caring",
         "Work and Money"
       ],
-      "stages": {}
+      "stages": {},
+      "srrs": 39
     },
     "Experiencing a sudden disaster": {
       "keywords": [
@@ -226,8 +259,12 @@
         "evacuation",
         "disaster relief"
       ],
-      "relatedCategories": ["Disasters and Crime", "Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 70
     },
     "Experiencing a gradual disaster": {
       "keywords": [
@@ -241,8 +278,12 @@
         "farming crisis",
         "rural hardship"
       ],
-      "relatedCategories": ["Disasters and Crime", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Disasters and Crime",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Becoming a driver": {
       "keywords": [
@@ -257,8 +298,11 @@
         "road rules",
         "car"
       ],
-      "relatedCategories": ["Education and identity"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity"
+      ],
+      "stages": {},
+      "srrs": 20
     },
     "Becoming financially independent": {
       "keywords": [
@@ -270,8 +314,12 @@
         "financially stable",
         "self supporting"
       ],
-      "relatedCategories": ["Education and identity", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 38
     },
     "Moving out of home for the first time": {
       "keywords": [
@@ -284,8 +332,12 @@
         "flatmate",
         "roommate"
       ],
-      "relatedCategories": ["Education and identity", "Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 29
     },
     "Coming out": {
       "keywords": [
@@ -305,7 +357,8 @@
         "Education and identity",
         "Family and Relationships"
       ],
-      "stages": {}
+      "stages": {},
+      "srrs": 45
     },
     "Changing gender identity": {
       "keywords": [
@@ -319,8 +372,12 @@
         "hormone",
         "surgery"
       ],
-      "relatedCategories": ["Education and identity", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 80
     },
     "Changing national identity": {
       "keywords": [
@@ -333,8 +390,12 @@
         "allegiance",
         "citizenship ceremony"
       ],
-      "relatedCategories": ["Education and identity", "Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Change in religious beliefs": {
       "keywords": [
@@ -350,8 +411,11 @@
         "atheist",
         "agnostic"
       ],
-      "relatedCategories": ["Education and identity"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity"
+      ],
+      "stages": {},
+      "srrs": 40
     },
     "Transitioning to civilian life": {
       "keywords": [
@@ -364,8 +428,12 @@
         "defence force",
         "ex-service"
       ],
-      "relatedCategories": ["Education and identity", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 50
     },
     "Studying at primary school": {
       "keywords": [
@@ -381,8 +449,11 @@
         "prep",
         "kindergarten"
       ],
-      "relatedCategories": ["Education and identity"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity"
+      ],
+      "stages": {},
+      "srrs": 26
     },
     "Studying at high school": {
       "keywords": [
@@ -400,8 +471,11 @@
         "vce",
         "atar"
       ],
-      "relatedCategories": ["Education and identity"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity"
+      ],
+      "stages": {},
+      "srrs": 26
     },
     "Studying at a tertiary institution": {
       "keywords": [
@@ -418,8 +492,12 @@
         "postgraduate",
         "phd"
       ],
-      "relatedCategories": ["Education and identity", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 26
     },
     "Becoming an apprentice": {
       "keywords": [
@@ -432,8 +510,12 @@
         "trade training",
         "certificate"
       ],
-      "relatedCategories": ["Education and identity", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 36
     },
     "Upgrading professional skills or qualifications": {
       "keywords": [
@@ -447,8 +529,12 @@
         "workshop",
         "career development"
       ],
-      "relatedCategories": ["Education and identity", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 20
     },
     "Coming to Australia temporarily": {
       "keywords": [
@@ -461,8 +547,12 @@
         "temporary resident",
         "visa"
       ],
-      "relatedCategories": ["Education and identity", "Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Education and identity",
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 13
     },
     "Getting together": {
       "keywords": [
@@ -476,8 +566,11 @@
         "love",
         "partnership"
       ],
-      "relatedCategories": ["Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 50
     },
     "Making it work": {
       "keywords": [
@@ -490,8 +583,11 @@
         "partnership",
         "cohabitation"
       ],
-      "relatedCategories": ["Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Breaking up": {
       "keywords": [
@@ -504,8 +600,12 @@
         "ending relationship",
         "moving on"
       ],
-      "relatedCategories": ["Family and Relationships", "Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships",
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 65
     },
     "Separated parents": {
       "keywords": [
@@ -518,8 +618,11 @@
         "family court",
         "mediation"
       ],
-      "relatedCategories": ["Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 65
     },
     "Estrangement from family": {
       "keywords": [
@@ -531,8 +634,12 @@
         "disowned",
         "family estrangement"
       ],
-      "relatedCategories": ["Family and Relationships", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 60
     },
     "Having a baby": {
       "keywords": [
@@ -552,7 +659,10 @@
         "baby bonus",
         "childcare"
       ],
-      "relatedCategories": ["Raising Kids", "Health and Disability"],
+      "relatedCategories": [
+        "Raising Kids",
+        "Health and Disability"
+      ],
       "stages": {
         "Before your baby arrives": [
           "pregnancy",
@@ -581,7 +691,8 @@
           "development",
           "milestone"
         ]
-      }
+      },
+      "srrs": 40
     },
     "Adopting a child": {
       "keywords": [
@@ -593,8 +704,11 @@
         "intercountry adoption",
         "local adoption"
       ],
-      "relatedCategories": ["Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 39
     },
     "Fostering a child": {
       "keywords": [
@@ -606,8 +720,11 @@
         "kinship care",
         "respite care"
       ],
-      "relatedCategories": ["Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 39
     },
     "Raising a child to adulthood": {
       "keywords": [
@@ -625,7 +742,8 @@
         "Family and Relationships",
         "Education and identity"
       ],
-      "stages": {}
+      "stages": {},
+      "srrs": 15
     },
     "Getting a pet": {
       "keywords": [
@@ -640,8 +758,11 @@
         "adopt pet",
         "rescue animal"
       ],
-      "relatedCategories": ["Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 15
     },
     "Providing temporary care for another": {
       "keywords": [
@@ -653,8 +774,12 @@
         "caregiver",
         "looking after"
       ],
-      "relatedCategories": ["Health and caring", "Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 44
     },
     "Becoming a long term carer": {
       "keywords": [
@@ -668,8 +793,12 @@
         "aged care",
         "chronic illness"
       ],
-      "relatedCategories": ["Health and caring", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 44
     },
     "Ceasing to be a carer": {
       "keywords": [
@@ -682,8 +811,12 @@
         "recovery",
         "no longer carer"
       ],
-      "relatedCategories": ["Health and caring", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 25
     },
     "Experiencing the death of a loved one": {
       "keywords": [
@@ -698,8 +831,12 @@
         "orphan",
         "bereaved"
       ],
-      "relatedCategories": ["Health and caring", "Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 63
     },
     "Coming to the end of your life": {
       "keywords": [
@@ -712,8 +849,11 @@
         "life limiting",
         "advance directive"
       ],
-      "relatedCategories": ["Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 100
     },
     "Becoming an older Australian": {
       "keywords": [
@@ -727,8 +867,12 @@
         "ageing",
         "seniors card"
       ],
-      "relatedCategories": ["Health and caring", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Accessing aged care": {
       "keywords": [
@@ -741,8 +885,12 @@
         "retirement village",
         "assisted living"
       ],
-      "relatedCategories": ["Health and caring", "Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 25
     },
     "Seeking medical help": {
       "keywords": [
@@ -758,8 +906,11 @@
         "specialist",
         "referral"
       ],
-      "relatedCategories": ["Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 25
     },
     "Being diagnosed with a medical condition or disability": {
       "keywords": [
@@ -772,8 +923,12 @@
         "impairment",
         "health condition"
       ],
-      "relatedCategories": ["Health and caring", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 53
     },
     "Experiencing mental illness": {
       "keywords": [
@@ -787,8 +942,11 @@
         "counselling",
         "wellbeing"
       ],
-      "relatedCategories": ["Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 53
     },
     "Being seriously injured": {
       "keywords": [
@@ -802,8 +960,12 @@
         "recovery",
         "compensation"
       ],
-      "relatedCategories": ["Health and caring", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Health and caring",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 53
     },
     "Coming to Australia to visit": {
       "keywords": [
@@ -816,8 +978,11 @@
         "temporary",
         "short stay"
       ],
-      "relatedCategories": ["Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 13
     },
     "Moving to Australia permanently": {
       "keywords": [
@@ -830,8 +995,12 @@
         "family reunion",
         "settle"
       ],
-      "relatedCategories": ["Housing and Travel", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Coming to Australia as a refugee": {
       "keywords": [
@@ -844,8 +1013,12 @@
         "boat people",
         "detention"
       ],
-      "relatedCategories": ["Housing and Travel", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 80
     },
     "Renting a home": {
       "keywords": [
@@ -859,8 +1032,11 @@
         "real estate",
         "tenancy"
       ],
-      "relatedCategories": ["Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 20
     },
     "Buying a home": {
       "keywords": [
@@ -873,8 +1049,12 @@
         "house purchase",
         "home ownership"
       ],
-      "relatedCategories": ["Housing and Travel", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 31
     },
     "Moving into an existing household": {
       "keywords": [
@@ -886,8 +1066,12 @@
         "cohabitation",
         "room rental"
       ],
-      "relatedCategories": ["Housing and Travel", "Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel",
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 25
     },
     "Experiencing homelessness": {
       "keywords": [
@@ -900,8 +1084,12 @@
         "crisis accommodation",
         "couch surfing"
       ],
-      "relatedCategories": ["Housing and Travel", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 70
     },
     "Moving domestically": {
       "keywords": [
@@ -914,8 +1102,11 @@
         "new home",
         "packing"
       ],
-      "relatedCategories": ["Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 20
     },
     "Moving abroad": {
       "keywords": [
@@ -928,8 +1119,12 @@
         "visa",
         "work abroad"
       ],
-      "relatedCategories": ["Housing and Travel", "Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel",
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Travelling within Australia": {
       "keywords": [
@@ -942,8 +1137,11 @@
         "tourism",
         "explore australia"
       ],
-      "relatedCategories": ["Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 13
     },
     "Travelling overseas": {
       "keywords": [
@@ -956,8 +1154,11 @@
         "travel insurance",
         "departure"
       ],
-      "relatedCategories": ["Housing and Travel"],
-      "stages": {}
+      "relatedCategories": [
+        "Housing and Travel"
+      ],
+      "stages": {},
+      "srrs": 20
     },
     "Working": {
       "keywords": [
@@ -972,8 +1173,11 @@
         "salary",
         "wages"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 20
     },
     "Changing careers": {
       "keywords": [
@@ -985,8 +1189,12 @@
         "career switch",
         "mid life career"
       ],
-      "relatedCategories": ["Work and Money", "Education and identity"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money",
+        "Education and identity"
+      ],
+      "stages": {},
+      "srrs": 36
     },
     "Returning to work": {
       "keywords": [
@@ -998,8 +1206,12 @@
         "rtw",
         "workforce re-entry"
       ],
-      "relatedCategories": ["Work and Money", "Family and Relationships"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money",
+        "Family and Relationships"
+      ],
+      "stages": {},
+      "srrs": 26
     },
     "Experiencing workplace conflict": {
       "keywords": [
@@ -1012,8 +1224,12 @@
         "hr complaint",
         "toxic workplace"
       ],
-      "relatedCategories": ["Work and Money", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 23
     },
     "Becoming unemployed": {
       "keywords": [
@@ -1027,8 +1243,11 @@
         "out of work",
         "terminated"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 47
     },
     "Looking for work": {
       "keywords": [
@@ -1042,8 +1261,11 @@
         "jobactive",
         "employment services"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 36
     },
     "Retiring from the workforce": {
       "keywords": [
@@ -1056,8 +1278,12 @@
         "end career",
         "stop working"
       ],
-      "relatedCategories": ["Work and Money", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Starting a business": {
       "keywords": [
@@ -1071,8 +1297,11 @@
         "partnership",
         "venture"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 39
     },
     "Establishing trade": {
       "keywords": [
@@ -1085,8 +1314,12 @@
         "trade business",
         "tools of trade"
       ],
-      "relatedCategories": ["Work and Money", "Education and identity"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money",
+        "Education and identity"
+      ],
+      "stages": {},
+      "srrs": 39
     },
     "Growing a business": {
       "keywords": [
@@ -1098,8 +1331,11 @@
         "increase revenue",
         "new markets"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 39
     },
     "Having a business fail": {
       "keywords": [
@@ -1112,8 +1348,11 @@
         "administration",
         "receivership"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 45
     },
     "Closing a business": {
       "keywords": [
@@ -1125,8 +1364,11 @@
         "shut down",
         "final tax"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 39
     },
     "Selling a business": {
       "keywords": [
@@ -1138,8 +1380,11 @@
         "due diligence",
         "settlement"
       ],
-      "relatedCategories": ["Work and Money"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money"
+      ],
+      "stages": {},
+      "srrs": 39
     },
     "Experiencing financial stress": {
       "keywords": [
@@ -1152,11 +1397,14 @@
         "money worry",
         "broke"
       ],
-      "relatedCategories": ["Work and Money", "Health and caring"],
-      "stages": {}
+      "relatedCategories": [
+        "Work and Money",
+        "Health and caring"
+      ],
+      "stages": {},
+      "srrs": 38
     }
   },
-
   "categories": {
     "Disasters and Crime": [
       "disaster",
@@ -1261,7 +1509,6 @@
       "bankruptcy"
     ]
   },
-
   "providers": {
     "Federal Government": {
       "Services Australia": [
@@ -1271,7 +1518,14 @@
         "services australia",
         "mygov"
       ],
-      "Australian Taxation Office": ["tax", "ato", "gst", "tfn", "abn", "bas"],
+      "Australian Taxation Office": [
+        "tax",
+        "ato",
+        "gst",
+        "tfn",
+        "abn",
+        "bas"
+      ],
       "Department of Health": [
         "health.gov.au",
         "immunisation",
@@ -1312,17 +1566,54 @@
       ]
     },
     "State Government": {
-      "NSW": ["nsw.gov.au", "service.nsw", "new south wales"],
-      "VIC": ["vic.gov.au", "service.vic", "victoria", "melbourne"],
-      "QLD": ["qld.gov.au", "queensland", "brisbane"],
-      "WA": ["wa.gov.au", "western australia", "perth"],
-      "SA": ["sa.gov.au", "south australia", "adelaide"],
-      "TAS": ["tas.gov.au", "tasmania", "hobart"],
-      "ACT": ["act.gov.au", "canberra", "australian capital territory"],
-      "NT": ["nt.gov.au", "northern territory", "darwin"]
+      "NSW": [
+        "nsw.gov.au",
+        "service.nsw",
+        "new south wales"
+      ],
+      "VIC": [
+        "vic.gov.au",
+        "service.vic",
+        "victoria",
+        "melbourne"
+      ],
+      "QLD": [
+        "qld.gov.au",
+        "queensland",
+        "brisbane"
+      ],
+      "WA": [
+        "wa.gov.au",
+        "western australia",
+        "perth"
+      ],
+      "SA": [
+        "sa.gov.au",
+        "south australia",
+        "adelaide"
+      ],
+      "TAS": [
+        "tas.gov.au",
+        "tasmania",
+        "hobart"
+      ],
+      "ACT": [
+        "act.gov.au",
+        "canberra",
+        "australian capital territory"
+      ],
+      "NT": [
+        "nt.gov.au",
+        "northern territory",
+        "darwin"
+      ]
     },
     "Non-Government": {
-      "Legal Aid": ["legal aid", "legal assistance", "community legal"],
+      "Legal Aid": [
+        "legal aid",
+        "legal assistance",
+        "community legal"
+      ],
       "Housing Services": [
         "housing",
         "shelter",
@@ -1352,38 +1643,102 @@
       ]
     }
   },
-
   "stageVariants": {
     "Having a baby": {
-      "First child": ["first baby", "first time parent", "new parent"],
+      "First child": [
+        "first baby",
+        "first time parent",
+        "new parent"
+      ],
       "Subsequent children": [
         "second child",
         "third child",
         "another baby",
         "sibling"
       ],
-      "Multiple births": ["twins", "triplets", "multiple birth"],
-      "Premature birth": ["premature", "preterm", "nicu", "special care"],
-      "Adoption": ["adopting baby", "adoption process", "adoptive parent"],
-      "Surrogacy": ["surrogate", "surrogacy arrangement"],
-      "IVF": ["ivf", "fertility treatment", "assisted reproduction"],
-      "Miscarriage": ["pregnancy loss", "miscarriage", "stillbirth"],
-      "Single parent": ["single parent", "sole parent", "unmarried mother"],
-      "Teen parent": ["teenage parent", "young parent", "teen pregnancy"]
+      "Multiple births": [
+        "twins",
+        "triplets",
+        "multiple birth"
+      ],
+      "Premature birth": [
+        "premature",
+        "preterm",
+        "nicu",
+        "special care"
+      ],
+      "Adoption": [
+        "adopting baby",
+        "adoption process",
+        "adoptive parent"
+      ],
+      "Surrogacy": [
+        "surrogate",
+        "surrogacy arrangement"
+      ],
+      "IVF": [
+        "ivf",
+        "fertility treatment",
+        "assisted reproduction"
+      ],
+      "Miscarriage": [
+        "pregnancy loss",
+        "miscarriage",
+        "stillbirth"
+      ],
+      "Single parent": [
+        "single parent",
+        "sole parent",
+        "unmarried mother"
+      ],
+      "Teen parent": [
+        "teenage parent",
+        "young parent",
+        "teen pregnancy"
+      ]
     },
     "Working": {
-      "Full-time": ["full time", "permanent", "ongoing", "38 hours"],
-      "Part-time": ["part time", "reduced hours", "flexible work"],
-      "Casual": ["casual", "temporary", "seasonal", "irregular hours"],
-      "Contract": ["contractor", "consultant", "fixed term", "project based"],
+      "Full-time": [
+        "full time",
+        "permanent",
+        "ongoing",
+        "38 hours"
+      ],
+      "Part-time": [
+        "part time",
+        "reduced hours",
+        "flexible work"
+      ],
+      "Casual": [
+        "casual",
+        "temporary",
+        "seasonal",
+        "irregular hours"
+      ],
+      "Contract": [
+        "contractor",
+        "consultant",
+        "fixed term",
+        "project based"
+      ],
       "Self-employed": [
         "self employed",
         "freelance",
         "sole trader",
         "own business"
       ],
-      "Gig economy": ["uber", "deliveroo", "airtasker", "gig work"],
-      "Remote work": ["work from home", "remote", "telework", "distributed"]
+      "Gig economy": [
+        "uber",
+        "deliveroo",
+        "airtasker",
+        "gig work"
+      ],
+      "Remote work": [
+        "work from home",
+        "remote",
+        "telework",
+        "distributed"
+      ]
     },
     "Experiencing mental illness": {
       "Depression": [
@@ -1392,10 +1747,30 @@
         "major depression",
         "clinical depression"
       ],
-      "Anxiety": ["anxiety", "panic", "worry", "anxious", "gad"],
-      "PTSD": ["ptsd", "trauma", "post traumatic", "flashback"],
-      "Bipolar": ["bipolar", "manic", "mood disorder"],
-      "Psychosis": ["psychosis", "psychotic", "delusion", "hallucination"],
+      "Anxiety": [
+        "anxiety",
+        "panic",
+        "worry",
+        "anxious",
+        "gad"
+      ],
+      "PTSD": [
+        "ptsd",
+        "trauma",
+        "post traumatic",
+        "flashback"
+      ],
+      "Bipolar": [
+        "bipolar",
+        "manic",
+        "mood disorder"
+      ],
+      "Psychosis": [
+        "psychosis",
+        "psychotic",
+        "delusion",
+        "hallucination"
+      ],
       "Eating disorder": [
         "anorexia",
         "bulimia",

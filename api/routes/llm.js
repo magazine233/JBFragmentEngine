@@ -326,10 +326,26 @@ router.post('/chat', async (req, res) => {
 // Enhanced chat endpoint that uses MCP to search for relevant government service context
 router.post('/chat-with-context', async (req, res) => {
   try {
-    const { prompt, model, search_options = {} } = req.body || {};
+    const { prompt, model, search_options = {}, user_profile = null } = req.body || {};
     if (!prompt || !model) {
       return res.status(400).json({ error: 'prompt and model are required' });
     }
+
+    // Helper: map user profile to MCP search filters
+    const deriveSearchFiltersFromProfile = (p) => {
+      const out = {};
+      if (!p || typeof p !== 'object') return out;
+      // State mapping
+      if (p.residency_state && !['National', 'All states', 'All States'].includes(p.residency_state)) {
+        out.state = p.residency_state;
+      }
+      // Life event mapping (use first provided if any)
+      if (Array.isArray(p.current_life_events) && p.current_life_events.length > 0) {
+        out.life_event = p.current_life_events[0];
+      }
+      // Provider or category could be mapped in future if present in profile
+      return out;
+    };
 
     // Use MCP to get relevant context
     const mcpClient = new MCPClient();
@@ -338,9 +354,18 @@ router.post('/chat-with-context', async (req, res) => {
 
     try {
       // Search for relevant government services
+      const mappedFilters = deriveSearchFiltersFromProfile(user_profile);
+      const finalSearchOptions = { ...(search_options || {}) };
+      for (const [k, v] of Object.entries(mappedFilters)) {
+        if (finalSearchOptions[k] === undefined || finalSearchOptions[k] === null || finalSearchOptions[k] === '') {
+          finalSearchOptions[k] = v;
+        }
+      }
+
       const searchResponse = await mcpClient.searchGovernmentServices(prompt, {
         per_page: 5,
-        ...search_options
+        sort_by: 'srrs_score:desc,popularity_sort:asc',
+        ...finalSearchOptions,
       });
 
       if (searchResponse && searchResponse.results && searchResponse.results.length > 0) {
@@ -362,8 +387,9 @@ router.post('/chat-with-context', async (req, res) => {
       mcpClient.disconnect();
     }
 
-    // Build enhanced prompt with context
-    const systemPrompt = `You are a helpful Australian government services assistant. Use the following search results to answer the user's question. If the search results don't contain relevant information, provide general guidance and suggest where they might find more information.
+    // Build enhanced prompt with context (include optional user profile)
+    const userProfileBlock = user_profile ? `\n\nUser Profile Context (you MAY reference and discuss these details to tailor advice):\n${JSON.stringify(user_profile, null, 2)}\n` : '';
+    const systemPrompt = `You are a helpful Australian government services assistant. Use the following search results to answer the user's question. If the search results don't contain relevant information, provide general guidance and suggest where they might find more information.${userProfileBlock}
 
 Government Services Context:
 ${context || "No specific results found for this query."}
@@ -373,6 +399,7 @@ Remember to:
 - Reference specific services or providers when mentioned in the search results
 - Suggest visiting official government websites for the most up-to-date information
 - If discussing eligibility or requirements, note that these can vary and users should check official sources
+- If a user profile is provided, you MAY discuss how profile attributes (e.g., state, employment, children, disability, life events) affect relevance, eligibility, timing, and next steps; do not invent facts and do not infer details beyond what is provided.
 - Include relevant URLs from the context when helpful`;
 
     const fullPrompt = `${systemPrompt}\n\nUser: ${prompt}\n\nAssistant:`;

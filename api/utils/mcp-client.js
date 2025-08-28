@@ -60,20 +60,47 @@ class MCPClient {
   }
 
   async getServiceCategories(query = null) {
-    // For now, this uses the search endpoint with empty query to get facets
-    // In a full implementation, we'd have a separate /facets endpoint
+    if (!this.isConnected) {
+      await this.connect();
+    }
     try {
-      const result = await this.searchGovernmentServices('*', { per_page: 0 });
+      const url = new URL(`${this.mcpServerUrl}/facets`);
+      if (query) url.searchParams.set('query', query);
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const data = await response.json();
       return {
-        categories: [], // Would need to implement facets endpoint
-        life_events: [],
-        providers: [],
-        states: []
+        query: data.query,
+        categories: data.facets?.categories || [],
+        life_events: data.facets?.life_events || [],
+        providers: data.facets?.providers || [],
+        states: data.facets?.states || [],
+        found: data.found,
       };
     } catch (error) {
       console.error('MCP Facets error:', error);
       throw error;
     }
+  }
+
+  async getSchema() {
+    if (!this.isConnected) {
+      await this.connect();
+    }
+    const response = await fetch(`${this.mcpServerUrl}/schema`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    return await response.json();
+  }
+
+  async validateSchema() {
+    if (!this.isConnected) {
+      await this.connect();
+    }
+    const response = await fetch(`${this.mcpServerUrl}/schema/validate`);
+    if (!response.ok) throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    return await response.json();
   }
 
   async analyzeFilterCombinations(existingFilters = {}, maxOptions = 6) {

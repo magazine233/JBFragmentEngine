@@ -419,6 +419,22 @@ async function enrichWithTaxonomy(fragment) {
   // Detect life events
   fragment.life_events = detectLifeEvents(contentLower, taxonomy.lifeEvents);
 
+  // Compute SRRS score based on best-matching life event tag (one-to-one mapping)
+  // Assumes taxonomy.lifeEvents[event].srrs is an integer (0..100). If multiple life events match,
+  // the highest SRRS is used.
+  try {
+    let maxSrrs = 0;
+    for (const ev of fragment.life_events) {
+      const entry = taxonomy.lifeEvents[ev];
+      if (entry && typeof entry.srrs === 'number') {
+        maxSrrs = Math.max(maxSrrs, Math.round(entry.srrs));
+      }
+    }
+    fragment.srrs_score = maxSrrs || 0;
+  } catch (e) {
+    fragment.srrs_score = 0;
+  }
+
   // Detect categories
   fragment.categories = detectCategories(contentLower, taxonomy.categories);
 
@@ -479,6 +495,7 @@ async function enrichWithTaxonomy(fragment) {
   
   // Ensure required number fields
   if (!fragment.popularity_sort) fragment.popularity_sort = 100;
+  if (fragment.srrs_score === undefined || fragment.srrs_score === null) fragment.srrs_score = 0;
   
   return fragment;
 }

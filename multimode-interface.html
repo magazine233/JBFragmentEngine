@@ -216,7 +216,7 @@
                 Link,
             } = MaterialUI;
 
-            const { useState, useEffect, useRef, useCallback } = React;
+                const { useState, useEffect, useRef, useCallback } = React;
 
             // API Configuration
             const API_BASE_URL = "http://localhost:3000";
@@ -426,6 +426,13 @@
                 const [isProfileComplete, setIsProfileComplete] = useState(false);
                 const [matchedServices, setMatchedServices] = useState([]);
                 const [loadingServices, setLoadingServices] = useState(false);
+                // Chat: use local profile toggle
+                const [useProfileForChat, setUseProfileForChat] = useState(() => {
+                    try { return JSON.parse(localStorage.getItem('useProfileForChat') || 'true'); } catch { return true; }
+                });
+                useEffect(() => {
+                    try { localStorage.setItem('useProfileForChat', JSON.stringify(useProfileForChat)); } catch {}
+                }, [useProfileForChat]);
                 
                 // Journey visualization state/refs
                 const journeyMapRef = useRef(null);
@@ -581,7 +588,11 @@ ${resultsText}`;
                             title: result.title,
                             description: result.description || '',
                             category: result.category,
-                            provider: result.provider
+                            life_event: result.lifeEvent || result.life_event || 'General',
+                            provider: result.provider,
+                            state: result.state || 'National',
+                            hierarchy: result.hierarchy || result.hierarchy_lvl0 || '',
+                            relevance_score: typeof result.relevance_score === 'number' ? result.relevance_score : 0.5
                         }));
 
                         const reorderPrompt = `You are helping organize government information for better reading flow. 
@@ -590,8 +601,11 @@ Given the following content fragments, reorder them to create a more logical and
 IMPORTANT RULES:
 1. You MUST return ONLY a JSON array of indices in the new order
 2. You MUST use every index exactly once (no additions, no removals)
-3. Consider logical flow: general info → specific services → forms/applications → additional resources
-4. Group related topics together
+ 3. Primary ordering key is higher "relevance_score" first (descending)
+ 4. Consider logical flow: general info → specific services → forms/applications → additional resources
+ 5. Group related topics together
+ 6. Prefer state-specific and provider-specific content before general content when relevant
+ 7. If two fragments are near-duplicates (same title or same URL), keep only the one that best fits the flow; place duplicates adjacent at the end of the list (to be filtered out by the caller)
 5. DO NOT generate any new content or explanations
 
 Content fragments:
@@ -1124,6 +1138,7 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                             q: "*", // Get all content
                             include_html: "true",
                             per_page: "100",
+                            sort_by: 'srrs_score:desc,popularity_sort:asc'
                         });
 
                         // Add filters based on guided profile
@@ -1152,32 +1167,7 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                         const data = await response.json();
                         console.log('API response data:', data);
                         
-                        // Temporarily disable filtering to see if that's the issue
-                        const filteredResults = data.results || [];
-                        
-                        // TODO: Re-enable filtering once we confirm search is working
-                        // const filteredResults = data.results.filter(item => {
-                        //     const title = (item.title || '').toLowerCase().trim();
-                        //     const content = (item.description || '').toLowerCase().trim();
-                        //     const htmlContent = (item.content_html || '').trim();
-                        //     
-                        //     // Skip if no meaningful content
-                        //     if (!title && !content && !htmlContent) return false;
-                        //     
-                        //     // Skip obvious non-content items
-                        //     const isNonContent = 
-                        //         title === 'footer' ||
-                        //         title === 'navigation' ||
-                        //         title === 'menu' ||
-                        //         title === 'header' ||
-                        //         (content.includes('terms of use') && content.includes('privacy')) ||
-                        //         (title.includes('sign in') && content.includes('password'));
-                        //
-                        //     // Keep items that have meaningful content
-                        //     const hasContent = title.length > 3 || content.length > 20 || htmlContent.length > 50;
-                        //
-                        //     return !isNonContent && hasContent;
-                        // });
+                        const filteredResults = (data.results || []);
 
                         console.log('Total results from API:', data.results.length);
                         console.log('Filtered results:', filteredResults.length);
@@ -1204,16 +1194,75 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                             document: item
                         }));
 
-                        setResults(processedResults);
+                        let cleaned = filterAndDedupe(processedResults, profile);
+                        cleaned = computeRelevanceScores(cleaned, profile)
+                            .sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+                        setResults(cleaned);
 
                         // Apply AI reordering for guided mode (same as home mode)
-                        if (processedResults.length > 0) {
-                            reorderContentForFlow(processedResults);
+                        if (cleaned.length > 0) {
+                            reorderContentForFlow(cleaned);
                         }
 
                     } catch (error) {
                         console.error('Error loading guided results:', error);
                         setError("Failed to load personalized results. Please try again.");
+                    } finally {
+                        setLoading(false);
+                    }
+                };
+
+                // Load a personalized Home view based on local profile (non‑generative ordering)
+                const loadPersonalizedHome = async (profile) => {
+                    try {
+                        setMode('home');
+                        setLoading(true);
+                        setError(null);
+                        setResults([]);
+                        setReorderedResults(null);
+
+                        const params = new URLSearchParams({ q: '*', include_html: 'true', per_page: '100', sort_by: 'srrs_score:desc,popularity_sort:asc' });
+                        // Derive filters from profile
+                        if (Array.isArray(profile.current_life_events) && profile.current_life_events.length > 0) {
+                            params.append('life_event', profile.current_life_events[0]);
+                        }
+                        if (profile.residency_state && profile.residency_state !== 'National' && profile.residency_state !== 'All states') {
+                            params.append('state', profile.residency_state);
+                        }
+                        if (profile.provider && profile.provider !== 'All providers') {
+                            params.append('provider', profile.provider);
+                        }
+
+                        const response = await fetch(`${API_ENDPOINTS.search}?${params.toString()}`);
+                        if (!response.ok) throw new Error('Failed to load personalized content');
+                        const data = await response.json();
+
+                        const processed = (data.results || []).map((hit) => ({
+                            id: hit.document.id,
+                            url: hit.document.url,
+                            title: hit.document.title,
+                            description: hit.document.content_text,
+                            content_html: hit.document.content_html,
+                            category: hit.document.categories?.[0] || 'General Information',
+                            lifeEvent: hit.document.life_events?.[0] || 'General',
+                            provider: hit.document.provider || 'Services Australia',
+                            state: hit.document.states?.[0] || 'National',
+                            hierarchy: hit.document.hierarchy_lvl0 || hit.document.title,
+                            document: hit.document,
+                            eligibility_score: calculateEligibilityScore(hit.document, profile),
+                        }));
+
+                        let curated = filterAndDedupe(processed, profile);
+                        curated = computeRelevanceScores(curated, profile)
+                            .sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+
+                        setResults(curated);
+                        if (curated.length > 0) {
+                            reorderContentForFlow(curated);
+                        }
+                    } catch (e) {
+                        console.error('Personalized home error:', e);
+                        setError('Failed to load personalized home.');
                     } finally {
                         setLoading(false);
                     }
@@ -1260,6 +1309,169 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                     }
                 };
 
+                // Utility: filter and deduplicate fragments
+                const filterAndDedupe = (items, profile = null) => {
+                    const seen = new Set();
+                    const badTitleKeywords = [
+                        'footer','navigation','menu','header','sign in','signin','log in','login','search','breadcrumbs','privacy','terms','skip to','print','share','site map','sitemap','cookie','javascript','captcha'
+                    ];
+                    const badUrlPatterns = [/\/search(\?|$)/i, /\/sitemap/i, /\/404/i];
+                    const badEvents = [/pandemic/i, /covid/i, /coronavirus/i];
+                    const veteranEvents = [/civilian/i, /veteran/i, /military/i];
+                    const profEvents = Array.isArray(profile?.current_life_events) ? profile.current_life_events.join(' ').toLowerCase() : '';
+
+                    const isBadByTitle = (t) => {
+                        const title = (t || '').toLowerCase().trim();
+                        return badTitleKeywords.some(k => title.includes(k));
+                    };
+                    const isBadByUrl = (u) => {
+                        const url = String(u || '');
+                        return badUrlPatterns.some(rx => rx.test(url));
+                    };
+                    const isBadByLifeEvent = (ev) => {
+                        const e = (ev || '').toLowerCase();
+                        if (badEvents.some(rx => rx.test(e))) return true; // hide pandemic/covid
+                        // hide veteran/civilian if profile not related
+                        if (veteranEvents.some(rx => rx.test(e)) && !/veteran|military|defence|defense/.test(profEvents)) return true;
+                        return false;
+                    };
+
+                    const out = [];
+                    for (const it of items) {
+                        const key = (it.url || it.id || it.title || '') + '|' + (it.title || '');
+                        if (seen.has(key)) continue;
+                        if (!it.title && !it.description && !it.content_html) continue;
+                        if (isBadByTitle(it.title) || isBadByTitle(it.hierarchy)) continue;
+                        if (isBadByUrl(it.url)) continue;
+                        if (isBadByLifeEvent(it.lifeEvent || it.life_event)) continue;
+                        seen.add(key);
+                        out.push(it);
+                    }
+                    return out;
+                };
+
+                // Holmes & Rahe Social Readjustment Rating Scale (SRRS) → evidence-based weighting
+                // Values roughly aligned to the original scale; mapped to our event taxonomy
+                const SRRS_WEIGHTS = {
+                    // Relationship / family
+                    'death of spouse': 100,
+                    'divorce': 73,
+                    'marital separation': 65,
+                    'death of close family member': 63,
+                    'marriage': 50,
+                    'marital reconciliation': 45,
+                    'pregnancy': 40,
+                    'gain a new family member': 39,
+                    'child leaving home': 29,
+                    
+                    // Health
+                    'personal injury or illness': 53,
+                    'change in health of family member': 44,
+                    
+                    // Work & money
+                    'dismissal from work': 47,
+                    'retirement': 45,
+                    'business readjustment': 39,
+                    'change in financial state': 38,
+                    'change to a different line of work': 36,
+                    'trouble with boss': 23,
+                    'change in work hours or conditions': 20,
+                    
+                    // Housing / residence / schooling
+                    'change in living conditions': 25,
+                    'change in residence': 20,
+                    'start or end school': 26,
+                };
+
+                const mapEventToSRRS = (name) => {
+                    if (!name) return 0;
+                    const n = String(name).toLowerCase();
+                    // Direct keyword mapping (order matters: pick the highest/severest category first)
+                    if (/(death of (a )?spouse|widow|widower)/.test(n)) return SRRS_WEIGHTS['death of spouse'];
+                    if (/(divorce|relationship breakdown)/.test(n)) return SRRS_WEIGHTS['divorce'];
+                    if (/(separation|separated)/.test(n)) return SRRS_WEIGHTS['marital separation'];
+                    if (/(death of (close )?family|death of someone close|bereavement)/.test(n)) return SRRS_WEIGHTS['death of close family member'];
+                    if (/(pregnancy|having a baby|newborn)/.test(n)) return Math.max(SRRS_WEIGHTS['pregnancy'], SRRS_WEIGHTS['gain a new family member']);
+                    if (/(new family member|adopt)/.test(n)) return SRRS_WEIGHTS['gain a new family member'];
+                    if (/(injury|illness|diagnosed|health change|serious injury|disability|mental illness)/.test(n)) return SRRS_WEIGHTS['personal injury or illness'];
+                    if (/(carer|care for|caring)/.test(n)) return SRRS_WEIGHTS['change in health of family member'];
+                    if (/(job loss|lost my job|dismissal|redundant|unemploy)/.test(n)) return SRRS_WEIGHTS['dismissal from work'];
+                    if (/(start(ing)? work|new job|work hours|work conditions)/.test(n)) return Math.max(SRRS_WEIGHTS['change in work hours or conditions'], SRRS_WEIGHTS['change to a different line of work']);
+                    if (/(change (of|in) (career|line of work)|career change)/.test(n)) return SRRS_WEIGHTS['change to a different line of work'];
+                    if (/(moving house|move house|relocat|change of address|change in residence)/.test(n)) return SRRS_WEIGHTS['change in residence'];
+                    if (/(housing|living conditions|homeless|no fixed address)/.test(n)) return SRRS_WEIGHTS['change in living conditions'];
+                    if (/(start(ing)? school|end(ing)? school|university|study)/.test(n)) return SRRS_WEIGHTS['start or end school'];
+                    return 0;
+                };
+
+                // Utility: compute relevance scores per fragment based on SRRS and profile alignment
+                const computeRelevanceScores = (items, profile = {}) => {
+                    const p = profile || {};
+                    const age = p.age;
+                    const emp = (p.employment_status || '').toLowerCase();
+                    const housing = (p.housing_status || '').toLowerCase();
+                    const state = (p.residency_state || 'National');
+                    const lifeEvents = Array.isArray(p.current_life_events) ? p.current_life_events.map(e=>String(e).toLowerCase()) : [];
+
+                    const textFor = (it) => ((it.title || '') + ' ' + (it.description || '')).toLowerCase();
+
+                    return items.map((it) => {
+                        // SRRS base (0..1). Try explicit lifeEvent first, then text heuristics.
+                        const events = [];
+                        if (it.lifeEvent) events.push(it.lifeEvent);
+                        if (it.life_event) events.push(it.life_event);
+                        if (Array.isArray(it.document?.life_events)) events.push(...it.document.life_events);
+                        let srrsRaw = 0;
+                        for (const ev of events) {
+                            srrsRaw = Math.max(srrsRaw, mapEventToSRRS(ev));
+                        }
+                        if (srrsRaw === 0) {
+                            srrsRaw = mapEventToSRRS(textFor(it));
+                        }
+                        let score = (srrsRaw / 100) || 0.4; // default modest base
+
+                        const txt = textFor(it);
+                        // Profile alignment boosts (smaller than SRRS base)
+                        // Employment
+                        if (emp === 'unemployed' || emp === 'unable_to_work') {
+                            if (/job|employment|jobseeker|income support|unemploy|seeker|workforce/.test(txt)) score += 0.15;
+                            if (/payment|allowance|benefit|centrelink/.test(txt)) score += 0.1;
+                        }
+
+                        // Housing
+                        if (housing === 'homeless' || housing === 'renting_public' || housing === 'renting_private') {
+                            if (/housing|rent|accommodation|homeless|public housing|tenancy/.test(txt)) score += 0.15;
+                            if (/crisis|emergency|support service/.test(txt)) score += 0.1;
+                        }
+
+                        // Age
+                        if (typeof age === 'number') {
+                            if (age < 30 && /(youth|young|apprentice|trainee|graduate)/.test(txt)) score += 0.1;
+                            if (age >= 67 && /(age pension|retirement|senior)/.test(txt)) score += 0.15;
+                        }
+
+                        // Life event alignment
+                        if (lifeEvents.length > 0) {
+                            const ev = lifeEvents[0];
+                            if (ev && it.lifeEvent && String(it.lifeEvent).toLowerCase().includes(ev)) score += 0.2;
+                        }
+
+                        // State- and provider-specific (more actionable)
+                        if (it.state && it.state !== 'National') score += 0.1;
+                        if (it.provider && it.provider !== 'Services Australia') score += 0.05;
+
+                        // Down-weights for known off-topic areas (kept after earlier filtering, just in case)
+                        if (/pandemic|covid|coronavirus/.test(txt)) score -= 0.5;
+                        if (/civilian|veteran|military/.test(txt) && !/(veteran|military|defence|defense)/.test(lifeEvents.join(' '))) score -= 0.3;
+
+                        // Clamp
+                        if (score > 1) score = 1;
+                        if (score < 0) score = 0;
+
+                        return { ...it, relevance_score: score };
+                    });
+                };
+
                 const loadResults = async (searchParams = {}) => {
                     setLoading(true);
                     setError(null);
@@ -1269,6 +1481,7 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                             q: searchParams.q || "*",
                             include_html: "true",
                             per_page: "100",
+                            sort_by: 'srrs_score:desc,popularity_sort:asc'
                         });
 
                         // Add filters based on mode
@@ -1331,8 +1544,12 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                                 hit.document.title,
                             document: hit.document // Keep original document for summary
                         }));
-                        
-                        setResults(processedResults);
+                        // Filter and deduplicate generic non-content items
+                        let cleaned = filterAndDedupe(processedResults, userProfile);
+                        // Score and sort by relevance so groups inherit top item priority
+                        cleaned = computeRelevanceScores(cleaned, userProfile)
+                            .sort((a, b) => (b.relevance_score || 0) - (a.relevance_score || 0));
+                        setResults(cleaned);
                         
                         // Generate AI summary for search mode
                         if (mode === "search" && data.results.length > 0) {
@@ -1341,9 +1558,9 @@ Return ONLY a JSON array of the indices in the optimal reading order, like: [2, 
                         }
                         
                         // Reorder content for home mode
-                        if (mode === "home" && processedResults.length > 0) {
+                        if (mode === "home" && cleaned.length > 0) {
                             setReorderedResults(null); // Clear previous reordering
-                            reorderContentForFlow(processedResults);
+                            reorderContentForFlow(cleaned);
                         }
                     } catch (err) {
                         setError("Failed to load results. Please try again.");
@@ -1433,6 +1650,41 @@ Remember to:
                         // Small delay to ensure searching message is visible
                         await new Promise(resolve => setTimeout(resolve, 500));
 
+                        // Prepare optional user profile context
+                        const profileForContext = (() => {
+                            const p = userProfile || {};
+                            const meaningful = {
+                                age: p.age || null,
+                                income: p.income || null,
+                                residency_state: p.residency_state || null,
+                                employment_status: p.employment_status || null,
+                                housing_status: p.housing_status || null,
+                                has_children: !!p.has_children,
+                                is_carer: !!p.is_carer,
+                                has_disability: !!p.has_disability,
+                                current_life_events: Array.isArray(p.current_life_events) ? p.current_life_events : [],
+                            };
+                            // Determine if any field is actually set beyond defaults
+                            const defaults = {
+                                age: null,
+                                income: null,
+                                residency_state: 'National',
+                                employment_status: null,
+                                housing_status: null,
+                                has_children: false,
+                                is_carer: false,
+                                has_disability: false,
+                                current_life_events: [],
+                            };
+                            const anySet = Object.keys(meaningful).some(k => {
+                                const a = meaningful[k];
+                                const b = defaults[k];
+                                if (Array.isArray(a) && Array.isArray(b)) return a.length > 0;
+                                return a !== b && a !== undefined && a !== '';
+                            });
+                            return anySet ? meaningful : null;
+                        })();
+
                         // Call MCP-powered context-aware endpoint  
                         const response = await fetch(API_ENDPOINTS.llmWithContext, {
                             method: "POST",
@@ -1444,7 +1696,8 @@ Remember to:
                                 prompt: userMessage, // Use original user message, not fullPrompt
                                 search_options: {
                                     per_page: 5
-                                }
+                                },
+                                user_profile: (useProfileForChat && profileForContext) ? profileForContext : null
                             }),
                         });
 
@@ -1729,6 +1982,9 @@ Remember to:
                             <Box sx={{ display: 'flex', gap: 1, mt: 3 }}>
                                 <Button variant="contained" onClick={() => setMode('journey')} endIcon={<span className='material-icons'>map</span>}>Open Journey</Button>
                                 <Button variant="outlined" onClick={() => setMode('guided')} endIcon={<span className='material-icons'>psychology</span>}>Continue Guided</Button>
+                                <Button variant="outlined" color="secondary" onClick={() => loadPersonalizedHome(userProfile)} endIcon={<span className='material-icons'>home</span>}>
+                                    Personalized Home
+                                </Button>
                             </Box>
                         </Paper>
                     );
@@ -2661,7 +2917,7 @@ Remember to:
                                             </Fade>
                                         ))}
                                     </Box>
-                                    <Box sx={{ display: "flex", gap: 1, alignItems: "center" }}>
+                                    <Box sx={{ display: "flex", gap: 1, alignItems: "center", flexWrap: 'wrap' }}>
                                         <FormControl size="small" sx={{ minWidth: 320 }}>
                                             <InputLabel id="model-select-label">Model</InputLabel>
                                             <Select
@@ -2765,6 +3021,11 @@ Remember to:
                                                 e.key === "Enter" &&
                                                 handleChatSend()
                                             }
+                                        />
+                                        <FormControlLabel 
+                                            control={<Checkbox size="small" checked={useProfileForChat} onChange={(e)=> setUseProfileForChat(e.target.checked)} />}
+                                            label={<Typography variant="caption">Use my local profile</Typography>}
+                                            sx={{ ml: 1 }}
                                         />
                                         <Button
                                             variant="contained"
@@ -2998,31 +3259,15 @@ Remember to:
                                                                         <Box key={event} sx={{ mb: 2 }}>
                                                                             {/* H3 - Life Event (only if different from selection) */}
                                                                             {event !== selections.lifeEvent && (
-                                                                                <Accordion
-                                                                                    expanded={expandedAccordions.has(eventId)}
-                                                                                    onChange={() => handleAccordionToggle(eventId)}
-                                                                                    sx={{ mb: 1 }}
-                                                                                >
-                                                                                    <AccordionSummary
-                                                                                        expandIcon={<span>▼</span>}
-                                                                                        sx={{
-                                                                                            '& .MuiAccordionSummary-content': {
-                                                                                                my: 0.5,
-                                                                                            },
-                                                                                        }}
+                                                                                <Box sx={{ mb: 1 }}>
+                                                                                    <Typography
+                                                                                        variant="h5"
+                                                                                        component="h3"
+                                                                                        sx={{ fontWeight: 500, color: "#1976d2", mb: 1 }}
                                                                                     >
-                                                                                        <Typography
-                                                                                            variant="h5"
-                                                                                            component="h3"
-                                                                                            sx={{
-                                                                                                fontWeight: 500,
-                                                                                                color: "#1976d2",
-                                                                                            }}
-                                                                                        >
-                                                                                            {event}
-                                                                                        </Typography>
-                                                                                    </AccordionSummary>
-                                                                                    <AccordionDetails>
+                                                                                        {event}
+                                                                                    </Typography>
+                                                                                    
                                                                                         {Object.entries(pageGroups).map(([pageTitle, items]) => (
                                                                                             <Box key={pageTitle} sx={{ mb: 3 }}>
                                                                                                 {/* Render content fragments as they originally appeared */}
@@ -3089,8 +3334,7 @@ Remember to:
                                                                                     )}
                                                                                             </Box>
                                                                                         ))}
-                                                                                    </AccordionDetails>
-                                                                                </Accordion>
+                                                                                </Box>
                                                                             )}
                                                                             
                                                                             {/* Handle case where event matches selection - render pages directly */}

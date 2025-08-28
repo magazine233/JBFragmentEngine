@@ -17,6 +17,17 @@ import {
 import Typesense from "typesense";
 import { z } from "zod";
 import express from 'express';
+import { createRequire } from 'module';
+
+// Load central Typesense schemas (CommonJS) from repo config
+const require = createRequire(import.meta.url);
+let typesenseSchemas;
+try {
+  typesenseSchemas = require('../config/typesense-schema.js');
+} catch (e) {
+  console.warn('⚠️ Could not load central Typesense schemas from ../config/typesense-schema.js:', e.message);
+  typesenseSchemas = null;
+}
 
 // Initialize Typesense client
 const typesenseClient = new Typesense.Client({
@@ -39,6 +50,7 @@ const SearchFragmentsSchema = z.object({
   provider: z.string().optional().describe("Filter by provider (e.g., 'Services Australia')"),
   state: z.string().optional().describe("Filter by state (e.g., 'NSW')"),
   per_page: z.number().min(1).max(50).default(5).describe("Number of results to return"),
+  sort_by: z.string().optional().describe("Typesense sort_by, e.g., 'srrs_score:desc,popularity_sort:asc'"),
 });
 
 const GetFacetsSchema = z.object({
@@ -469,7 +481,7 @@ async function performSearch(query, options = {}) {
   const searchParams = {
     q: params.query || "*",
     query_by: "title,content_text",
-    include_fields: "id,title,url,content_text,content_html,categories,life_events,provider,states,hierarchy_lvl0",
+    include_fields: "id,title,url,content_text,content_html,categories,life_events,provider,states,hierarchy_lvl0,srrs_score",
     per_page: params.per_page,
     page: 1,
   };
@@ -492,12 +504,33 @@ async function performSearch(query, options = {}) {
   if (filterConditions.length > 0) {
     searchParams.filter_by = filterConditions.join(" && ");
   }
+  if (params.sort_by) {
+    searchParams.sort_by = params.sort_by;
+  } else {
+    searchParams.sort_by = 'srrs_score:desc,popularity_sort:asc';
+  }
 
-  // Execute search
-  const response = await typesenseClient
-    .collections("content_fragments")
-    .documents()
-    .search(searchParams);
+  // Execute search with fallback if SRRS sort unsupported
+  let response;
+  try {
+    response = await typesenseClient
+      .collections("content_fragments")
+      .documents()
+      .search(searchParams);
+  } catch (e) {
+    const msg = e && e.message ? e.message : String(e);
+    if ((searchParams.sort_by || '').includes('srrs_score')) {
+      console.warn('Typesense search failed with SRRS sort, retrying without SRRS:', msg);
+      const fallback = { ...searchParams };
+      delete fallback.sort_by;
+      response = await typesenseClient
+        .collections("content_fragments")
+        .documents()
+        .search(fallback);
+    } else {
+      throw e;
+    }
+  }
 
   // Format results
   const results = response.hits.map((hit) => ({
@@ -531,6 +564,118 @@ app.post('/search', async (req, res) => {
     res.json(result);
   } catch (error) {
     console.error('HTTP Search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Dedicated facets endpoint (self-describing filters)
+// GET /facets?query=...  or POST /facets { query }
+app.all('/facets', async (req, res) => {
+  try {
+    const query = (req.method === 'GET' ? (req.query.query || req.query.q) : req.body?.query) || '*';
+    const response = await typesenseClient
+      .collections("content_fragments")
+      .documents()
+      .search({
+        q: query,
+        query_by: "title,content_text",
+        facet_by: "categories,life_events,provider,states",
+        per_page: 0,
+      });
+
+    const out = {
+      query,
+      facets: {
+        categories: response.facet_counts?.find(f => f.field_name === "categories")?.counts || [],
+        life_events: response.facet_counts?.find(f => f.field_name === "life_events")?.counts || [],
+        providers: response.facet_counts?.find(f => f.field_name === "provider")?.counts || [],
+        states: response.facet_counts?.find(f => f.field_name === "states")?.counts || [],
+      },
+      found: response.found,
+    };
+    res.json(out);
+  } catch (error) {
+    console.error('HTTP Facets error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Schema endpoints (self-describing API)
+app.get('/schema', async (req, res) => {
+  try {
+    if (!typesenseSchemas) {
+      return res.status(500).json({ error: 'Typesense schemas not available in server context' });
+    }
+    res.json({
+      schemas: typesenseSchemas,
+    });
+  } catch (error) {
+    console.error('HTTP Schema error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// Validate current Typesense collections against expected schema
+app.get('/schema/validate', async (req, res) => {
+  try {
+    if (!typesenseSchemas) {
+      return res.status(500).json({ error: 'Typesense schemas not available in server context' });
+    }
+
+    const expected = typesenseSchemas.contentFragmentSchema;
+    const collectionName = expected?.name || 'content_fragments';
+    let actual;
+    try {
+      actual = await typesenseClient.collections(collectionName).retrieve();
+    } catch (e) {
+      return res.json({
+        ok: false,
+        collection: collectionName,
+        error: `Collection not found: ${collectionName}`,
+      });
+    }
+
+    const expectedFields = new Map((expected.fields || []).map(f => [f.name, f]));
+    const actualFields = new Map((actual.fields || []).map(f => [f.name, f]));
+
+    const missing = [];
+    const mismatched = [];
+    for (const [name, exp] of expectedFields.entries()) {
+      const act = actualFields.get(name);
+      if (!act) {
+        missing.push(name);
+        continue;
+      }
+      // Shallow compare important props
+      const propsToCheck = ['type', 'facet', 'index', 'optional', 'num_dim'];
+      const diffs = {};
+      for (const p of propsToCheck) {
+        if ((exp[p] ?? undefined) !== (act[p] ?? undefined)) {
+          diffs[p] = { expected: exp[p], actual: act[p] };
+        }
+      }
+      if (Object.keys(diffs).length > 0) {
+        mismatched.push({ name, diffs });
+      }
+    }
+
+    const extra = [];
+    for (const name of actualFields.keys()) {
+      if (!expectedFields.has(name)) extra.push(name);
+    }
+
+    const ok = missing.length === 0 && mismatched.length === 0;
+    res.json({
+      collection: collectionName,
+      ok,
+      missing_fields: missing,
+      mismatched_fields: mismatched,
+      extra_fields: extra,
+      expected_default_sorting_field: expected.default_sorting_field,
+      actual_default_sorting_field: actual.default_sorting_field,
+    });
+  } catch (error) {
+    console.error('HTTP Schema Validate error:', error);
     res.status(500).json({ error: error.message });
   }
 });

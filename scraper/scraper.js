@@ -8,7 +8,7 @@ const Typesense = require('typesense');
 const fetch = require('node-fetch'); // Add this import
 const { extractFragment } = require('./extractors');
 const { enrichWithTaxonomy } = require('./taxonomies');
-const { contentFragmentSchema } = require('../config/typesense-schema');
+const { contentFragmentSchema, contentPageSchema } = require('../config/typesense-schema');
 const { fetchSitemapUrls } = require('./sitemap');
 const ScraperMonitor = require('./monitor');
 
@@ -59,6 +59,25 @@ class MyGovScraper {
     } catch (_) {
       console.log('Creating new collection...');
       await this.typesense.collections().create(contentFragmentSchema);
+    }
+    // Ensure pages collection exists and is up-to-date
+    const pagesColl = contentPageSchema.name;
+    try {
+      const info = await this.typesense.collections(pagesColl).retrieve();
+      const existingFieldNames = new Set((info.fields || []).map(f => f.name));
+      const missingFields = (contentPageSchema.fields || []).filter(f => !existingFieldNames.has(f.name));
+      if (missingFields.length > 0) {
+        console.log('Adding missing fields to pages collection:', missingFields.map(f => f.name).join(', '));
+        try {
+          await this.typesense.collections(pagesColl).update({ fields: missingFields });
+          console.log('✅ Pages collection fields updated.');
+        } catch (e) {
+          console.warn('⚠️ Failed to update pages collection fields:', e.message);
+        }
+      }
+    } catch (_) {
+      console.log('Creating new pages collection...');
+      await this.typesense.collections().create(contentPageSchema);
     }
   }
 
@@ -306,7 +325,8 @@ class MyGovScraper {
                 ...enrichedFragment,
                 crawl_version: CRAWL_VERSION,
                 last_seen_at: Date.now(),
-                popularity_sort: 100 - (enrichedFragment.popularity_score || 0)
+                popularity_sort: 100 - (enrichedFragment.popularity_score || 0),
+                page_url: baseUrl(url)
               };
               
               fragments.push(finalFragment);
@@ -469,6 +489,129 @@ class MyGovScraper {
     console.log(`Indexing complete: ${indexed} documents`);
   }
 
+  buildPageDocs() {
+    const pages = new Map(); // baseUrl -> accum
+    for (const f of this.fragments) {
+      const page = f.page_url || baseUrl(f.url || '');
+      if (!page) continue;
+      if (!pages.has(page)) {
+        const host = (() => { try { return new URL(page).hostname; } catch { return ''; } })();
+        pages.set(page, {
+          id: page, // use URL as id for simplicity
+          url: page,
+          host,
+          title: undefined,
+          fragment_ids: [],
+          fragment_count: 0,
+          life_events: new Set(),
+          categories: new Set(),
+          states: new Set(),
+          provider: new Set(),
+          governance: new Set(),
+          stage: new Set(),
+          stage_variant: new Set(),
+          content_text: '',
+          keywords: new Set(),
+          out_links: new Set(),
+          out_link_tokens: new Set(),
+          _lvl0Counts: new Map()
+        });
+      }
+      const acc = pages.get(page);
+      acc.fragment_ids.push(f.id);
+      acc.fragment_count++;
+      (f.life_events||[]).forEach(x => acc.life_events.add(x));
+      (f.categories||[]).forEach(x => acc.categories.add(x));
+      (f.states||[]).forEach(x => acc.states.add(x));
+      if (f.provider) acc.provider.add(f.provider);
+      if (f.governance) acc.governance.add(f.governance);
+      if (f.stage) acc.stage.add(f.stage);
+      if (f.stage_variant) acc.stage_variant.add(f.stage_variant);
+      // Approximate page title as the most frequent hierarchy_lvl0
+      const lvl0 = f.hierarchy_lvl0 || f.title || '';
+      if (lvl0) acc._lvl0Counts.set(lvl0, (acc._lvl0Counts.get(lvl0) || 0) + 1);
+      // Accumulate content (cap for size)
+      if (acc.content_text.length < 40000) {
+        const add = (f.content_text || '').slice(0, 4000);
+        acc.content_text += (acc.content_text ? '\n' : '') + add;
+      }
+      // Accumulate keywords
+      (f.search_keywords || []).forEach(k => acc.keywords.add(k));
+
+      // Extract outbound links from fragment content_html (content area only)
+      const html = f.content_html || '';
+      const hrefs = Array.from(html.matchAll(/href\s*=\s*"([^"]+)"/gi)).map(m => m[1]);
+      for (const h of hrefs) {
+        try {
+          const u = new URL(h, page);
+          if (!['http:', 'https:'].includes(u.protocol)) continue;
+          const b = baseUrl(u.toString());
+          acc.out_links.add(b);
+          const seg = (u.pathname || '/').split('/').filter(Boolean)[0] || '';
+          const host = (u.hostname || '').toLowerCase();
+          if (host) acc.out_link_tokens.add(host);
+          if (host && seg) acc.out_link_tokens.add(`${host}/${seg.toLowerCase()}`);
+        } catch { /* ignore invalid URLs */ }
+      }
+    }
+    // Finalize docs
+    const docs = [];
+    for (const acc of pages.values()) {
+      // pick title by max count
+      if (acc._lvl0Counts && acc._lvl0Counts.size) {
+        acc.title = Array.from(acc._lvl0Counts.entries()).sort((a,b)=>b[1]-a[1])[0][0];
+      }
+      // build embedding (hashed BOW)
+      const emb = buildHashedEmbedding(acc.content_text || '', 256);
+      docs.push({
+        id: acc.id,
+        url: acc.url,
+        host: acc.host,
+        title: acc.title,
+        fragment_ids: acc.fragment_ids,
+        fragment_count: acc.fragment_count,
+        life_events: Array.from(acc.life_events),
+        categories: Array.from(acc.categories),
+        states: Array.from(acc.states),
+        provider: Array.from(acc.provider),
+        governance: Array.from(acc.governance),
+        stage: Array.from(acc.stage),
+        stage_variant: Array.from(acc.stage_variant),
+        content_text: acc.content_text,
+        keywords: Array.from(acc.keywords),
+        embedding: emb,
+        out_links: Array.from(acc.out_links).slice(0, 500),
+        out_link_tokens: Array.from(acc.out_link_tokens).slice(0, 1000),
+        crawl_version: CRAWL_VERSION,
+        last_seen_at: Date.now()
+      });
+    }
+    return docs;
+  }
+
+  async indexPages() {
+    const docs = this.buildPageDocs();
+    console.log(`Indexing ${docs.length} pages...`);
+    const coll = this.typesense.collections('content_pages').documents();
+    let indexed = 0;
+    for (let i = 0; i < docs.length; i += 100) {
+      const batch = docs.slice(i, i + 100);
+      try {
+        await coll.import(batch, { action: 'upsert' });
+        indexed += batch.length;
+        console.log(`Pages progress: ${indexed}/${docs.length} (${Math.round(indexed/docs.length*100)}%)`);
+      } catch (e) {
+        console.error('Pages batch import error:', e.message);
+        for (const doc of batch) {
+          try { await coll.upsert(doc); indexed++; } catch (er) {
+            console.error('Failed to index page:', doc.url, er.message);
+          }
+        }
+      }
+    }
+    console.log(`Pages indexing complete: ${indexed} documents`);
+  }
+
   async pruneStaleDocs() {
     console.log('Pruning stale documents...');
     try {
@@ -480,6 +623,15 @@ class MyGovScraper {
     } catch (e) {
       console.error('Error pruning stale docs:', e);
     }
+    try {
+      const result = await this.typesense
+        .collections('content_pages')
+        .documents()
+        .delete({ filter_by: `crawl_version:<${CRAWL_VERSION}` });
+      console.log(`Pruned ${result.num_deleted} stale pages`);
+    } catch (e) {
+      console.error('Error pruning stale page docs:', e.message);
+    }
   }
 }
 
@@ -490,8 +642,39 @@ if (require.main === module) {
   const startUrl = process.env.TARGET_URL || 'https://my.gov.au';
   
   scraper.run(startUrl)
-    .then(() => console.log('Scraping complete!'))
+    .then(async () => { await scraper.indexPages(); console.log('Scraping complete!'); })
     .catch(console.error);
 }
 
 module.exports = MyGovScraper;
+
+// Helpers
+function baseUrl(url) {
+  try { const u = new URL(url); u.hash = ''; u.search = ''; return u.toString(); } catch { return (url||'').split('#')[0]; }
+}
+
+function normalizeText(text) {
+  return (text || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
+function buildHashedEmbedding(text, dim = 256) {
+  const vec = new Array(dim).fill(0);
+  const toks = normalizeText(text).split(' ').filter(Boolean);
+  for (const t of toks) {
+    // simple string hash
+    let h = 2166136261;
+    for (let i = 0; i < t.length; i++) {
+      h ^= t.charCodeAt(i);
+      h = (h * 16777619) >>> 0;
+    }
+    const idx = h % dim;
+    vec[idx] += 1;
+  }
+  // L2 normalize
+  const norm = Math.sqrt(vec.reduce((s, x) => s + x * x, 0)) || 1;
+  return vec.map(v => v / norm);
+}

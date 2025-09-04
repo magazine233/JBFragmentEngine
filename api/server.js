@@ -3,6 +3,8 @@ const express = require('express');
 const cors = require('cors');
 const Typesense = require('typesense');
 const fragmentRoutes = require('./routes/fragments');
+const overlapRoutes = require('./routes/overlap');
+const pagesRoutes = require('./routes/pages');
 const journeyRoutes = require('./routes/journey');
 const llmRoutes = require('./routes/llm');
 
@@ -30,6 +32,8 @@ app.locals.typesense = typesenseClient;
 
 // Routes
 app.use('/api/fragments', fragmentRoutes);
+app.use('/api/overlap', overlapRoutes);
+app.use('/api/pages', pagesRoutes);
 app.use('/api/journey', journeyRoutes);
 app.use('/api/llm', llmRoutes);
 

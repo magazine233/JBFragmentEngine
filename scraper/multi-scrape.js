@@ -19,6 +19,8 @@ async function main() {
     console.log(`\n=== Crawling target: ${url} ===`);
     try {
       await scraper.run(url);
+      // Aggregate + index pages for this target immediately after crawling
+      await scraper.indexPages();
     } catch (e) {
       console.error(`Target failed: ${url}`, e.message);
     }

@@ -1,0 +1,381 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Fragments Visual Explorer</title>
+  <style>
+    body { font-family: system-ui, Helvetica, Arial, sans-serif; margin: 0; background: #0b0f14; color: #e6edf3; }
+    header { padding: 12px 16px; border-bottom: 1px solid #1f2937; position: sticky; top: 0; background: #0b0f14; z-index: 2; }
+    .controls { display: grid; grid-template-columns: 1.2fr 1fr 1fr 1fr 0.9fr 0.9fr 1fr 1.2fr 0.9fr 0.9fr; gap: 8px; align-items: center; }
+    .controls input, .controls select, .controls button { padding: 8px; background: #0f1720; color: #e6edf3; border: 1px solid #233041; border-radius: 6px; }
+    .controls button { cursor: pointer; }
+    .wrap { display: grid; grid-template-columns: 320px 1fr; min-height: calc(100vh - 56px); }
+    .sidebar { border-right: 1px solid #1f2937; padding: 12px; overflow: auto; }
+    .sidebar h3 { margin: 12px 0 6px; font-size: 14px; color: #9fb3c8; }
+    .facet { display: grid; gap: 6px; }
+    .facet label { display: flex; justify-content: space-between; font-size: 13px; color: #bcd0e0; }
+    .content { position: relative; }
+    #viz { width: 100%; height: calc(100vh - 56px); }
+    .tooltip { position: absolute; background: #0f1720; color: #e6edf3; border: 1px solid #233041; padding: 8px; border-radius: 6px; font-size: 12px; pointer-events: none; opacity: 0; }
+    .legend { position: absolute; right: 8px; bottom: 8px; background: rgba(12,16,21,0.6); border:1px solid #233041; border-radius:8px; padding:8px; font-size:12px; }
+    .legend div { margin: 2px 0; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+</head>
+<body>
+  <header>
+    <div class="controls">
+      <input id="q" placeholder="Search fragments (title, content)…" />
+      <select id="provider"><option value="">Provider: any</option></select>
+      <select id="life_event"><option value="">Life event: any</option></select>
+      <select id="category"><option value="">Category: any</option></select>
+      <select id="mode">
+        <option value="fragments">Mode: Fragment pairs</option>
+        <option value="pages">Mode: Page overlap (from fragments)</option>
+        <option value="pages2">Mode: Pages (tags/embedding)</option>
+        <option value="links">Mode: Link graph</option>
+      </select>
+      <select id="metric">
+        <option value="combined">Metric: combined</option>
+        <option value="title">Metric: title</option>
+        <option value="content">Metric: content</option>
+        <option value="link">Metric: link</option>
+      </select>
+      <select id="page_metric" style="display:none">
+        <option value="combined">Page metric: combined</option>
+        <option value="tags">Page metric: tags</option>
+        <option value="embedding">Page metric: embedding</option>
+      </select>
+      <label style="display:flex;gap:6px;align-items:center;color:#9fb3c8;font-size:12px">Min score <input id="thresh" type="range" min="0" max="1" step="0.01" value="0.6" style="width:120px"/><span id="thresh_val">0.60</span></label>
+      <label style="display:flex;gap:6px;align-items:center;color:#9fb3c8;font-size:12px"><input id="ignore_generic" type="checkbox" checked/> Ignore generic titles</label>
+      <input id="site_a" placeholder="Site A (default servicesaustralia.gov.au)" />
+      <input id="site_b" placeholder="Site B (default my.gov.au)" />
+      <button id="run">Update</button>
+      <button id="rebuild_pages">Build pages index</button>
+      <button id="export">Export overlaps (CSV)</button>
+    </div>
+  </header>
+  <div class="wrap">
+    <aside class="sidebar">
+      <h3>Facets</h3>
+      <div id="facet_life_events" class="facet"></div>
+      <div id="facet_categories" class="facet"></div>
+      <div id="facet_provider" class="facet"></div>
+    </aside>
+    <main class="content">
+      <svg id="viz"></svg>
+      <div class="tooltip" id="tooltip"></div>
+      <div class="legend" id="legend"></div>
+    </main>
+  </div>
+  <script>
+    const API = (location.protocol.startsWith('http') ? location.origin : 'http://localhost:3000');
+    const svg = d3.select('#viz');
+    const tip = d3.select('#tooltip');
+    const legend = d3.select('#legend');
+    let width, height;
+
+    function resize() {
+      width = svg.node().clientWidth;
+      height = svg.node().clientHeight;
+      svg.attr('viewBox', `0 0 ${width} ${height}`);
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    async function fetchFacets() {
+      const res = await fetch(`${API}/api/fragments/facets`);
+      const facets = await res.json();
+      renderFacet('facet_life_events', facets.life_events || []);
+      renderFacet('facet_categories', facets.categories || []);
+      renderFacet('facet_provider', facets.provider || []);
+      // Populate header selects
+      const provSel = document.getElementById('provider');
+      (facets.provider||[]).slice(0,100).forEach(f => {
+        const o = document.createElement('option'); o.value = f.value; o.textContent = `Provider: ${f.value} (${f.count})`; provSel.appendChild(o);
+      });
+      const leSel = document.getElementById('life_event');
+      (facets.life_events||[]).slice(0,100).forEach(f => {
+        const o = document.createElement('option'); o.value = f.value; o.textContent = `Life: ${f.value} (${f.count})`; leSel.appendChild(o);
+      });
+      const catSel = document.getElementById('category');
+      (facets.categories||[]).slice(0,100).forEach(f => {
+        const o = document.createElement('option'); o.value = f.value; o.textContent = `Cat: ${f.value} (${f.count})`; catSel.appendChild(o);
+      });
+    }
+
+    function renderFacet(id, items) {
+      const c = document.getElementById(id);
+      c.innerHTML = '';
+      items.slice(0, 30).forEach(it => {
+        const label = document.createElement('label');
+        const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = it.value; cb.addEventListener('change', update);
+        label.appendChild(cb); label.appendChild(document.createTextNode(` ${it.value}`));
+        const span = document.createElement('span'); span.textContent = it.count; label.appendChild(span);
+        c.appendChild(label);
+      });
+    }
+
+    async function fetchFragments({ q='*', life_event='', category='', provider='', pages=3 }) {
+      const per_page = 200;
+      let page = 1; const docs = [];
+      while (page <= pages) {
+        const params = new URLSearchParams({ q, per_page, page, include_html: 'false' });
+        if (life_event) params.set('life_event', life_event);
+        if (category) params.set('category', category);
+        if (provider) params.set('provider', provider);
+        const res = await fetch(`${API}/api/fragments/search?` + params.toString());
+        const data = await res.json();
+        (data.results||[]).forEach(h => docs.push(h.document));
+        if (!data.results || data.results.length < per_page) break;
+        page++;
+      }
+      return docs;
+    }
+
+    function hostnameOf(doc) {
+      if (Array.isArray(doc.site_hierarchy) && doc.site_hierarchy.length) return doc.site_hierarchy[0];
+      try { return new URL(doc.url).hostname; } catch { return ''; }
+    }
+
+    function colorFor(host) {
+      if (host.includes('servicesaustralia.gov.au')) return '#60a5fa';
+      if (host.includes('my.gov.au')) return '#34d399';
+      return '#f59e0b';
+    }
+
+    // Pan & zoom behaviour
+    const zoomBehavior = d3.zoom()
+      .scaleExtent([0.2, 8])
+      .on('zoom', (event) => {
+        const layer = svg.select('g.zoom-layer');
+        if (!layer.empty()) layer.attr('transform', event.transform);
+      });
+    svg.call(zoomBehavior);
+
+    function draw(nodes, links=[]) {
+      svg.selectAll('*').remove();
+      // Background to capture drag/pan
+      svg.append('rect')
+        .attr('class', 'pan-bg')
+        .attr('width', width)
+        .attr('height', height)
+        .attr('fill', 'transparent');
+
+      const layer = svg.append('g').attr('class', 'zoom-layer');
+      const gLinks = layer.append('g').attr('stroke', '#334155').attr('stroke-opacity', 0.5);
+      const gNodes = layer.append('g');
+
+      const sim = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d=>d.id)
+          .distance(d=> 120 - 80 * Math.min(1, Math.max(0, d.score||0)))
+          .strength(d=> 0.05 + 0.35 * Math.min(1, Math.max(0, d.score||0)))
+        )
+        .force('charge', d3.forceManyBody().strength(-30))
+        .force('center', d3.forceCenter(width/2, height/2))
+        .force('collision', d3.forceCollide().radius(d => 8 + Math.min(22, Math.max(6, (d.content_len||80)/50))));
+
+      const link = gLinks.selectAll('line').data(links).enter().append('line')
+        .attr('stroke-width', d => 0.5 + 4 * Math.min(1, Math.max(0, d.score||0)))
+        .attr('stroke', d => d3.interpolateTurbo(Math.min(1, Math.max(0, d.score||0))));
+      const node = gNodes.selectAll('circle').data(nodes).enter().append('circle')
+        .attr('r', d => 6 + Math.min(16, Math.max(4, (d.content_len||80)/50)))
+        .attr('fill', d => colorFor(d.host))
+        .attr('stroke', '#0b0f14').attr('stroke-width', 1)
+        .call(drag(sim))
+        .on('mousemove', (e,d) => showTip(e,d))
+        .on('mouseout', hideTip)
+        .on('click', (e,d) => window.open(d.url, '_blank'));
+
+      const label = gNodes.selectAll('text').data(nodes).enter().append('text')
+        .text(d => d.title.slice(0, 80))
+        .attr('font-size', 10)
+        .attr('fill', '#93a8bf')
+        .attr('pointer-events', 'none');
+
+      sim.on('tick', () => {
+        node.attr('cx', d => (d.x = (d.x==null? 0 : d.x)))
+            .attr('cy', d => (d.y = (d.y==null? 0 : d.y)));
+        label.attr('x', d => (d.x||0) + 10).attr('y', d => (d.y||0) + 4);
+        link.attr('x1', d=>d.source.x).attr('y1', d=>d.source.y).attr('x2', d=>d.target.x).attr('y2', d=>d.target.y);
+      });
+
+      // Fit graph into view after layout settles
+      const fitToView = () => {
+        if (!nodes.length) return;
+        const xs = nodes.map(d => d.x||0);
+        const ys = nodes.map(d => d.y||0);
+        const minX = Math.min(...xs), maxX = Math.max(...xs);
+        const minY = Math.min(...ys), maxY = Math.max(...ys);
+        const dx = (maxX - minX) || 1;
+        const dy = (maxY - minY) || 1;
+        const margin = 40;
+        const sx = (width - 2*margin) / dx;
+        const sy = (height - 2*margin) / dy;
+        const scale = Math.max(0.2, Math.min(8, Math.min(sx, sy)));
+        const cx = (minX + maxX) / 2;
+        const cy = (minY + maxY) / 2;
+        const tx = width / 2 - scale * cx;
+        const ty = height / 2 - scale * cy;
+        const t = d3.zoomIdentity.translate(tx, ty).scale(scale);
+        svg.transition().duration(450).call(zoomBehavior.transform, t);
+      };
+
+      sim.on('end', fitToView);
+      // Fallback fit after a short delay in case end doesn't fire promptly
+      setTimeout(fitToView, 800);
+
+      legend.html('')
+        .append('div').html('<span style="color:#60a5fa">●</span> Services Australia')
+        .parentNode
+      legend.append('div').html('<span style="color:#34d399">●</span> myGov');
+      legend.append('div').html('<span style="color:#f59e0b">●</span> Other');
+    }
+
+    function drag(sim) {
+      function started(event) { if (!event.active) sim.alphaTarget(0.3).restart(); event.subject.fx = event.subject.x; event.subject.fy = event.subject.y; }
+      function dragged(event) { event.subject.fx = event.x; event.subject.fy = event.y; }
+      function ended(event) { if (!event.active) sim.alphaTarget(0); event.subject.fx = null; event.subject.fy = null; }
+      return d3.drag().on('start', started).on('drag', dragged).on('end', ended);
+    }
+
+    function showTip(e, d) {
+      tip.style('opacity', 1)
+         .style('left', (e.clientX + 10) + 'px')
+         .style('top', (e.clientY + 10) + 'px')
+         .html(`<b>${escapeHtml(d.title)}</b><br/>${escapeHtml(d.host)}<br/><small>${escapeHtml(d.url)}</small>`);
+    }
+    function hideTip() { tip.style('opacity', 0); }
+    function escapeHtml(s) { return (s||'').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])); }
+
+    function filterByFacets(docs) {
+      const le = checkedValues('facet_life_events');
+      const cat = checkedValues('facet_categories');
+      const prov = checkedValues('facet_provider');
+      return docs.filter(d =>
+        (le.length===0 || (d.life_events||[]).some(x => le.includes(x))) &&
+        (cat.length===0 || (d.categories||[]).some(x => cat.includes(x))) &&
+        (prov.length===0 || prov.includes(d.provider))
+      );
+    }
+    function checkedValues(id) {
+      return Array.from(document.querySelectorAll(`#${id} input[type=checkbox]:checked`)).map(cb => cb.value);
+    }
+
+    async function update() {
+      const q = document.getElementById('q').value || '*';
+      const provider = document.getElementById('provider').value;
+      const life_event = document.getElementById('life_event').value;
+      const category = document.getElementById('category').value;
+      const site_a = (document.getElementById('site_a').value || 'servicesaustralia.gov.au').trim();
+      const site_b = (document.getElementById('site_b').value || 'my.gov.au').trim();
+      const mode = document.getElementById('mode').value;
+      const metric = document.getElementById('metric').value;
+      const page_metric = document.getElementById('page_metric').value;
+      const threshold = parseFloat(document.getElementById('thresh').value || '0.6');
+      const ignore_generic = document.getElementById('ignore_generic').checked;
+
+      const all = await fetchFragments({ q, provider, life_event, category, pages: 4 });
+      const docs = filterByFacets(all);
+
+      if (mode === 'fragments') {
+        const nodes = docs.map(d => ({ id: d.id, url: d.url, title: d.title || '(untitled)', host: hostnameOf(d), content_len: (d.content_text||'').length }));
+        let links = [];
+        try {
+          const params = new URLSearchParams({ site_a, site_b, threshold: String(threshold), max_pairs: '400', metric, ignore_generic: String(ignore_generic) });
+          const resp = await fetch(`${API}/api/overlap?` + params.toString());
+          const data = await resp.json();
+          const nodeById = new Map(nodes.map(n => [n.id, n]));
+          links = (data.top_pairs||[])
+            .map(p => ({ source: p.a.id, target: p.b.id, score: p.score }))
+            .filter(l => nodeById.has(l.source) && nodeById.has(l.target));
+        } catch {}
+        draw(nodes, links);
+      } else if (mode === 'pages') {
+        // Page mode
+        const params = new URLSearchParams({ site_a, site_b, threshold: String(threshold), max_pairs: '1200', aggregate: 'page', metric, ignore_generic: String(ignore_generic) });
+        const resp = await fetch(`${API}/api/overlap?` + params.toString());
+        const data = await resp.json();
+        const pages = data.top_pages||[];
+        const pageNodes = new Map();
+        function add(url) {
+          const host = (()=>{ try { return new URL(url).hostname; } catch { return ''; } })();
+          if (!pageNodes.has(url)) pageNodes.set(url, { id: url, url, title: url, host, content_len: 100 });
+        }
+        const links = pages.map(p => { add(p.a_url); add(p.b_url); const score = Math.min(1, (p.coverage * 0.6 + p.avg_score * 0.4)); return { source: p.a_url, target: p.b_url, score, label: `${p.matched_fragments}/${Math.max(p.a_fragments,p.b_fragments)} matched` }; });
+        draw(Array.from(pageNodes.values()), links);
+      } else if (mode === 'pages2') {
+        const params = new URLSearchParams({ site_a, site_b, threshold: String(threshold), max_pairs: '2000', metric: page_metric });
+        const resp = await fetch(`${API}/api/pages/similarity?` + params.toString());
+        const data = await resp.json();
+        const pairs = data.pairs || [];
+        const nodeMap = new Map();
+        function add(url, title){
+          const host = (()=>{ try { return new URL(url).hostname; } catch { return ''; } })();
+          if (!nodeMap.has(url)) nodeMap.set(url, { id:url, url, title: title||url, host, content_len: 100 });
+        }
+        const links = pairs.map(p => { add(p.a.url, p.a.title); add(p.b.url, p.b.title); return { source: p.a.url, target: p.b.url, score: p.score }; });
+        draw(Array.from(nodeMap.values()), links);
+      } else if (mode === 'links') {
+        const params = new URLSearchParams({ site_a, site_b, cross_only: 'false', max_edges: '2000', max_nodes: '1500' });
+        const resp = await fetch(`${API}/api/pages/graph?` + params.toString());
+        const data = await resp.json();
+        const nodes = (data.nodes || []).map(n => ({ id:n.id, url:n.url, title:n.title, host:n.host, content_len: 100 }));
+        const links = (data.edges || []).map(e => ({ source: e.source, target: e.target, score: e.score || 0.5 }));
+        draw(nodes, links);
+      }
+    }
+
+    document.getElementById('run').addEventListener('click', update);
+    document.getElementById('export').addEventListener('click', async () => {
+      const site_a = (document.getElementById('site_a').value || 'servicesaustralia.gov.au').trim();
+      const site_b = (document.getElementById('site_b').value || 'my.gov.au').trim();
+      const mode = document.getElementById('mode').value;
+      const metric = document.getElementById('metric').value;
+      const page_metric = document.getElementById('page_metric').value;
+      const threshold = document.getElementById('thresh').value || '0.55';
+      const ignore_generic = document.getElementById('ignore_generic').checked;
+      let url;
+      if (mode === 'pages2') {
+        const params = new URLSearchParams({ site_a, site_b, threshold, max_pairs: '50000', format: 'csv', metric: page_metric });
+        url = `${API}/api/pages/similarity?` + params.toString();
+      } else {
+        const params = new URLSearchParams({ site_a, site_b, threshold, max_pairs: '2000', format: 'csv', metric, ignore_generic: String(ignore_generic) });
+        if (mode === 'pages') params.set('aggregate', 'page');
+        url = `${API}/api/overlap?` + params.toString();
+      }
+      const a = document.createElement('a'); a.href = url; a.download = 'overlap_export.csv'; a.click();
+    });
+
+    document.getElementById('mode').addEventListener('change', (e) => {
+      const showPageMetric = e.target.value === 'pages2';
+      document.getElementById('page_metric').style.display = showPageMetric ? '' : 'none';
+      update();
+    });
+    document.getElementById('page_metric').addEventListener('change', update);
+    document.getElementById('metric').addEventListener('change', update);
+    document.getElementById('thresh').addEventListener('input', (e)=>{ document.getElementById('thresh_val').textContent = (+e.target.value).toFixed(2); });
+    document.getElementById('thresh').addEventListener('change', update);
+    document.getElementById('ignore_generic').addEventListener('change', update);
+
+    document.getElementById('rebuild_pages').addEventListener('click', async () => {
+      const site_a = (document.getElementById('site_a').value || '').trim();
+      const site_b = (document.getElementById('site_b').value || '').trim();
+      const params = new URLSearchParams({ prune: 'true' });
+      if (site_a) params.set('site_a', site_a);
+      if (site_b) params.set('site_b', site_b);
+      try {
+        const resp = await fetch(`${API}/api/pages/rebuild?` + params.toString(), { method: 'POST' });
+        const data = await resp.json();
+        alert(`Pages indexed: ${data.pages_indexed} (from ${data.fragments_processed} fragments)`);
+        update();
+      } catch (e) {
+        alert('Failed to rebuild pages: ' + e.message);
+      }
+    });
+
+    fetchFacets().then(update);
+  </script>
+</body>
+</html>

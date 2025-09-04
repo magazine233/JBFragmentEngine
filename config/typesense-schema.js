@@ -72,6 +72,8 @@ module.exports = {
 
       // core
       { name: 'url', type: 'string', facet: true },
+      // Base page URL (no hash/query) for page linkage
+      { name: 'page_url', type: 'string', facet: true, optional: true },
       { name: 'anchor', type: 'string', optional: true },
       { name: 'title', type: 'string' },
       { name: 'content_text', type: 'string' },
@@ -148,6 +150,44 @@ module.exports = {
       { name: 'typical_duration_days', type: 'int32', optional: true },
       { name: 'urgency_score', type: 'int32', optional: true },
       { name: 'completion_likelihood', type: 'float', optional: true }
+    ]
+  },
+
+  // Aggregated page documents (one doc per base URL)
+  contentPageSchema: {
+    name: 'content_pages',
+    enable_nested_fields: true,
+    fields: [
+      // identity & versioning
+      { name: 'crawl_version', type: 'int32' },
+      { name: 'last_seen_at', type: 'int64' },
+
+      // core
+      { name: 'url', type: 'string', facet: true },
+      { name: 'host', type: 'string', facet: true },
+      { name: 'title', type: 'string', optional: true },
+      { name: 'content_text', type: 'string', optional: true },
+
+      // aggregated tags from fragments
+      { name: 'life_events', type: 'string[]', facet: true },
+      { name: 'categories', type: 'string[]', facet: true },
+      { name: 'states', type: 'string[]', facet: true },
+      { name: 'provider', type: 'string[]', facet: true, optional: true },
+      { name: 'governance', type: 'string[]', facet: true, optional: true },
+      { name: 'stage', type: 'string[]', facet: true, optional: true },
+      { name: 'stage_variant', type: 'string[]', facet: true, optional: true },
+
+      // relationships
+      { name: 'fragment_ids', type: 'string[]' },
+      { name: 'fragment_count', type: 'int32' },
+
+      // bag-of-words keywords and embedding for similarity
+      { name: 'keywords', type: 'string[]', optional: true },
+      { name: 'embedding', type: 'float[]', num_dim: 256, optional: true },
+
+      // outbound link graph (content-only links)
+      { name: 'out_links', type: 'string[]', optional: true },
+      { name: 'out_link_tokens', type: 'string[]', optional: true }
     ]
   },
  // New collection for user profiles

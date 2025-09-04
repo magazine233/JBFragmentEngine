@@ -32,8 +32,10 @@
             crossorigin
             src="https://unpkg.com/@babel/standalone/babel.min.js"
         ></script>
-        <!-- Three.js for Journey visualization -->
-        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+        <!-- D3.js for Journey visualization -->
+        <script src="https://d3js.org/d3.v7.min.js"></script>
+        <!-- Local fallback graph data (used if API not available) -->
+        <script src="data/lifevents-graph.js"></script>
 
         <style>
             body {
@@ -188,6 +190,7 @@
                 LinearProgress,
                 ToggleButton,
                 ToggleButtonGroup,
+                Slider,
                 Tabs,
                 Tab,
                 Dialog,
@@ -436,9 +439,10 @@
                 
                 // Journey visualization state/refs
                 const journeyMapRef = useRef(null);
-                const journeySceneRef = useRef(null);
-                const journeyRendererRef = useRef(null);
-                const journeyCameraRef = useRef(null);
+                const journeyFitRef = useRef(null);
+                const journeyGraphMapRef = useRef({ indexById: new Map(), nodes: [] });
+                const rebuildGraphRef = useRef(null);
+                const [selectedEvent, setSelectedEvent] = useState(null);
                 const [journeyVizData, setJourneyVizData] = useState(null);
                 
                 // Persist profile and sync to server recommender
@@ -1992,131 +1996,737 @@ Remember to:
 
                 // Journey visualization component
                 function JourneyView() {
+                    const [journeyDisplayMode, setJourneyDisplayMode] = useState('next'); // 'allowed' | 'next' | 'my'
+                    const [journeyFull, setJourneyFull] = useState(false);
+                    const [nextWeight, setNextWeight] = useState(2.0);
+                    const [concurrentWeight, setConcurrentWeight] = useState(1.4);
+                    const [selectedDestination, setSelectedDestination] = useState(null);
+                    const [showPathfinding, setShowPathfinding] = useState(false);
+                    const currentJourneyModeRef = useRef(journeyDisplayMode);
+
+                    // Helpers for colors and utilities
+                    const clusterColor = React.useCallback((cluster) => {
+                        const map = {
+                            'Family': 0x4ade80,
+                            'Work': 0x3b82f6,
+                            'Health': 0xf87171,
+                            'Education': 0xa78bfa,
+                            'Housing': 0xfbbf24,
+                            'Finance': 0x34d399,
+                        };
+                        return map[cluster] || 0x9ca3af;
+                    }, []);
+
+                    const ensureVizData = React.useCallback(async () => {
+                        try {
+                            if (!profileId) {
+                                await buildServerProfile(userProfile);
+                            }
+                            const pid = profileId;
+                            if (pid) {
+                                const resp = await fetch(API_ENDPOINTS.journeyViz(pid));
+                                if (resp.ok) {
+                                    const data = await resp.json();
+                                    setJourneyVizData(data);
+                                }
+                            }
+                        } catch (e) {
+                            console.warn('Journey viz load failed:', e.message);
+                        }
+                    }, [profileId, userProfile]);
+                    useEffect(() => { ensureVizData(); }, [ensureVizData]);
+
+                    // Three.js scene init + graph renderer
                     useEffect(() => {
                         let cleanup = () => {};
-                        const init = async () => {
-                            try {
-                                // Ensure server-side profile exists
-                                if (!profileId) {
-                                    await buildServerProfile(userProfile);
+                        let animationHandle;
+
+                        const initScene = async () => {
+                            if (!journeyMapRef.current || !window.d3) return;
+
+                            // D3 SVG setup
+                            const containerWidth = journeyMapRef.current.clientWidth;
+                            const containerHeight = journeyMapRef.current.clientHeight;
+                            
+                            // Clear container
+                            journeyMapRef.current.innerHTML = '';
+                            
+                            // Create SVG
+                            const svg = d3.select(journeyMapRef.current)
+                                .append('svg')
+                                .attr('width', containerWidth)
+                                .attr('height', containerHeight)
+                                .style('background-color', '#f8fafc')
+                                .call(d3.zoom()
+                                    .scaleExtent([0.1, 4])
+                                    .on('zoom', (event) => {
+                                        g.attr('transform', event.transform);
+                                    }))
+                                .on('click', function(event) {
+                                    if (event.target === this) {
+                                        // Clicked on background - clear selection
+                                        setSelectedEvent(null);
+                                        clearHighlight();
+                                    }
+                                });
+                            
+                            // Create main group for all visualization elements
+                            const g = svg.append('g');
+                            
+                            // Define arrow marker for directed edges
+                            svg.append('defs').append('marker')
+                                .attr('id', 'arrowhead')
+                                .attr('viewBox', '-0 -5 10 10')
+                                .attr('refX', 13)
+                                .attr('refY', 0)
+                                .attr('orient', 'auto')
+                                .attr('markerWidth', 6)
+                                .attr('markerHeight', 6)
+                                .attr('xoverflow', 'visible')
+                                .append('svg:path')
+                                .attr('d', 'M 0,-5 L 10 ,0 L 0,5')
+                                .attr('fill', '#666')
+                                .style('stroke', 'none');
+                            
+                            // Create groups for different elements (order matters for layering)
+                            const edgesGroup = g.append('g').attr('class', 'edges');
+                            const nodesGroup = g.append('g').attr('class', 'nodes');
+                            const labelsGroup = g.append('g').attr('class', 'labels');
+
+                            // Internal state for graph objects
+                            let graphData = { nodes: [], links: [] };
+                            let simulation = null;
+                            let currentNodes = null;
+                            let currentLinks = null;
+                            let currentLabels = null;
+                            
+                            // Clear highlight function
+                            function clearHighlight() {
+                                if (!currentNodes || !currentLinks) return;
+                                
+                                currentNodes
+                                    .classed('highlighted', false)
+                                    .classed('dimmed', false)
+                                    .style('stroke-width', d => d.isCurrent ? 4 : 2);
+                                
+                                currentLinks
+                                    .classed('highlighted', false)
+                                    .classed('dimmed', false)
+                                    .style('opacity', d => {
+                                        switch(d.type) {
+                                            case 'next': return 0.9;
+                                            case 'concurrent': return 0.7;
+                                            default: return 0.4;
+                                        }
+                                    });
+                                
+                                if (currentLabels) {
+                                    currentLabels.style('opacity', d => d.isImportant || d.isCurrent ? 1 : 0);
                                 }
-                                const pid = profileId;
-                                // Fetch visualization data
-                                if (pid) {
-                                    const resp = await fetch(API_ENDPOINTS.journeyViz(pid));
-                                    if (resp.ok) {
-                                        const data = await resp.json();
-                                        setJourneyVizData(data);
+                            }
+                            
+                            // Highlight selection function
+                            function highlightSelection(selectedNode) {
+                                if (!selectedNode || !currentNodes || !currentLinks) return;
+                                
+                                const connectedNodeIds = new Set([selectedNode.id]);
+                                
+                                // Find connected nodes
+                                currentLinks.each(function(d) {
+                                    if (d.source.id === selectedNode.id) {
+                                        connectedNodeIds.add(d.target.id);
+                                    }
+                                    if (d.target.id === selectedNode.id) {
+                                        connectedNodeIds.add(d.source.id);
+                                    }
+                                });
+                                
+                                // Highlight/dim nodes
+                                currentNodes
+                                    .classed('highlighted', d => d.id === selectedNode.id)
+                                    .classed('dimmed', d => !connectedNodeIds.has(d.id))
+                                    .style('stroke-width', d => {
+                                        if (d.id === selectedNode.id) return 6;
+                                        if (connectedNodeIds.has(d.id)) return 4;
+                                        return d.isCurrent ? 3 : 1;
+                                    });
+                                
+                                // Highlight/dim links
+                                currentLinks
+                                    .classed('highlighted', d => 
+                                        d.source.id === selectedNode.id || d.target.id === selectedNode.id)
+                                    .classed('dimmed', d => 
+                                        d.source.id !== selectedNode.id && d.target.id !== selectedNode.id)
+                                    .style('opacity', d => {
+                                        if (d.source.id === selectedNode.id || d.target.id === selectedNode.id) {
+                                            return 1.0;
+                                        }
+                                        return 0.1;
+                                    });
+                                
+                                // Show labels for selected and connected nodes
+                                if (currentLabels) {
+                                    currentLabels.style('opacity', d => 
+                                        connectedNodeIds.has(d.id) ? 1 : 0);
+                                }
+                            }
+
+                            // Build graph based on mode
+                            function buildGraph(mode, weights = { next: 2.0, concurrent: 1.4 }) {
+                                // Clear existing visualization
+                                edgesGroup.selectAll('*').remove();
+                                nodesGroup.selectAll('*').remove();
+                                labelsGroup.selectAll('*').remove();
+
+                                // Choose data source: API → local file → small hardcoded fallback
+                                let events = [];
+                                if (journeyVizData?.events && journeyVizData.events.length) {
+                                    events = journeyVizData.events.slice();
+                                } else if (typeof australianLifeEvents !== 'undefined' && Array.isArray(australianLifeEvents) && australianLifeEvents.length) {
+                                    events = australianLifeEvents.slice(0, 200);
+                                } else {
+                                    events = [
+                                        { id:'work', event_name:'Work', cluster:'Work', typical_age_range:[18,65], next_states:['changing_careers','buying_home'], frequent_concurrents:['raising_child'], concurrent_disallowed:[] },
+                                        { id:'education', event_name:'Education', cluster:'Education', typical_age_range:[5,30], next_states:['work'], frequent_concurrents:['moving_out_of_home'], concurrent_disallowed:[] },
+                                        { id:'having_baby', event_name:'Having a baby', cluster:'Family', typical_age_range:[20,45], next_states:['raising_child'], frequent_concurrents:['buying_home'], concurrent_disallowed:[] },
+                                        { id:'raising_child', event_name:'Raising a child', cluster:'Family', typical_age_range:[0,18], next_states:[], frequent_concurrents:['work','education'], concurrent_disallowed:[] },
+                                        { id:'health', event_name:'Seeking medical help', cluster:'Health', typical_age_range:[0,100], next_states:[], frequent_concurrents:['work'], concurrent_disallowed:[] },
+                                        { id:'buying_home', event_name:'Buying a home', cluster:'Housing', typical_age_range:[25,65], next_states:[], frequent_concurrents:['work','raising_child'], concurrent_disallowed:[] },
+                                    ];
+                                }
+                                // Limit node count for performance
+                                const maxNodes = mode === 'my' ? 120 : 150;
+
+                                // Map by id for quick lookup
+                                const byId = new Map();
+                                events.forEach(ev => byId.set(ev.id, ev));
+
+                                // Derive subset for 'my' mode
+                                let selectedIds = null;
+                                if (mode === 'my') {
+                                    const currents = Array.isArray(userProfile?.current_life_events) ? userProfile.current_life_events : [];
+                                    const norm = (s) => String(s || '').toLowerCase().replace(/[_-]+/g,' ').trim();
+                                    const currentIds = new Set();
+                                    const currentsNorm = currents.map(norm);
+                                    events.forEach(ev => {
+                                        const tokens = [ev.event_name, ev.id, ev.cluster].filter(Boolean).map(norm);
+                                        if (tokens.some(t => currentsNorm.some(c => t === c || t.includes(c) || c.includes(t)))) {
+                                            currentIds.add(ev.id);
+                                        }
+                                    });
+                                    const nextIds = new Set();
+                                    const concurrentIds = new Set();
+                                    events.forEach(ev => {
+                                        if (currentIds.has(ev.id)) {
+                                            (ev.next_states || []).forEach(id => nextIds.add(id));
+                                            // Also add a few concurrent options for context
+                                            (ev.frequent_concurrents || []).slice(0, 2).forEach(id => concurrentIds.add(id));
+                                        }
+                                    });
+                                    
+                                    // Include second-level next steps from the immediate next steps
+                                    const secondLevelNextIds = new Set();
+                                    events.forEach(ev => {
+                                        if (nextIds.has(ev.id)) {
+                                            (ev.next_states || []).slice(0, 3).forEach(id => secondLevelNextIds.add(id));
+                                        }
+                                    });
+                                    
+                                    selectedIds = new Set([...currentIds, ...nextIds, ...concurrentIds, ...secondLevelNextIds]);
+                                    // Fallback: if still empty, include a small cluster by the first current's cluster match
+                                    if (selectedIds.size === 0 && currentsNorm.length) {
+                                        const c0 = currentsNorm[0];
+                                        events.forEach(ev => {
+                                            const cMatch = norm(ev.cluster);
+                                            if (cMatch && (cMatch === c0 || cMatch.includes(c0) || c0.includes(cMatch))) {
+                                                selectedIds.add(ev.id);
+                                                (ev.next_states || []).forEach(id => selectedIds.add(id));
+                                            }
+                                        });
                                     }
                                 }
-                            } catch (e) {
-                                console.warn('Journey viz load failed:', e.message);
+
+                                const filteredEvents = events.filter(ev => !selectedIds || selectedIds.has(ev.id)).slice(0, maxNodes);
+                                if (filteredEvents.length === 0) {
+                                    // Ensure we render something
+                                    filteredEvents.push(...events.slice(0, Math.min(30, events.length)));
+                                }
+
+                                // Build nodes
+                                const nodes = filteredEvents.map((ev, i) => ({
+                                    id: ev.id,
+                                    label: ev.event_name || ev.id,
+                                    cluster: ev.cluster,
+                                    next: Array.isArray(ev.next_states) ? ev.next_states : [],
+                                    concurrents: Array.isArray(ev.frequent_concurrents) ? ev.frequent_concurrents : [],
+                                    disallowed: Array.isArray(ev.concurrent_disallowed) ? ev.concurrent_disallowed : [],
+                                    typical_age_range: ev.typical_age_range,
+                                    // Start at random positions for layout
+                                    x: (Math.random() - 0.5) * 600,
+                                    z: (Math.random() - 0.5) * 450,
+                                    vx: 0,
+                                    vz: 0,
+                                }));
+                                const indexById = new Map(nodes.map((n, idx) => [n.id, idx]));
+
+                                // Edge rules for D3.js - use node IDs instead of indices
+                                const edges = [];
+                                const addEdge = (sourceIdx, targetIdx, weight, type) => {
+                                    if (sourceIdx === undefined || targetIdx === undefined) return;
+                                    if (sourceIdx === -1 || targetIdx === -1) return;
+                                    if (sourceIdx === targetIdx) return;
+                                    
+                                    const sourceId = nodes[sourceIdx]?.id;
+                                    const targetId = nodes[targetIdx]?.id;
+                                    if (!sourceId || !targetId) return;
+                                    
+                                    // Avoid duplicates
+                                    const key = sourceId < targetId ? `${sourceId}-${targetId}` : `${targetId}-${sourceId}`;
+                                    if (edges.some(e => e.key === key)) return;
+                                    
+                                    edges.push({ 
+                                        key, 
+                                        source: sourceId, 
+                                        target: targetId, 
+                                        weight, 
+                                        type,
+                                        sourceIdx, 
+                                        targetIdx 
+                                    });
+                                };
+
+                                // Utility: similarity for pruning in 'allowed'
+                                function similarity(a, b) {
+                                    let score = 0;
+                                    if (a.cluster && b.cluster && a.cluster === b.cluster) score += 1.0;
+                                    const ar = a.typical_age_range || [0, 100];
+                                    const br = b.typical_age_range || [0, 100];
+                                    const overlap = Math.max(0, Math.min(ar[1], br[1]) - Math.max(ar[0], br[0]));
+                                    const range = Math.max(ar[1] - ar[0], br[1] - br[0], 1);
+                                    score += overlap / range; // 0..1
+                                    return score;
+                                }
+
+                                if (mode === 'allowed') {
+                                    // Connect to a small number of most similar allowed-concurrent nodes to keep it readable
+                                    const perNode = 3;
+                                    nodes.forEach((n, i) => {
+                                        // Candidates that are not disallowed by either side
+                                        const candidates = nodes
+                                            .map((m, j) => ({ j, m }))
+                                            .filter(({ j, m }) => j !== i && !n.disallowed?.includes(m.id) && !m.disallowed?.includes(n.id));
+                                        candidates.sort((A, B) => similarity(n, B.m) - similarity(n, A.m));
+                                        candidates.slice(0, perNode).forEach(({ j }) => addEdge(i, j, 0.6, 'allowed'));
+                                    });
+                                } else if (mode === 'next') {
+                                    nodes.forEach((n, i) => {
+                                        (n.next || []).forEach(id => {
+                                            const j = indexById.has(id) ? indexById.get(id) : -1;
+                                            addEdge(i, j, weights.next, 'next');
+                                        });
+                                        (n.concurrents || []).forEach(id => {
+                                            const j = indexById.has(id) ? indexById.get(id) : -1;
+                                            addEdge(i, j, weights.concurrent, 'concurrent');
+                                        });
+                                    });
+                                } else if (mode === 'my') {
+                                    // Show journey paths from current life events to next steps
+                                    const currentsById = new Set();
+                                    const nextStepIds = new Set();
+                                    const currentNames = Array.isArray(userProfile?.current_life_events) ? userProfile.current_life_events : [];
+                                    const currentNamesNorm = currentNames.map(s => String(s || '').toLowerCase());
+                                    
+                                    // Identify current nodes
+                                    nodes.forEach((n) => {
+                                        const nm = String(n.label || '').toLowerCase();
+                                        if (currentNamesNorm.some(c => nm === c || nm.includes(c) || c.includes(nm))) {
+                                            currentsById.add(n.id);
+                                        }
+                                    });
+                                    
+                                    // Fallback: if no exact label match, try cluster match
+                                    if (currentsById.size === 0) {
+                                        nodes.forEach((n) => {
+                                            const cl = String(n.cluster || '').toLowerCase();
+                                            if (cl && currentNamesNorm.some(c => cl === c || cl.includes(c) || c.includes(cl))) {
+                                                currentsById.add(n.id);
+                                            }
+                                        });
+                                    }
+                                    
+                                    // Collect next step IDs
+                                    nodes.forEach((n) => {
+                                        if (currentsById.has(n.id)) {
+                                            (n.next || []).forEach(id => nextStepIds.add(id));
+                                        }
+                                    });
+                                    
+                                    // Create edges
+                                    nodes.forEach((n, i) => {
+                                        if (currentsById.has(n.id)) {
+                                            // Strong edges from current to next steps
+                                            (n.next || []).forEach(id => {
+                                                const j = indexById.has(id) ? indexById.get(id) : -1;
+                                                addEdge(i, j, weights.next * 1.2, 'next');
+                                            });
+                                            // Weaker concurrent edges for context
+                                            (n.concurrents || []).slice(0, 2).forEach(id => {
+                                                const j = indexById.has(id) ? indexById.get(id) : -1;
+                                                addEdge(i, j, weights.concurrent * 0.8, 'concurrent');
+                                            });
+                                        } else if (nextStepIds.has(n.id)) {
+                                            // Show onward paths from next steps
+                                            (n.next || []).slice(0, 2).forEach(id => {
+                                                const j = indexById.has(id) ? indexById.get(id) : -1;
+                                                addEdge(i, j, weights.next * 0.9, 'next');
+                                            });
+                                        }
+                                    });
+                                }
+
+                                // Prepare nodes data with enhanced properties
+                                nodes.forEach(n => {
+                                    n.isCurrent = Array.isArray(userProfile?.current_life_events) && 
+                                        userProfile.current_life_events.includes(n.label);
+                                    n.isImportant = (n.next?.length > 2) || (n.concurrents?.length > 2);
+                                    n.color = clusterColor(n.cluster);
+                                    n.radius = n.isImportant ? 12 : 8;
+                                    if (n.isCurrent) n.radius += 2;
+                                });
+                                
+                                // Set up D3 force simulation for initial layout
+                                simulation = d3.forceSimulation(nodes)
+                                    .force('link', d3.forceLink(edges).id(d => d.id).distance(80).strength(0.8))
+                                    .force('charge', d3.forceManyBody().strength(-800))
+                                    .force('center', d3.forceCenter(containerWidth / 2, containerHeight / 2))
+                                    .force('collision', d3.forceCollide().radius(d => d.radius + 5))
+                                    .stop();
+                                
+                                // Run simulation for a few ticks to get initial positions
+                                for (let i = 0; i < 100; ++i) simulation.tick();
+
+                                // Create D3 SVG links (edges)
+                                const linkColorMap = {
+                                    next: '#1976d2',
+                                    concurrent: '#f59e0b', 
+                                    allowed: '#94a3b8'
+                                };
+                                
+                                const linkWidthMap = {
+                                    next: 4,
+                                    concurrent: 3,
+                                    allowed: 2
+                                };
+                                
+                                currentLinks = edgesGroup
+                                    .selectAll('.link')
+                                    .data(edges)
+                                    .enter()
+                                    .append('path')
+                                    .attr('class', 'link')
+                                    .attr('fill', 'none')
+                                    .attr('stroke', d => linkColorMap[d.type] || linkColorMap.allowed)
+                                    .attr('stroke-width', d => linkWidthMap[d.type] || linkWidthMap.allowed)
+                                    .attr('opacity', d => {
+                                        switch(d.type) {
+                                            case 'next': return 0.9;
+                                            case 'concurrent': return 0.7;
+                                            default: return 0.4;
+                                        }
+                                    })
+                                    .attr('d', d => {
+                                        const sourceNode = nodes[d.sourceIdx];
+                                        const targetNode = nodes[d.targetIdx];
+                                        
+                                        if (!sourceNode || !targetNode) return '';
+                                        
+                                        // Create curved path for metro aesthetic
+                                        const dx = targetNode.x - sourceNode.x;
+                                        const dy = targetNode.y - sourceNode.y;
+                                        const dr = Math.sqrt(dx * dx + dy * dy);
+                                        const curvature = 0.3; // Adjust curve strength
+                                        
+                                        return `M${sourceNode.x},${sourceNode.y}A${dr * curvature},${dr * curvature} 0 0,1 ${targetNode.x},${targetNode.y}`;
+                                    });
+                                
+                                // Create D3 SVG nodes
+                                currentNodes = nodesGroup
+                                    .selectAll('.node')
+                                    .data(nodes)
+                                    .enter()
+                                    .append('circle')
+                                    .attr('class', 'node')
+                                    .attr('r', d => d.radius)
+                                    .attr('cx', d => d.x)
+                                    .attr('cy', d => d.y)
+                                    .attr('fill', d => d.color)
+                                    .attr('stroke', d => d.isCurrent ? '#ff2d55' : '#fff')
+                                    .attr('stroke-width', d => d.isCurrent ? 4 : 2)
+                                    .style('cursor', 'pointer')
+                                    .on('click', function(event, d) {
+                                        event.stopPropagation();
+                                        setSelectedEvent(d);
+                                        highlightSelection(d);
+                                    })
+                                    .on('mouseover', function(event, d) {
+                                        d3.select(this).attr('stroke-width', 3);
+                                    })
+                                    .on('mouseout', function(event, d) {
+                                        d3.select(this).attr('stroke-width', d.isCurrent ? 4 : 2);
+                                    });
+                                
+                                // Create labels
+                                currentLabels = labelsGroup
+                                    .selectAll('.label')
+                                    .data(nodes.filter(d => d.isImportant || d.isCurrent))
+                                    .enter()
+                                    .append('text')
+                                    .attr('class', 'label')
+                                    .attr('x', d => d.x)
+                                    .attr('y', d => d.y - d.radius - 8)
+                                    .attr('text-anchor', 'middle')
+                                    .attr('font-family', 'Arial, sans-serif')
+                                    .attr('font-size', '12px')
+                                    .attr('font-weight', 'bold')
+                                    .attr('fill', '#1a1a1a')
+                                    .attr('paint-order', 'stroke')
+                                    .attr('stroke', '#fff')
+                                    .attr('stroke-width', 3)
+                                    .attr('stroke-linejoin', 'round')
+                                    .style('pointer-events', 'none')
+                                    .text(d => {
+                                        // Truncate long labels
+                                        return d.label.length > 20 ? d.label.substring(0, 17) + '...' : d.label;
+                                    });
+                                // Save reference for the rebuild function
+                                journeyGraphMapRef.current = { indexById, nodes };
+                                
+                                // Return the data for the visualization
+                                return { nodes, edges };
                             }
-
-                            if (!journeyMapRef.current || !window.THREE) return;
-
-                            // Three.js setup
-                            const scene = new THREE.Scene();
-                            const camera = new THREE.PerspectiveCamera(
-                                60,
-                                journeyMapRef.current.clientWidth / journeyMapRef.current.clientHeight,
-                                0.1,
-                                1000
-                            );
-                            camera.position.set(0, 25, 35);
-                            const renderer = new THREE.WebGLRenderer({ antialias: true });
-                            renderer.setSize(journeyMapRef.current.clientWidth, journeyMapRef.current.clientHeight);
-                            journeyMapRef.current.innerHTML = '';
-                            journeyMapRef.current.appendChild(renderer.domElement);
-
-                            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
-                            scene.add(ambient);
-                            const dir = new THREE.DirectionalLight(0xffffff, 0.6);
-                            dir.position.set(10, 20, 10);
-                            scene.add(dir);
-
-                            const ground = new THREE.Mesh(
-                                new THREE.PlaneGeometry(200, 200),
-                                new THREE.MeshPhongMaterial({ color: 0xddeaf6 })
-                            );
-                            ground.rotation.x = -Math.PI / 2;
-                            scene.add(ground);
-
-                            // Meeple avatar
-                            const group = new THREE.Group();
-                            const body = new THREE.Mesh(new THREE.ConeGeometry(0.5, 2, 12), new THREE.MeshPhongMaterial({ color: 0x1976d2 }));
-                            body.position.y = 1; group.add(body);
-                            const head = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), new THREE.MeshPhongMaterial({ color: 0x1976d2 }));
-                            head.position.y = 2.5; group.add(head);
-                            scene.add(group);
-
-                            const nodes = [];
-                            const positions = (journeyVizData?.events || []).slice(0, 10).map((e, i) => ({
-                                x: e.position_x || Math.cos(i) * 6,
-                                z: e.position_z || Math.sin(i) * 6,
-                                label: e.event_name || e.cluster || `Event ${i+1}`,
-                                color: 0x3b82f6
-                            }));
-                            if (positions.length === 0) {
-                                positions.push(
-                                    { x: 5, z: 0, label: 'Work', color: 0x3b82f6 },
-                                    { x: -5, z: 0, label: 'Having a baby', color: 0xec4899 },
-                                    { x: 0, z: 5, label: 'Education', color: 0xa78bfa },
-                                    { x: 0, z: -5, label: 'Health and caring', color: 0xef4444 }
-                                );
-                            }
-
-                            positions.forEach((p) => {
-                                const node = new THREE.Mesh(
-                                    new THREE.CylinderGeometry(1, 1, 0.5, 16),
-                                    new THREE.MeshPhongMaterial({ color: p.color, emissive: p.color, emissiveIntensity: 0.2 })
-                                );
-                                node.position.set(p.x, 0.25, p.z);
-                                scene.add(node);
-                                nodes.push(node);
-                            });
-
-                            let angle = 0;
-                            const animate = () => {
-                                requestAnimationFrame(animate);
-                                group.rotation.y += 0.01;
-                                angle += 0.002;
-                                camera.position.x = Math.sin(angle) * 30;
-                                camera.position.z = Math.cos(angle) * 30;
-                                camera.lookAt(0, 0, 0);
-                                renderer.render(scene, camera);
+                            
+                            // Set up rebuilder function
+                            rebuildGraphRef.current = (mode, weights) => buildGraph(mode || currentJourneyModeRef.current || journeyDisplayMode, weights);
+                            
+                            // Fit to view function  
+                            journeyFitRef.current = () => {
+                                const bbox = g.node().getBBox();
+                                const width = containerWidth;
+                                const height = containerHeight;
+                                const midX = bbox.x + bbox.width / 2;
+                                const midY = bbox.y + bbox.height / 2;
+                                if (bbox.width == 0 || bbox.height == 0) return;
+                                const scale = 0.8 / Math.max(bbox.width / width, bbox.height / height);
+                                const translate = [width / 2 - scale * midX, height / 2 - scale * midY];
+                                
+                                svg.transition()
+                                    .duration(750)
+                                    .call(d3.zoom().transform, d3.zoomIdentity.translate(translate[0], translate[1]).scale(scale));
                             };
-                            animate();
-
-                            journeySceneRef.current = scene;
-                            journeyRendererRef.current = renderer;
-                            journeyCameraRef.current = camera;
-
-                            const handleResize = () => {
-                                if (!journeyMapRef.current) return;
-                                camera.aspect = journeyMapRef.current.clientWidth / journeyMapRef.current.clientHeight;
-                                camera.updateProjectionMatrix();
-                                renderer.setSize(journeyMapRef.current.clientWidth, journeyMapRef.current.clientHeight);
-                            };
-                            window.addEventListener('resize', handleResize);
+                            
+                            // Initial build
+                            buildGraph(journeyDisplayMode, { next: nextWeight, concurrent: concurrentWeight });
+                            
+                            // Set up cleanup
                             cleanup = () => {
-                                window.removeEventListener('resize', handleResize);
-                                try { renderer.dispose(); } catch (e) {}
+                                if (simulation) simulation.stop();
                             };
                         };
-                        init();
-                        return () => cleanup();
+                        
+                        // Initialize the D3 visualization
+                        (async () => { await initScene(); })();
+                        
+                        return () => { if (cleanup) cleanup(); };
                     }, []);
+
+                    
+                    // Keep a ref of current display mode
+                    useEffect(() => { currentJourneyModeRef.current = journeyDisplayMode; }, [journeyDisplayMode]);
+
+                    
+                    // Rebuild the graph when mode changes, but NOT when clicking nodes
+                    useEffect(() => {
+                        if (typeof rebuildGraphRef.current === 'function') {
+                            rebuildGraphRef.current(journeyDisplayMode, { next: nextWeight, concurrent: concurrentWeight });
+                        }
+                    }, [journeyDisplayMode, nextWeight, concurrentWeight]);
+                    
+                    // Handle data changes separately - only rebuild if genuinely new data
+                    const journeyDataRef = useRef(null);
+                    useEffect(() => {
+                        if (journeyVizData && journeyVizData !== journeyDataRef.current) {
+                            journeyDataRef.current = journeyVizData;
+                            if (typeof rebuildGraphRef.current === 'function') {
+                                rebuildGraphRef.current(journeyDisplayMode);
+                            }
+                        }
+                    }, [journeyVizData, journeyDisplayMode]);
+
+                    // Resize renderer when toggling fullscreen height
+                    useEffect(() => {
+                        try { window.dispatchEvent(new Event('resize')); } catch {}
+                    }, [journeyFull]);
+
 
                     return (
                         <Paper sx={{ p: 0, mb: 3 }}>
                             <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <Typography variant="h6">Journey Map</Typography>
-                                <Box sx={{ display: 'flex', gap: 1 }}>
+                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
+                                    <ToggleButtonGroup
+                                        size="small"
+                                        value={journeyDisplayMode}
+                                        exclusive
+                                        onChange={(e, v) => { if (v) setJourneyDisplayMode(v); }}
+                                    >
+                                        <ToggleButton value="allowed">All Allowed</ToggleButton>
+                                        <ToggleButton value="next">Next & Concurrent</ToggleButton>
+                                        <ToggleButton value="my">My Journeys</ToggleButton>
+                                    </ToggleButtonGroup>
+                                    <Button size="small" onClick={() => { try { journeyFitRef.current && journeyFitRef.current(); } catch {} }}>Reset View</Button>
+                                    <Button size="small" onClick={() => setJourneyFull(v => !v)}>{journeyFull ? 'Exit Fullscreen' : 'Fullscreen'}</Button>
                                     <Button size="small" variant="outlined" onClick={() => setMode('profile')}>Edit Profile</Button>
                                 </Box>
                             </Box>
-                            <Box id="journey-map" ref={journeyMapRef} sx={{ width: '100%', height: 500, bgcolor: '#eaf4fb' }} />
+                            
+                            {/* Weight Controls */}
+                            {journeyDisplayMode === 'next' && (
+                                <Box sx={{ p: 2, pt: 0, display: 'flex', gap: 3, alignItems: 'center', flexWrap: 'wrap' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 180 }}>
+                                        <Typography variant="caption" sx={{ minWidth: 80 }}>Next Steps:</Typography>
+                                        <Slider
+                                            size="small"
+                                            value={nextWeight}
+                                            onChange={(e, v) => setNextWeight(v)}
+                                            min={0.5}
+                                            max={3.0}
+                                            step={0.1}
+                                            sx={{ flex: 1 }}
+                                        />
+                                        <Typography variant="caption" sx={{ minWidth: 30, textAlign: 'right' }}>{nextWeight.toFixed(1)}</Typography>
+                                    </Box>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 180 }}>
+                                        <Typography variant="caption" sx={{ minWidth: 80 }}>Concurrent:</Typography>
+                                        <Slider
+                                            size="small"
+                                            value={concurrentWeight}
+                                            onChange={(e, v) => setConcurrentWeight(v)}
+                                            min={0.2}
+                                            max={2.0}
+                                            step={0.1}
+                                            sx={{ flex: 1 }}
+                                        />
+                                        <Typography variant="caption" sx={{ minWidth: 30, textAlign: 'right' }}>{concurrentWeight.toFixed(1)}</Typography>
+                                    </Box>
+                                </Box>
+                            )}
+                            <Box
+                                id="journey-map"
+                                ref={journeyMapRef}
+                                sx={{ width: '100%', height: journeyFull ? '75vh' : 700, bgcolor: '#eaf4fb', userSelect: 'none' }}
+                                onPointerDown={(e)=>{ e.stopPropagation(); }}
+                                onPointerUp={(e)=>{ e.stopPropagation(); }}
+                                onClick={(e)=>{ e.stopPropagation(); }}
+                            />
+                            {selectedEvent && (
+                                <Paper sx={{ m: 2, p: 2 }} variant="outlined">
+                                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{selectedEvent.label || selectedEvent.event_name || selectedEvent.id}</Typography>
+                                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', mt: 1 }}>
+                                        {selectedEvent.cluster && (
+                                            <Chip label={`Cluster: ${selectedEvent.cluster}`} color="primary" size="small" />
+                                        )}
+                                        {Array.isArray(selectedEvent.typical_age_range) && (
+                                            <Chip label={`Age: ${selectedEvent.typical_age_range[0]}–${selectedEvent.typical_age_range[1]}`} size="small" />
+                                        )}
+                                        {selectedEvent.eligibility_status && (
+                                            <Chip label={`Eligibility: ${selectedEvent.eligibility_status}`} size="small" />
+                                        )}
+                                    </Box>
+                                    <Grid container spacing={2} sx={{ mt: 1 }}>
+                                        <Grid item xs={12} md={4}>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>Next states</Typography>
+                                            <List dense>
+                                                {(selectedEvent.next || selectedEvent.next_states || []).slice(0, 20).map((id, i) => (
+                                                    <ListItem key={i} disableGutters>
+                                                        <ListItemText primary={id} />
+                                                    </ListItem>
+                                                ))}
+                                                {(!selectedEvent.next && !selectedEvent.next_states) && (
+                                                    <ListItem disableGutters><ListItemText primary="None" /></ListItem>
+                                                )}
+                                            </List>
+                                        </Grid>
+                                        <Grid item xs={12} md={4}>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>Frequent concurrents</Typography>
+                                            <List dense>
+                                                {(selectedEvent.concurrents || selectedEvent.frequent_concurrents || []).slice(0, 20).map((id, i) => (
+                                                    <ListItem key={i} disableGutters>
+                                                        <ListItemText primary={id} />
+                                                    </ListItem>
+                                                ))}
+                                                {(!selectedEvent.concurrents && !selectedEvent.frequent_concurrents) && (
+                                                    <ListItem disableGutters><ListItemText primary="None" /></ListItem>
+                                                )}
+                                            </List>
+                                        </Grid>
+                                        <Grid item xs={12} md={4}>
+                                            <Typography variant="body2" sx={{ fontWeight: 600 }}>Concurrent disallowed</Typography>
+                                            <List dense>
+                                                {(selectedEvent.disallowed || selectedEvent.concurrent_disallowed || []).slice(0, 20).map((id, i) => (
+                                                    <ListItem key={i} disableGutters>
+                                                        <ListItemText primary={id} />
+                                                    </ListItem>
+                                                ))}
+                                                {(!selectedEvent.disallowed && !selectedEvent.concurrent_disallowed) && (
+                                                    <ListItem disableGutters><ListItemText primary="None" /></ListItem>
+                                                )}
+                                            </List>
+                                        </Grid>
+                                    </Grid>
+                                    
+                                    {/* Destination Selection */}
+                                    <Box sx={{ mt: 2, pt: 2, borderTop: '1px solid #ddd' }}>
+                                        <Typography variant="body2" sx={{ fontWeight: 600, mb: 1 }}>Journey Planning</Typography>
+                                        <Box sx={{ display: 'flex', gap: 2, alignItems: 'center', flexWrap: 'wrap' }}>
+                                            <Button
+                                                size="small"
+                                                variant={selectedDestination?.id === selectedEvent.id ? "contained" : "outlined"}
+                                                onClick={() => setSelectedDestination(selectedEvent)}
+                                            >
+                                                Set as Destination
+                                            </Button>
+                                            {selectedDestination && selectedDestination.id !== selectedEvent.id && (
+                                                <Button
+                                                    size="small"
+                                                    variant="contained"
+                                                    color="secondary"
+                                                    onClick={() => setShowPathfinding(true)}
+                                                >
+                                                    Plan Journey to {selectedDestination.label}
+                                                </Button>
+                                            )}
+                                            {selectedDestination && (
+                                                <Chip 
+                                                    label={`Destination: ${selectedDestination.label}`} 
+                                                    color="secondary" 
+                                                    size="small" 
+                                                    onDelete={() => setSelectedDestination(null)}
+                                                />
+                                            )}
+                                        </Box>
+                                        {selectedDestination && showPathfinding && (
+                                            <Box sx={{ mt: 2, p: 1, bgcolor: '#f5f5f5', borderRadius: 1 }}>
+                                                <Typography variant="caption" color="text.secondary">
+                                                    Journey planning will help you identify the steps needed to reach "{selectedDestination.label}" from your current situation.
+                                                </Typography>
+                                                <Box sx={{ mt: 1 }}>
+                                                    <Button size="small" onClick={() => setShowPathfinding(false)}>Close</Button>
+                                                </Box>
+                                            </Box>
+                                        )}
+                                    </Box>
+                                </Paper>
+                            )}
                         </Paper>
                     );
                 }

@@ -1307,5 +1307,14 @@ const australianLifeEvents = [
   }
 ];
 
-// Export for use in other modules
-module.exports = { australianLifeEvents };
+// Browser/global exposure and Node export (UMD-lite)
+try {
+  if (typeof window !== 'undefined') {
+    window.australianLifeEvents = australianLifeEvents;
+  }
+} catch {}
+try {
+  if (typeof module !== 'undefined' && module.exports) {
+    module.exports = { australianLifeEvents };
+  }
+} catch {}

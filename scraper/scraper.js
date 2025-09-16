@@ -589,9 +589,42 @@ class MyGovScraper {
     return docs;
   }
 
+  // Enhanced page building with life event analysis
+  async buildPageDocsWithLifeEvents() {
+    const { enrichPageWithLifeEvents } = require('./taxonomies');
+    const baseDocs = this.buildPageDocs();
+    
+    console.log(`Enriching ${baseDocs.length} pages with life event analysis...`);
+    const enrichedDocs = [];
+    
+    for (let i = 0; i < baseDocs.length; i++) {
+      try {
+        const enrichedPage = await enrichPageWithLifeEvents(baseDocs[i]);
+        enrichedDocs.push(enrichedPage);
+        
+        if ((i + 1) % 100 === 0) {
+          console.log(`Life event analysis progress: ${i + 1}/${baseDocs.length} (${Math.round((i + 1)/baseDocs.length*100)}%)`);
+        }
+      } catch (error) {
+        console.error(`Error enriching page ${baseDocs[i].url}:`, error);
+        // Add page without enrichment as fallback
+        enrichedDocs.push({
+          ...baseDocs[i],
+          life_events: [],
+          primary_life_event: null,
+          eligibility_statuses: [],
+          stage: null,
+          stage_variant: null
+        });
+      }
+    }
+    
+    return enrichedDocs;
+  }
+
   async indexPages() {
-    const docs = this.buildPageDocs();
-    console.log(`Indexing ${docs.length} pages...`);
+    const docs = await this.buildPageDocsWithLifeEvents();
+    console.log(`Indexing ${docs.length} pages with life event analysis...`);
     const coll = this.typesense.collections('content_pages').documents();
     let indexed = 0;
     for (let i = 0; i < docs.length; i += 100) {

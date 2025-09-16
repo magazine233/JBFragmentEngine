@@ -35,6 +35,7 @@
         <option value="pages">Mode: Page overlap (from fragments)</option>
         <option value="pages2">Mode: Pages (tags/embedding)</option>
         <option value="links">Mode: Link graph</option>
+        <option value="lifegraph">Mode: Life events graph</option>
       </select>
       <select id="metric">
         <option value="combined">Metric: combined</option>
@@ -120,16 +121,39 @@
     async function fetchFragments({ q='*', life_event='', category='', provider='', pages=3 }) {
       const per_page = 200;
       let page = 1; const docs = [];
+      
+      // Use relational search for life events, regular search for others
+      const useRelational = life_event && life_event !== '';
+      const endpoint = useRelational ? '/api/fragments/search-relational' : '/api/fragments/search';
+      
       while (page <= pages) {
         const params = new URLSearchParams({ q, per_page, page, include_html: 'false' });
-        if (life_event) params.set('life_event', life_event);
+        if (life_event && useRelational) {
+          params.set('life_event', life_event);
+          params.set('include_related', 'true'); // Include related life events for richer results
+        } else if (life_event) {
+          params.set('life_event', life_event);
+        }
         if (category) params.set('category', category);
         if (provider) params.set('provider', provider);
-        const res = await fetch(`${API}/api/fragments/search?` + params.toString());
-        const data = await res.json();
-        (data.results||[]).forEach(h => docs.push(h.document));
-        if (!data.results || data.results.length < per_page) break;
-        page++;
+        
+        try {
+          const res = await fetch(`${API}${endpoint}?` + params.toString());
+          const data = await res.json();
+          (data.results||[]).forEach(h => docs.push(h.document));
+          
+          // Store relationship data for life graph mode
+          if (useRelational && data.relationships) {
+            docs.relationshipData = data.relationships;
+            docs.relatedEvents = data.related_events || [];
+          }
+          
+          if (!data.results || data.results.length < per_page) break;
+          page++;
+        } catch (error) {
+          console.error('Error fetching fragments:', error);
+          break;
+        }
       }
       return docs;
     }
@@ -324,7 +348,314 @@
         const nodes = (data.nodes || []).map(n => ({ id:n.id, url:n.url, title:n.title, host:n.host, content_len: 100 }));
         const links = (data.edges || []).map(e => ({ source: e.source, target: e.target, score: e.score || 0.5 }));
         draw(nodes, links);
+      } else if (mode === 'lifegraph') {
+        // Life events graph mode - shows relationships between life events based on fragment content
+        await drawLifeEventsGraph(docs, life_event);
       }
+    }
+
+    // New function to visualize life events graph with fragment data
+    async function drawLifeEventsGraph(fragments, focusEvent) {
+      // Load the life events graph if available
+      const graphEvents = window.australianLifeEvents || [];
+      
+      // Get page-level life event data via API
+      let pageLifeEvents = {};
+      let relationshipData = fragments.relationshipData || {};
+      let relatedEvents = fragments.relatedEvents || [];
+      
+      try {
+        // Fetch pages to get life event associations
+        const pageResponse = await fetch(`${API}/api/pages/search?life_event=${focusEvent || ''}&per_page=500`);
+        if (pageResponse.ok) {
+          const pageData = await pageResponse.json();
+          pageData.results?.forEach(page => {
+            (page.document.life_events || []).forEach(event => {
+              pageLifeEvents[event] = (pageLifeEvents[event] || 0) + 1;
+            });
+          });
+        }
+      } catch (error) {
+        console.error('Error fetching page life events:', error);
+        // Fallback: count from fragments (though this won't be accurate with new architecture)
+        fragments.forEach(frag => {
+          if (frag._relationship_score) {
+            // This fragment has relationship scoring, use it
+            const events = relatedEvents.length > 0 ? relatedEvents : [focusEvent];
+            events.forEach(event => {
+              pageLifeEvents[event] = (pageLifeEvents[event] || 0) + 1;
+            });
+          }
+        });
+      }
+
+      // Build nodes from graph data + page counts
+      const nodes = [];
+      const nodeMap = new Map();
+      
+      graphEvents.forEach(ge => {
+        const pageCount = pageLifeEvents[ge.event_name] || 0;
+        // Include nodes that have pages OR are the focus event OR are related to focus event
+        if (pageCount > 0 || 
+           (focusEvent && ge.event_name === focusEvent) ||
+           relatedEvents.includes(ge.event_name)) {
+          const node = {
+            id: ge.id,
+            title: ge.event_name,
+            url: '#',
+            host: ge.cluster,
+            content_len: pageCount * 10, // Size based on page count
+            graph_data: ge,
+            fragment_count: pageCount, // Actually page count now
+            page_count: pageCount,
+            x: ge.position_x * 10, // Scale positions
+            y: ge.position_y * 10,
+            fx: focusEvent === ge.event_name ? width/2 : null, // Fix focus event in center
+            fy: focusEvent === ge.event_name ? height/2 : null,
+            is_focus: ge.event_name === focusEvent,
+            is_related: relatedEvents.includes(ge.event_name)
+          };
+          nodes.push(node);
+          nodeMap.set(ge.id, node);
+          nodeMap.set(ge.event_name, node);
+        }
+      });
+
+      // Build links from graph relationships + co-occurrence data
+      const links = [];
+      
+      // Add structural relationships from graph
+      graphEvents.forEach(ge => {
+        const sourceNode = nodeMap.get(ge.id);
+        if (!sourceNode) return;
+        
+        // Prerequisites
+        (ge.prerequisites || []).forEach(prereq => {
+          const targetNode = nodeMap.get(prereq);
+          if (targetNode) {
+            links.push({
+              source: sourceNode.id,
+              target: targetNode.id,
+              score: 0.8,
+              type: 'prerequisite',
+              label: 'requires'
+            });
+          }
+        });
+        
+        // Next states
+        (ge.next_states || []).forEach(next => {
+          const targetNode = nodeMap.get(next);
+          if (targetNode) {
+            links.push({
+              source: sourceNode.id,
+              target: targetNode.id,
+              score: 0.6,
+              type: 'next_state',
+              label: 'leads to'
+            });
+          }
+        });
+        
+        // Frequent concurrents
+        (ge.frequent_concurrents || []).forEach(concurrent => {
+          const targetNode = nodeMap.get(concurrent);
+          if (targetNode) {
+            links.push({
+              source: sourceNode.id,
+              target: targetNode.id,
+              score: 0.4,
+              type: 'concurrent',
+              label: 'often with'
+            });
+          }
+        });
+      });
+
+      // Add relationship-based links from API data
+      if (relationshipData && focusEvent) {
+        const focusNode = nodeMap.get(focusEvent);
+        if (focusNode && relationshipData.prerequisites) {
+          relationshipData.prerequisites.forEach(prereq => {
+            const prereqNode = nodeMap.get(prereq);
+            if (prereqNode) {
+              links.push({
+                source: prereqNode.id,
+                target: focusNode.id,
+                score: 0.8,
+                type: 'prerequisite',
+                label: 'required first'
+              });
+            }
+          });
+        }
+        
+        if (focusNode && relationshipData.next_states) {
+          relationshipData.next_states.forEach(next => {
+            const nextNode = nodeMap.get(next);
+            if (nextNode) {
+              links.push({
+                source: focusNode.id,
+                target: nextNode.id,
+                score: 0.6,
+                type: 'next_state',
+                label: 'often leads to'
+              });
+            }
+          });
+        }
+        
+        if (focusNode && relationshipData.frequent_concurrents) {
+          relationshipData.frequent_concurrents.forEach(concurrent => {
+            const concurrentNode = nodeMap.get(concurrent);
+            if (concurrentNode) {
+              links.push({
+                source: focusNode.id,
+                target: concurrentNode.id,
+                score: 0.4,
+                type: 'concurrent',
+                label: 'happens together'
+              });
+            }
+          });
+        }
+      }
+
+      // Custom draw for life events graph
+      drawLifeGraph(nodes, links);
+    }
+
+    // Specialized drawing for life events graph
+    function drawLifeGraph(nodes, links) {
+      svg.selectAll('*').remove();
+      svg.append('rect').attr('class', 'pan-bg').attr('width', width).attr('height', height).attr('fill', 'transparent');
+
+      const layer = svg.append('g').attr('class', 'zoom-layer');
+      const gLinks = layer.append('g');
+      const gNodes = layer.append('g');
+
+      // Color scale for clusters
+      const clusterColors = d3.scaleOrdinal(d3.schemeSet3);
+      
+      // Link styles by type
+      const linkStyles = {
+        prerequisite: { color: '#ef4444', width: 2, dash: 'none' },
+        next_state: { color: '#3b82f6', width: 1.5, dash: 'none' },
+        concurrent: { color: '#10b981', width: 1, dash: '5,5' },
+        co_occurrence: { color: '#6b7280', width: 0.5, dash: '2,2' }
+      };
+
+      const sim = d3.forceSimulation(nodes)
+        .force('link', d3.forceLink(links).id(d => d.id).distance(d => 100).strength(d => d.score))
+        .force('charge', d3.forceManyBody().strength(-100))
+        .force('center', d3.forceCenter(width/2, height/2))
+        .force('collision', d3.forceCollide().radius(d => 10 + Math.sqrt(d.fragment_count || 1) * 3));
+
+      // Links with arrow markers
+      svg.append('defs').selectAll('marker')
+        .data(['prerequisite', 'next_state', 'concurrent', 'co_occurrence'])
+        .enter().append('marker')
+        .attr('id', d => `arrow-${d}`)
+        .attr('viewBox', '0 -5 10 10')
+        .attr('refX', 15)
+        .attr('refY', 0)
+        .attr('markerWidth', 6)
+        .attr('markerHeight', 6)
+        .attr('orient', 'auto')
+        .append('path')
+        .attr('d', 'M0,-5L10,0L0,5')
+        .attr('fill', d => linkStyles[d].color);
+
+      const link = gLinks.selectAll('line').data(links).enter().append('line')
+        .attr('stroke', d => linkStyles[d.type].color)
+        .attr('stroke-width', d => linkStyles[d.type].width)
+        .attr('stroke-dasharray', d => linkStyles[d.type].dash)
+        .attr('marker-end', d => `url(#arrow-${d.type})`)
+        .attr('opacity', 0.6);
+
+      const node = gNodes.selectAll('g').data(nodes).enter().append('g')
+        .attr('class', 'node-group')
+        .call(drag(sim));
+
+      // Node circles sized by fragment count
+      node.append('circle')
+        .attr('r', d => 8 + Math.sqrt(d.fragment_count || 1) * 2)
+        .attr('fill', d => d.graph_data ? clusterColors(d.graph_data.cluster) : '#888')
+        .attr('stroke', '#0b0f14')
+        .attr('stroke-width', 2);
+
+      // Fragment count badge
+      node.append('text')
+        .attr('class', 'count-badge')
+        .attr('text-anchor', 'middle')
+        .attr('dy', '0.3em')
+        .attr('font-size', 10)
+        .attr('fill', 'white')
+        .attr('font-weight', 'bold')
+        .text(d => d.fragment_count || 0);
+
+      // Labels
+      node.append('text')
+        .text(d => d.title)
+        .attr('x', d => 12 + Math.sqrt(d.fragment_count || 1) * 2)
+        .attr('y', 4)
+        .attr('font-size', 11)
+        .attr('fill', '#e6edf3');
+
+      // Hover effects
+      node.on('mouseover', function(e, d) {
+        d3.select(this).select('circle').attr('stroke-width', 3);
+        
+        // Highlight connected links
+        link.attr('opacity', l => 
+          (l.source.id === d.id || l.target.id === d.id) ? 1 : 0.2
+        );
+        
+        // Show detailed tooltip
+        const graphData = d.graph_data || {};
+        tip.style('opacity', 1)
+           .style('left', (e.clientX + 10) + 'px')
+           .style('top', (e.clientY + 10) + 'px')
+           .html(`
+             <b>${escapeHtml(d.title)}</b><br/>
+             Cluster: ${escapeHtml(graphData.cluster || 'Unknown')}<br/>
+             Pages: ${d.page_count || 0}<br/>
+             Type: ${escapeHtml(graphData.event_type || 'Unknown')}<br/>
+             Age range: ${graphData.typical_age_range ? graphData.typical_age_range.join('-') : 'Any'}<br/>
+             Duration: ${graphData.typical_duration_days || '?'} days<br/>
+             ${d.is_focus ? '<em>Focus event</em>' : ''}
+             ${d.is_related ? '<em>Related event</em>' : ''}
+           `);
+      })
+      .on('mouseout', function() {
+        d3.select(this).select('circle').attr('stroke-width', 2);
+        link.attr('opacity', 0.6);
+        hideTip();
+      })
+      .on('click', function(e, d) {
+        // Filter to fragments with this life event
+        document.getElementById('life_event').value = d.title;
+        document.getElementById('mode').value = 'fragments';
+        update();
+      });
+
+      sim.on('tick', () => {
+        node.attr('transform', d => `translate(${d.x},${d.y})`);
+        link.attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y);
+      });
+
+      // Update legend for life events graph
+      legend.html('')
+        .append('div').html('<b>Life Events Graph</b>');
+      legend.append('div').html('<span style="color:#ef4444">→</span> Prerequisite');
+      legend.append('div').html('<span style="color:#3b82f6">→</span> Next state');
+      legend.append('div').html('<span style="color:#10b981">→</span> Concurrent');
+      legend.append('div').html('<span style="color:#6b7280">→</span> Relational');
+      legend.append('div').html('<br/>Size = page count');
+      legend.append('div').html('Click event to filter fragments');
     }
 
     document.getElementById('run').addEventListener('click', update);

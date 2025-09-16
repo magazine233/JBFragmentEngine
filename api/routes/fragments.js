@@ -1,5 +1,6 @@
 // api/routes/fragments.js
 const express = require('express');
+const RelationalQueries = require('../utils/relational-queries');
 const router = express.Router();
 
 // Search fragments
@@ -24,8 +25,34 @@ router.get('/search', async (req, res) => {
     const filterBy = [];
     const quote = (v) => `\"${String(v).replace(/\"/g, '\\"')}\"`;
     
+    // Life event filtering now requires relational lookup
+    let pageUrls = [];
     if (life_event) {
-      filterBy.push(`life_events:=[${quote(life_event)}]`);
+      // First get pages with this life event
+      const rq = new RelationalQueries(req.app.locals.typesense);
+      const pageResult = await req.app.locals.typesense
+        .collections('content_pages')
+        .documents()
+        .search({
+          q: '*',
+          filter_by: `life_events:=[${quote(life_event)}]`,
+          include_fields: 'url',
+          per_page: 500 // Get many pages for comprehensive results
+        });
+      
+      pageUrls = pageResult.hits.map(h => h.document.url);
+      if (pageUrls.length > 0) {
+        filterBy.push(`page_url:[${pageUrls.map(url => quote(url)).join(',')}]`);
+      } else {
+        // No pages found with this life event - return empty results
+        return res.json({
+          results: [],
+          found: 0,
+          page: 1,
+          total_pages: 0,
+          request_params: { ...req.query }
+        });
+      }
     }
     if (category) {
       filterBy.push(`categories:=[${quote(category)}]`);
@@ -114,33 +141,98 @@ router.get('/search', async (req, res) => {
   }
 });
 
-// Get facets for filtering
+// Enhanced search with relational life events and graph relationships
+router.get('/search-relational', async (req, res) => {
+  try {
+    const {
+      q = '*',
+      life_event,
+      include_related = false,
+      page = 1,
+      per_page = 20
+    } = req.query;
+
+    const rq = new RelationalQueries(req.app.locals.typesense);
+    
+    if (!life_event) {
+      return res.status(400).json({ error: 'life_event parameter required for relational search' });
+    }
+
+    const searchMethod = include_related === 'true' 
+      ? 'searchWithRelatedLifeEvents' 
+      : 'searchFragmentsByLifeEvent';
+
+    const result = await rq[searchMethod](q === '*' ? null : q, life_event, {
+      page: parseInt(page),
+      per_page: parseInt(per_page)
+    });
+
+    res.json({
+      results: result.fragments.map(frag => ({ document: frag })),
+      found: result.found || result.fragments.length,
+      page: parseInt(page),
+      total_pages: Math.ceil((result.found || result.fragments.length) / parseInt(per_page)),
+      relationships: result.relationships,
+      related_events: result.related_events || [],
+      pages_found: result.page_found || result.pages.length,
+      request_params: req.query
+    });
+
+  } catch (error) {
+    console.error('Relational search error:', error);
+    res.status(500).json({ error: 'Relational search failed', details: error.message });
+  }
+});
+
+// Get facets for filtering (now uses pages for life events)
 router.get('/facets', async (req, res) => {
   try {
-    const facetFields = [
-      'life_events',
+    // Get life events from pages collection
+    const pageResults = await req.app.locals.typesense
+      .collections('content_pages')
+      .documents()
+      .search({
+        q: '*',
+        query_by: 'title',
+        facet_by: 'life_events,primary_life_event,stage,stage_variant',
+        max_facet_values: 100,
+        per_page: 0
+      });
+
+    // Get other facets from fragments
+    const fragmentFields = [
       'categories', 
       'states',
-      'stage',
-      'stage_variant',
       'provider',
       'governance',
       'component_type'
     ];
 
-    const results = await req.app.locals.typesense
+    const fragmentResults = await req.app.locals.typesense
       .collections('content_fragments')
       .documents()
       .search({
         q: '*',
         query_by: 'title',
-        facet_by: facetFields.join(','),
+        facet_by: fragmentFields.join(','),
         max_facet_values: 100,
-        per_page: 0 // We only want facets, not results
+        per_page: 0
       });
 
     const facets = {};
-    results.facet_counts.forEach(facet => {
+    
+    // Add page-based facets
+    pageResults.facet_counts.forEach(facet => {
+      facets[facet.field_name] = facet.counts
+        .map(count => ({
+          value: count.value,
+          count: count.count
+        }))
+        .sort((a, b) => b.count - a.count);
+    });
+
+    // Add fragment-based facets
+    fragmentResults.facet_counts.forEach(facet => {
       facets[facet.field_name] = facet.counts
         .map(count => ({
           value: count.value,

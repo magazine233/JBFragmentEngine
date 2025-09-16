@@ -87,14 +87,14 @@ module.exports = {
       { name: 'hierarchy_lvl2', type: 'string', facet: true, optional: true },
       { name: 'hierarchy_lvl3', type: 'string', facet: true, optional: true },
 
-      // taxonomy facets
-      { name: 'life_events', type: 'string[]', facet: true },
+      // Basic taxonomy (non-relational)
       { name: 'categories', type: 'string[]', facet: true },
       { name: 'states', type: 'string[]', facet: true },
-      { name: 'stage', type: 'string', facet: true, optional: true },
-      { name: 'stage_variant', type: 'string', facet: true, optional: true },
       { name: 'provider', type: 'string', facet: true },
       { name: 'governance', type: 'string', facet: true },
+      
+      // Life events via page relationship (remove direct tagging)
+      // Query: fragments[page_url] -> pages[url].life_events[]
 
       // metadata facets
       { name: 'component_type', type: 'string', facet: true },
@@ -123,10 +123,8 @@ module.exports = {
       // Evidence-based life event stress weighting (Holmes & Rahe SRRS)
       { name: 'srrs_score', type: 'int32', optional: true, facet: true },
       
-      { name: 'prerequisite_states', type: 'string[]', facet: true },
-      { name: 'leads_to_states', type: 'string[]', facet: true },
-      { name: 'concurrent_states', type: 'string[]', facet: true },
-      { name: 'excludes_states', type: 'string[]', facet: true },
+      // Graph relationships via lookup (remove redundant storage)
+      // Query: fragments[page_url] -> pages[url].life_events[] -> graph[event_name].prerequisites[]
       
       // Eligibility criteria (structured)
       { name: 'min_age', type: 'int32', optional: true },
@@ -168,14 +166,22 @@ module.exports = {
       { name: 'title', type: 'string', optional: true },
       { name: 'content_text', type: 'string', optional: true },
 
-      // aggregated tags from fragments
+      // PRIMARY life event tagging (authoritative source)
       { name: 'life_events', type: 'string[]', facet: true },
+      { name: 'primary_life_event', type: 'string', facet: true, optional: true }, // Main topic
+      { name: 'stage', type: 'string', facet: true, optional: true },
+      { name: 'stage_variant', type: 'string', facet: true, optional: true },
+      
+      // Aggregated taxonomy from fragments  
       { name: 'categories', type: 'string[]', facet: true },
       { name: 'states', type: 'string[]', facet: true },
       { name: 'provider', type: 'string[]', facet: true, optional: true },
       { name: 'governance', type: 'string[]', facet: true, optional: true },
-      { name: 'stage', type: 'string[]', facet: true, optional: true },
-      { name: 'stage_variant', type: 'string[]', facet: true, optional: true },
+      
+      // Page-level eligibility (derived from graph)
+      { name: 'eligibility_statuses', type: 'string[]', facet: true, optional: true },
+      { name: 'typical_age_range', type: 'int32[]', optional: true }, // [min, max]
+      { name: 'typical_duration_days', type: 'int32', optional: true },
 
       // relationships
       { name: 'fragment_ids', type: 'string[]' },

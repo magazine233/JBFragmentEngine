@@ -4,6 +4,7 @@ const path = require("path");
 
 // Load taxonomy data
 let taxonomyData = null;
+let lifeEventsGraph = null;
 
 async function loadTaxonomyData() {
   if (!taxonomyData) {
@@ -17,6 +18,27 @@ async function loadTaxonomyData() {
     }
   }
   return taxonomyData;
+}
+
+async function loadLifeEventsGraph() {
+  if (!lifeEventsGraph) {
+    try {
+      const graphPath = path.join(__dirname, "../data/lifevents-graph.js");
+      const graphData = await fs.readFile(graphPath, "utf8");
+      // Extract the array from the JS file
+      const match = graphData.match(/const australianLifeEvents = (\[[\s\S]*?\]);/);
+      if (match) {
+        lifeEventsGraph = eval(match[1]); // Safe in this context as it's our own data file
+      } else {
+        console.warn("Could not parse life events graph");
+        lifeEventsGraph = [];
+      }
+    } catch (error) {
+      console.error("Failed to load life events graph:", error);
+      lifeEventsGraph = [];
+    }
+  }
+  return lifeEventsGraph;
 }
 
 function getDefaultTaxonomyData() {
@@ -409,6 +431,8 @@ function getDefaultTaxonomyData() {
 
 async function enrichWithTaxonomy(fragment) {
   const taxonomy = await loadTaxonomyData();
+  const graph = await loadLifeEventsGraph();
+  
   const contentLower = (
     fragment.content_text +
     " " +
@@ -416,39 +440,16 @@ async function enrichWithTaxonomy(fragment) {
   ).toLowerCase();
   const url = fragment.url.toLowerCase();
 
-  // Detect life events
-  fragment.life_events = detectLifeEvents(contentLower, taxonomy.lifeEvents);
+  // Remove fragment-level life event tagging - will be handled at page level
+  // fragment.life_events = []; // Removed - use page relationship instead
 
-  // Compute SRRS score based on best-matching life event tag (one-to-one mapping)
-  // Assumes taxonomy.lifeEvents[event].srrs is an integer (0..100). If multiple life events match,
-  // the highest SRRS is used.
-  try {
-    let maxSrrs = 0;
-    for (const ev of fragment.life_events) {
-      const entry = taxonomy.lifeEvents[ev];
-      if (entry && typeof entry.srrs === 'number') {
-        maxSrrs = Math.max(maxSrrs, Math.round(entry.srrs));
-      }
-    }
-    fragment.srrs_score = maxSrrs || 0;
-  } catch (e) {
-    fragment.srrs_score = 0;
-  }
+  // SRRS score will be computed at page level based on page life events
+  fragment.srrs_score = 0;
 
   // Detect categories
   fragment.categories = detectCategories(contentLower, taxonomy.categories);
 
-  // Detect stage if life event is detected
-  if (fragment.life_events.includes("Having a baby")) {
-    fragment.stage = detectStage(
-      contentLower,
-      taxonomy.lifeEvents["Having a baby"].stages,
-    );
-    fragment.stage_variant = detectStageVariant(
-      contentLower,
-      taxonomy.stageVariants["Having a baby"],
-    );
-  }
+  // Stage detection moved to page level
 
   // Detect provider and governance
   const providerInfo = detectProvider(url, contentLower, taxonomy.providers);
@@ -465,13 +466,8 @@ async function enrichWithTaxonomy(fragment) {
 
   // Ensure all required array fields exist (even if empty)
   const requiredArrayFields = [
-    'life_events',
     'categories', 
     'states',
-    'prerequisite_states',
-    'leads_to_states',
-    'concurrent_states',
-    'excludes_states',
     'required_citizenship',
     'required_residency',
     'required_disabilities',
@@ -498,6 +494,104 @@ async function enrichWithTaxonomy(fragment) {
   if (fragment.srrs_score === undefined || fragment.srrs_score === null) fragment.srrs_score = 0;
   
   return fragment;
+}
+
+// New function for page-level life event tagging
+async function enrichPageWithLifeEvents(page) {
+  const taxonomy = await loadTaxonomyData();
+  const graph = await loadLifeEventsGraph();
+  
+  // Combine all fragment content for page-level analysis
+  const contentLower = (
+    (page.content_text || '') +
+    " " +
+    (page.title || '') +
+    " " + 
+    (page.keywords || []).join(" ")
+  ).toLowerCase();
+  
+  // Detect life events at page level
+  const detectedEvents = detectLifeEvents(contentLower, taxonomy.lifeEvents);
+  
+  // Determine primary life event (highest scoring)
+  let primaryEvent = null;
+  let maxScore = 0;
+  
+  detectedEvents.forEach(event => {
+    const score = calculateLifeEventScore(contentLower, event, taxonomy.lifeEvents[event]);
+    if (score > maxScore) {
+      maxScore = score;
+      primaryEvent = event;
+    }
+  });
+  
+  page.life_events = detectedEvents;
+  page.primary_life_event = primaryEvent;
+  
+  // Add graph-derived data for detected life events
+  if (detectedEvents.length > 0 && graph.length > 0) {
+    const eligibilityStatuses = new Set();
+    let minAge = null;
+    let maxAge = null;
+    let typicalDuration = null;
+    
+    detectedEvents.forEach(eventName => {
+      const graphEvent = graph.find(ge => ge.event_name === eventName);
+      if (graphEvent) {
+        if (graphEvent.eligibility_status) {
+          eligibilityStatuses.add(graphEvent.eligibility_status);
+        }
+        
+        if (graphEvent.typical_age_range) {
+          minAge = minAge === null ? graphEvent.typical_age_range[0] : Math.min(minAge, graphEvent.typical_age_range[0]);
+          maxAge = maxAge === null ? graphEvent.typical_age_range[1] : Math.max(maxAge, graphEvent.typical_age_range[1]);
+        }
+        
+        if (graphEvent.typical_duration_days) {
+          typicalDuration = typicalDuration === null ? graphEvent.typical_duration_days : Math.max(typicalDuration, graphEvent.typical_duration_days);
+        }
+      }
+    });
+    
+    page.eligibility_statuses = Array.from(eligibilityStatuses);
+    if (minAge !== null && maxAge !== null) {
+      page.typical_age_range = [minAge, maxAge];
+    }
+    if (typicalDuration !== null) {
+      page.typical_duration_days = typicalDuration;
+    }
+  }
+  
+  // Detect stage and variant for primary event
+  if (primaryEvent && taxonomy.lifeEvents[primaryEvent]) {
+    if (taxonomy.lifeEvents[primaryEvent].stages) {
+      page.stage = detectStage(contentLower, taxonomy.lifeEvents[primaryEvent].stages);
+    }
+    
+    if (taxonomy.stageVariants[primaryEvent]) {
+      page.stage_variant = detectStageVariant(contentLower, taxonomy.stageVariants[primaryEvent]);
+    }
+  }
+  
+  return page;
+}
+
+// Helper function to calculate life event confidence score
+function calculateLifeEventScore(content, eventName, eventData) {
+  let score = 0;
+  const keywords = eventData.keywords || [];
+  
+  keywords.forEach(keyword => {
+    const keywordLower = keyword.toLowerCase();
+    const regex = new RegExp(`\\b${keywordLower.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`, 'g');
+    const matches = content.match(regex) || [];
+    
+    // Weight by keyword length and frequency
+    const weight = keyword.length > 6 ? 2 : 1;
+    score += matches.length * weight;
+  });
+  
+  return score;
 }
 
 function detectLifeEvents(content, lifeEventsData) {
@@ -726,5 +820,7 @@ function detectTaskOrder(html) {
 
 module.exports = {
   enrichWithTaxonomy,
+  enrichPageWithLifeEvents,
   loadTaxonomyData,
+  loadLifeEventsGraph,
 };

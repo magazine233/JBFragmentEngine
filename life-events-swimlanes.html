@@ -1,0 +1,729 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Life Events Swimlanes</title>
+    <style>
+      :root {
+        --bg: #0f1216;
+        --panel: #151a20;
+        --lane: #1a2028;
+        --text: #e6eef7;
+        --muted: #a9b7c6;
+        --accent: #6db1ff;
+        --accent-2: #67e8f9;
+        --accent-3: #f472b6;
+        --accent-4: #a3e635;
+        --accent-5: #fbbf24;
+        --accent-6: #f87171;
+        --chip: #223042;
+        --grid: #2a3442;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        background: var(--bg);
+        color: var(--text);
+        font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      }
+      header {
+        padding: 14px 16px;
+        border-bottom: 1px solid var(--grid);
+        background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0));
+      }
+      header h1 {
+        margin: 0 0 6px 0;
+        font-size: 18px;
+        letter-spacing: 0.3px;
+      }
+      header .sub {
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .wrap {
+        display: grid;
+        grid-template-columns: 280px 1fr;
+        gap: 12px;
+        height: calc(100% - 60px);
+        padding: 12px;
+        box-sizing: border-box;
+      }
+      .wrap.filters-collapsed { grid-template-columns: 44px 1fr; }
+      aside {
+        background: var(--panel);
+        border: 1px solid var(--grid);
+        border-radius: 10px;
+        padding: 12px;
+      }
+      #toggleFilters {
+        width: 100%;
+        background: transparent;
+        border: 1px solid var(--grid);
+        color: var(--text);
+        border-radius: 8px;
+        padding: 6px 8px;
+        font-size: 12px;
+        cursor: pointer;
+      }
+      .wrap.filters-collapsed aside { padding: 8px; }
+      .wrap.filters-collapsed aside .panel-content { display: none; }
+      aside h2 {
+        font-size: 14px;
+        margin: 0 0 8px 0;
+      }
+      .filters label {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+      }
+      .filters label:hover {
+        background: rgba(255,255,255,0.03);
+      }
+      .legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 10px;
+      }
+      .legend .chip {
+        font-size: 12px;
+        padding: 4px 8px;
+        border-radius: 999px;
+        border: 1px solid var(--grid);
+        background: var(--chip);
+        color: var(--text);
+        white-space: nowrap;
+      }
+      main {
+        background: var(--panel);
+        border: 1px solid var(--grid);
+        border-radius: 10px;
+        padding: 8px;
+        position: relative;
+        overflow: auto; /* allow vertical scroll when lanes grow */
+      }
+      svg { height: 100%; display: block; min-width: 1400px; }
+      .lane-bg { fill: var(--lane); }
+      .lane-title { fill: var(--muted); font-size: 12px; text-anchor: start; dominant-baseline: central; }
+      .axis text { fill: var(--muted); font-size: 11px; }
+      .axis line { stroke: var(--grid); }
+      .axis path { stroke: var(--grid); }
+      .tick-grid { stroke: var(--grid); stroke-dasharray: 2 4; }
+      .event-node { cursor: pointer; }
+      .event-node rect { stroke: #0b0f14; stroke-width: 1.25; rx: 4; ry: 4; }
+      .event-node:hover rect { stroke: var(--text); stroke-width: 1.6; }
+      .event-label { fill: var(--text); font-size: 11px; pointer-events: none; }
+      .service-tag {
+        font-size: 10px;
+        fill: var(--text);
+        alignment-baseline: middle;
+      }
+      .service-bg { fill: var(--chip); stroke: var(--grid); stroke-width: 1; rx: 3; ry: 3; }
+      .connector { stroke: rgba(255,255,255,0.18); stroke-width: 1; }
+      .concurrent-link { stroke: rgba(0,0,0,0.25); stroke-width: 1.2; fill: none; }
+      .label-bg { fill: #000; fill-opacity: 0.5; }
+      .tooltip {
+        position: absolute;
+        background: #0b0f14;
+        color: var(--text);
+        border: 1px solid var(--grid);
+        border-radius: 8px;
+        padding: 8px 10px;
+        font-size: 12px;
+        pointer-events: none;
+        transform: translate(-50%, -110%);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.35);
+        display: none;
+        max-width: 320px;
+      }
+      .tooltip .muted { color: var(--muted); }
+      .detail-card {
+        position: absolute;
+        background: #0b0f14;
+        color: var(--text);
+        border: 1px solid var(--grid);
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 12px;
+        box-shadow: 0 10px 28px rgba(0,0,0,0.45);
+        max-width: 380px;
+        display: none;
+        transform: translate(-50%, -110%);
+        z-index: 10;
+      }
+      .detail-card h3 { margin: 0 0 6px 0; font-size: 14px; }
+      .detail-card .row { margin: 4px 0; color: var(--muted); }
+      .detail-card .key { color: var(--muted); margin-right: 6px; }
+      .detail-card .chips { display:inline; }
+      .detail-card .chip { display:inline-block; margin: 2px 4px 0 0; }
+      .toggle {
+        display: inline-flex;
+        gap: 6px; align-items: center;
+        font-size: 12px; color: var(--muted);
+        margin: 8px 0 0 0;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Life Events – Swimlane Timeline</h1>
+      <div class="sub">Horizontal axis: rough age (0–100). Lanes: disability, housing, education, employment, cultural diversity, and government services.</div>
+    </header>
+    <div class="wrap">
+      <aside>
+        <button id="toggleFilters" aria-expanded="true">Filters ▾</button>
+        <div class="panel-content">
+          <h2>Filters</h2>
+          <div class="filters" id="filters"></div>
+          <div style="margin-top:10px;">
+            <label class="toggle" for="laneScale">Lane height</label>
+            <input id="laneScale" type="range" min="0.6" max="3" step="0.1" value="1" style="width:100%" />
+          </div>
+          <div class="legend" id="legend"></div>
+          <label class="toggle"><input type="checkbox" id="labelsToggle" checked /> Show labels</label>
+        </div>
+      </aside>
+      <main>
+        <div id="tooltip" class="tooltip"></div>
+        <div id="detailCard" class="detail-card"></div>
+        <svg id="viz" viewBox="0 0 1400 780" preserveAspectRatio="xMidYMin slice"></svg>
+      </main>
+    </div>
+
+    <!-- Data: exposes window.australianLifeEvents -->
+    <script src="data/lifevents-graph.js"></script>
+    <script>
+      // Utility: clamp and scale
+      const clamp = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+      const scale = (v, d0, d1, r0, r1) => r0 + (r1 - r0) * ((v - d0) / (d1 - d0));
+
+      // Swimlane definitions with mapping heuristics
+      const LANES = [
+        { key: 'education', label: 'Education', color: '#67e8f9', match: e => e.cluster === 'Education' },
+        { key: 'employment', label: 'Employment', color: '#a3e635', match: e => ['Working','Unemployment','Business'].includes(e.cluster) },
+        { key: 'housing', label: 'Housing', color: '#6db1ff', match: e => e.cluster === 'Housing' },
+        { key: 'disability', label: 'Disability & Health', color: '#f87171', match: e => e.cluster === 'Managing health' || /disab|mental|injur/i.test(e.event_name) || /disab|mental|injur/i.test(e.eligibility_status || '') || e.cluster === 'Caring' },
+        { key: 'emergencies', label: 'Emergencies & Justice', color: '#f97316', match: e => ['Natural disaster','Human-made disaster','Domestic violence','Crime and Justice'].includes(e.cluster) || e.event_type === 'crisis' },
+        { key: 'family', label: 'Family & Relationships', color: '#fbbf24', match: e => ['Relationships','Forming family','Family dissolution'].includes(e.cluster) },
+        { key: 'cultural', label: 'Cultural Diversity', color: '#f472b6', match: e => ['Coming to Australia','Identity change'].includes(e.cluster) },
+        { key: 'older', label: 'Older Age & End of Life', color: '#a78bfa', match: e => ['Growing older','End of life'].includes(e.cluster) },
+      ];
+
+      // Heuristic mapping from event -> government services involved (labels)
+      function inferServices(ev) {
+        const s = new Set();
+        const name = (ev.event_name || '').toLowerCase();
+        const elig = (ev.eligibility_status || '').toLowerCase();
+        const cluster = (ev.cluster || '').toLowerCase();
+
+        // Health & disability
+        if (/disab|mental|injur|diagnos|medical|health/.test(name + ' ' + elig) || cluster.includes('health')) {
+          s.add('Medicare');
+          s.add('NDIS');
+          s.add('State Health');
+        }
+
+        // Housing
+        if (cluster.includes('housing') || /rent|home|homeless|moving/.test(name)) {
+          s.add('State Housing');
+          s.add('Local Council');
+          s.add('Shelter/Services');
+        }
+
+        // Education
+        if (cluster.includes('education') || /school|tertiary|university|tafe|apprent/.test(name + ' ' + elig)) {
+          s.add('Dept. of Education');
+          s.add('University/TAFE');
+          s.add('TEQSA/ASQA');
+        }
+
+        // Employment & income support
+        if (['working','unemployment','business'].includes(cluster) || /work|job|unemploy|career/.test(name)) {
+          s.add('Services Australia');
+          s.add('ATO');
+          s.add('Workforce Australia');
+        }
+
+        // Family and relationships
+        if (['relationships','family dissolution','forming family','caring'].includes(cluster) || /parent|baby|child|separat|foster|adopt/.test(name)) {
+          s.add('Family Court');
+          s.add('Services Australia');
+        }
+
+        // Crime & justice
+        if (cluster.includes('crime') || /court|charge|arrest|sentence|prison|crime/.test(name)) {
+          s.add('Police');
+          s.add('Courts');
+          s.add('Legal Aid');
+        }
+
+        // Disasters
+        if (cluster.includes('disaster') || /flood|fire|storm|drought|pandemic/.test(name)) {
+          s.add('Emergency Services');
+          s.add('Disaster Recovery');
+        }
+
+        // Migration and identity
+        if (cluster.includes('coming to australia') || /immi|visa|citizen|refugee|migrat/.test(name + ' ' + elig)) {
+          s.add('Home Affairs');
+          s.add('Settlement Services');
+        }
+
+        // Veterans
+        if (/veteran|dva|service record/.test(name + ' ' + elig)) {
+          s.add('DVA');
+        }
+
+        // Finance
+        if (cluster.includes('finance') || /financial|debt|bank|bankrupt/.test(name)) {
+          s.add('Financial Counselling');
+          s.add('ASIC/AFCA');
+        }
+
+        return Array.from(s);
+      }
+
+      let laneScale = 1;
+      let selectedId = null;
+      const laneEnabled = {};
+      LANES.forEach(l => { laneEnabled[l.key] = true; });
+
+      // Render
+      function render() {
+        const events = (window.australianLifeEvents || []).slice();
+        const idMap = new Map(events.map(e => [e.id, e]));
+        const svg = document.getElementById('viz');
+        const tooltip = document.getElementById('tooltip');
+        const detailCard = document.getElementById('detailCard');
+        const W = 1400; // fixed width viewBox
+        const M = { top: 50, right: 16, bottom: 40, left: 160 };
+        const plotW = W - M.left - M.right;
+
+        // Clear
+        while (svg.firstChild) svg.removeChild(svg.firstChild);
+
+        // Lanes layout (variable per-lane height)
+        const laneGap = 12;
+        const baseLaneH = 90 * laneScale; // baseline user scaling
+        const tagH = 12;
+        const rowHeight = 14; // event bar height
+        const rowGap = 6;
+
+        // Active lanes based on filters
+        const activeLanes = LANES.filter(l => laneEnabled[l.key]);
+        // Prepare lane metadata and compute needed heights
+        const laneMeta = activeLanes.map(l => ({ lane: l, nodes: [], reqH: baseLaneH }));
+
+        function eventIntervalsForLane(lane) {
+          const laneEvents = lane.key === 'services' ? events : events.filter(lane.match);
+          return laneEvents.map(ev => {
+            const [a0, a1] = ev.typical_age_range || [0, 100];
+            const x0 = M.left + scale(clamp(a0,0,100), 0, 100, 0, plotW);
+            const x1 = M.left + scale(clamp(a1,0,100), 0, 100, 0, plotW);
+            const span = Math.max(6, Math.abs(x1 - x0));
+            const xStart = Math.min(x0, x1);
+            const xEnd = xStart + span;
+            return { ev, xStart, xEnd };
+          }).sort((a,b) => a.xStart - b.xStart || a.xEnd - b.xEnd);
+        }
+
+        // Stack by interval coloring, compute height needed
+        activeLanes.forEach((l, idx) => {
+          const intervals = eventIntervalsForLane(l);
+          const rows = []; // each event will get its own row
+          const placements = [];
+          intervals.forEach(it => {
+            const rowIndex = rows.length; // force new line per event
+            rows.push(it.xEnd);
+            placements.push({ ...it, rowIndex });
+          });
+          let neededH = 16 + rows.length * (rowHeight + rowGap) + 12;
+          // If selected event is in this lane, allocate extra space for its services panel
+          let servicesPanel = null;
+          if (selectedId) {
+            const sel = placements.find(p => p.ev.id === selectedId);
+            if (sel) {
+              const svcsCount = inferServices(sel.ev).length;
+              if (svcsCount > 0) {
+                const panelH = 10 + svcsCount * (tagH + 4) + 10;
+                neededH += panelH + 6;
+                servicesPanel = { count: svcsCount };
+              }
+            }
+          }
+          laneMeta[idx] = { lane: l, nodes: placements, reqH: Math.max(baseLaneH, neededH), servicesPanel };
+        });
+
+        // Compute cumulative Y and total height
+        let yCursor = M.top;
+        laneMeta.forEach(lm => { lm.y0 = yCursor; lm.y1 = yCursor + lm.reqH; yCursor = lm.y1 + laneGap; });
+        const totalH = yCursor - laneGap + M.bottom;
+
+        // Resize svg (fixed width for horizontal scroll on small screens)
+        svg.setAttribute('viewBox', `0 0 ${W} ${totalH}`);
+        svg.style.height = totalH + 'px';
+        svg.style.width = W + 'px';
+
+        // Axis (age 0..100)
+        const axis = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        axis.setAttribute('class', 'axis');
+        svg.appendChild(axis);
+        const ticks = Array.from({ length: 11 }, (_, i) => i * 10);
+        ticks.forEach(t => {
+          const x = M.left + scale(t, 0, 100, 0, plotW);
+          const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+          line.setAttribute('x1', x); line.setAttribute('x2', x);
+          line.setAttribute('y1', M.top - 20); line.setAttribute('y2', totalH - M.bottom);
+          line.setAttribute('class', 'tick-grid');
+          axis.appendChild(line);
+
+          const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          text.setAttribute('x', x);
+          text.setAttribute('y', M.top - 26);
+          text.setAttribute('text-anchor', 'middle');
+          text.textContent = t;
+          axis.appendChild(text);
+        });
+        // Axis label
+        const al = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        al.setAttribute('x', M.left + plotW / 2);
+        al.setAttribute('y', 16);
+        al.setAttribute('text-anchor', 'middle');
+        al.setAttribute('fill', 'var(--muted)');
+        al.setAttribute('font-size', '12');
+        al.textContent = 'Age (years)';
+        svg.appendChild(al);
+
+        // Build data per lane (from computed meta)
+        const laneData = laneMeta;
+
+        // Draw lanes
+        laneData.forEach(ld => {
+          const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          svg.appendChild(g);
+          // background
+          const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          rect.setAttribute('x', M.left);
+          rect.setAttribute('y', ld.y0);
+          rect.setAttribute('width', plotW);
+          rect.setAttribute('height', ld.reqH);
+          rect.setAttribute('class', 'lane-bg');
+          g.appendChild(rect);
+          // title
+          const title = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          title.setAttribute('x', 18);
+          title.setAttribute('y', ld.y0 + ld.reqH / 2);
+          title.setAttribute('class', 'lane-title');
+          title.textContent = ld.lane.label;
+          g.appendChild(title);
+        });
+
+        // Event nodes & labels in non-services lanes
+        /*
+        const showLabels = () => document.getElementById('labelsToggle').checked;
+
+        laneData.filter(ld => ld.lane.key !== 'services').forEach(ld => {
+          const rows = 3; // simple vertical staggering
+          const rowGap = 18;
+          const yCenter = (ld.y0 + ld.y1) / 2;
+          ld.nodes.forEach((n, i) => {
+            const row = i % rows;
+            const dy = (row - (rows-1)/2) * rowGap;
+            const y = clamp(yCenter + dy, ld.y0 + 14, ld.y1 - 14);
+
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', 'event-node');
+            g.setAttribute('transform', `translate(${n.x}, ${y})`);
+
+            const dot = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            dot.setAttribute('r', 7);
+            dot.setAttribute('fill', ld.lane.color);
+            g.appendChild(dot);
+
+            if (showLabels()) {
+              const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              label.setAttribute('class', 'event-label');
+              label.setAttribute('x', 10);
+              label.setAttribute('y', 0);
+              label.setAttribute('dominant-baseline', 'middle');
+              label.textContent = n.ev.event_name;
+              g.appendChild(label);
+            }
+
+            // Tooltip
+            const showTip = (evt) => {
+              const svgbbox = svg.getBoundingClientRect();
+              tooltip.style.display = 'block';
+              tooltip.style.left = (svgbbox.left + n.x) + 'px';
+              tooltip.style.top = (svgbbox.top + y - 12) + 'px';
+              const ages = (n.ev.typical_age_range || [0,100]).join('–');
+              const services = inferServices(n.ev);
+              tooltip.innerHTML = `
+                <div style="font-weight:600; margin-bottom:4px;">${n.ev.event_name}</div>
+                <div class="muted">Cluster: ${n.ev.cluster || '—'} | Type: ${n.ev.event_type || '—'} | Age: ${ages}</div>
+                <div style="margin-top:6px;">
+                  <span class="muted">Gov services:</span>
+                  ${services.length ? services.map(s=>`<span class=\"chip\" style=\"margin-right:6px;\">${s}</span>`).join('') : '<span class="muted">Not inferred</span>'}
+                </div>`;
+            };
+            const hideTip = () => { tooltip.style.display = 'none'; };
+            g.addEventListener('mouseenter', showTip);
+            g.addEventListener('mouseleave', hideTip);
+
+            svg.appendChild(g);
+
+            // Connectors to services lane tags (lightweight, vertical line)
+            const services = inferServices(n.ev);
+            if (services.length) {
+              const servicesLane = laneData.find(x => x.lane.key === 'services');
+              const yS = (servicesLane.y0 + servicesLane.y1) - 22 - (i % 3) * 12; // slight staggering
+              const conn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+              conn.setAttribute('class', 'connector');
+              conn.setAttribute('x1', n.x); conn.setAttribute('x2', n.x);
+              conn.setAttribute('y1', y + 8); conn.setAttribute('y2', yS - 8);
+              svg.appendChild(conn);
+            }
+          });
+        });
+        */
+
+        // Event bars & labels in non-services lanes (non-overlapping stacked rows)
+        const showLabels = () => document.getElementById('labelsToggle').checked;
+        const anchorById = new Map();
+
+        laneData.filter(ld => ld.lane.key !== 'services').forEach(ld => {
+          const paddingTop = 12;
+          const laneTop = ld.y0 + paddingTop;
+          ld.nodes.forEach((n, i) => {
+            const rowY = laneTop + n.rowIndex * (rowHeight + rowGap);
+            const yMid = rowY + rowHeight / 2;
+            const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            g.setAttribute('class', 'event-node');
+
+            const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            rect.setAttribute('x', n.xStart);
+            rect.setAttribute('y', rowY);
+            rect.setAttribute('width', Math.max(6, n.xEnd - n.xStart));
+            rect.setAttribute('height', rowHeight);
+            rect.setAttribute('fill', ld.lane.color);
+            g.appendChild(rect);
+
+            if (showLabels()) {
+              const label = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              label.setAttribute('class', 'event-label');
+              label.setAttribute('x', n.xStart + 6);
+              label.setAttribute('y', yMid);
+              label.setAttribute('dominant-baseline', 'middle');
+              label.textContent = n.ev.event_name;
+              g.appendChild(label);
+            }
+
+            // Tooltip
+            const showTip = () => {
+              const svgbbox = svg.getBoundingClientRect();
+              tooltip.style.display = 'block';
+              const cx = n.xStart + (n.xEnd - n.xStart)/2;
+              tooltip.style.left = (svgbbox.left + cx) + 'px';
+              tooltip.style.top = (svgbbox.top + rowY - 6) + 'px';
+              const ages = (n.ev.typical_age_range || [0,100]).join('–');
+              const services = inferServices(n.ev);
+              tooltip.innerHTML = `
+                <div style=\"font-weight:600; margin-bottom:4px;\">${n.ev.event_name}</div>
+                <div class=\"muted\">Cluster: ${n.ev.cluster || '—'} | Type: ${n.ev.event_type || '—'} | Age: ${ages}</div>
+                <div style=\"margin-top:6px;\">\n                  <span class=\"muted\">Gov services:</span>\n                  ${services.length ? services.map(s=>`<span class=\\\"chip\\\" style=\\\"margin-right:6px;\\\">${s}</span>`).join('') : '<span class=\"muted\">Not inferred</span>'}
+                </div>`;
+            };
+            const hideTip = () => { tooltip.style.display = 'none'; };
+            g.addEventListener('mouseenter', showTip);
+            g.addEventListener('mouseleave', hideTip);
+            svg.appendChild(g);
+
+            // Add label background after appended so we can measure
+            if (showLabels()) {
+              const textEl = g.querySelector('text.event-label');
+              if (textEl) {
+                const bb = textEl.getBBox();
+                const padX = 4, padY = 2;
+                const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+                bg.setAttribute('class', 'label-bg');
+                bg.setAttribute('x', bb.x - padX);
+                bg.setAttribute('y', bb.y - padY);
+                bg.setAttribute('width', bb.width + padX * 2);
+                bg.setAttribute('height', bb.height + padY * 2);
+                bg.setAttribute('rx', 3);
+                bg.setAttribute('ry', 3);
+                g.insertBefore(bg, textEl);
+              }
+            }
+
+            // Click to toggle selection
+            g.addEventListener('click', () => {
+              selectedId = (selectedId === n.ev.id) ? null : n.ev.id;
+              render();
+            });
+
+            // Record anchor point for concurrent links
+            const cx = n.xStart + (n.xEnd - n.xStart)/2;
+            if (n.ev && n.ev.id && !anchorById.has(n.ev.id)) {
+              anchorById.set(n.ev.id, { x: cx, y: yMid });
+            }
+          });
+        });
+
+        // Draw links between frequent concurrent events (default 50% black; highlight selected relations to 50% white)
+        const drawnPairs = new Set();
+        (window.australianLifeEvents || []).forEach(ev => {
+          const a = anchorById.get(ev.id);
+          if (!a || !Array.isArray(ev.frequent_concurrents)) return;
+          ev.frequent_concurrents.forEach(tid => {
+            const b = anchorById.get(tid);
+            if (!b) return;
+            const key = ev.id < tid ? ev.id + '|' + tid : tid + '|' + ev.id;
+            if (drawnPairs.has(key)) return;
+            drawnPairs.add(key);
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            const yMid = (a.y + b.y) / 2;
+            const d = `M ${a.x} ${a.y} C ${a.x} ${yMid}, ${b.x} ${yMid}, ${b.x} ${b.y}`;
+            path.setAttribute('d', d);
+            path.setAttribute('class', 'concurrent-link');
+            const isHighlighted = selectedId && (ev.id === selectedId || tid === selectedId);
+            path.style.stroke = isHighlighted ? 'rgba(255,255,255,0.5)' : 'rgba(0,0,0,0.25)';
+            svg.appendChild(path);
+          });
+        });
+
+        // Selected event services: render a per-event sublane at the bottom of each lane that contains the selection
+        if (selectedId) {
+          laneData.forEach(ld => {
+            const sel = ld.nodes.find(n => n.ev.id === selectedId);
+            if (!sel) return;
+            const svcs = inferServices(sel.ev);
+            if (!svcs.length) return;
+            const cx = sel.xStart + (sel.xEnd - sel.xStart)/2;
+            const tagPaddingX = 6;
+            let y = ld.y1 - 10;
+            const panelHeight = svcs.length * (tagH + 4);
+            const yTop = y - panelHeight;
+            // compute max width
+            let maxW = 0; const widths = [];
+            svcs.forEach(s => {
+              const tmp = document.createElement('span'); tmp.style.position = 'absolute'; tmp.style.visibility = 'hidden'; tmp.style.fontSize = '10px'; tmp.textContent = s; document.body.appendChild(tmp); const w = tmp.getBoundingClientRect().width + tagPaddingX * 2; document.body.removeChild(tmp); widths.push(w); if (w > maxW) maxW = w; });
+            const panel = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+            // background
+            const bg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+            bg.setAttribute('class', 'lane-bg');
+            bg.setAttribute('x', cx - (maxW/2) - 8);
+            bg.setAttribute('y', yTop - 6);
+            bg.setAttribute('width', maxW + 16);
+            bg.setAttribute('height', panelHeight + 12);
+            bg.setAttribute('rx', 6); bg.setAttribute('ry', 6);
+            panel.appendChild(bg);
+            // connector
+            const conn = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+            conn.setAttribute('class', 'connector');
+            conn.setAttribute('x1', cx); conn.setAttribute('x2', cx);
+            conn.setAttribute('y1', ld.y0 + 12 + sel.rowIndex * (rowHeight + rowGap) + rowHeight + 1);
+            conn.setAttribute('y2', yTop);
+            panel.appendChild(conn);
+            // chips
+            svcs.forEach((svc, idx) => {
+              const yy = y - idx * (tagH + 4) - tagH/2;
+              const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+              text.setAttribute('class', 'service-tag');
+              text.setAttribute('x', cx);
+              text.setAttribute('y', yy);
+              text.setAttribute('text-anchor', 'middle');
+              text.textContent = svc;
+              const rect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+              rect.setAttribute('class', 'service-bg');
+              rect.setAttribute('x', cx - widths[idx]/2);
+              rect.setAttribute('y', yy - tagH/2);
+              rect.setAttribute('width', widths[idx]);
+              rect.setAttribute('height', tagH);
+              panel.appendChild(rect);
+              panel.appendChild(text);
+            });
+            svg.appendChild(panel);
+          });
+        }
+
+        // Selection detail card (persistent near selected event)
+        if (detailCard) {
+          if (selectedId && anchorById.has(selectedId)) {
+            const a = anchorById.get(selectedId);
+            const svgb = svg.getBoundingClientRect();
+            detailCard.style.display = 'block';
+            detailCard.style.left = (svgb.left + a.x) + 'px';
+            detailCard.style.top = (svgb.top + a.y - 12) + 'px';
+            const ev = idMap.get(selectedId);
+            const val = (x) => (Array.isArray(x) ? x : (x ?? null));
+            const list = (arr) => Array.isArray(arr) && arr.length ? arr.map(id => idMap.get(id)?.event_name || id).join(', ') : '—';
+            const listRaw = (arr) => Array.isArray(arr) && arr.length ? arr.join(', ') : '—';
+            const ages = (ev.typical_age_range || [0,100]).join('–');
+            const svcs = inferServices(ev);
+            detailCard.innerHTML = `
+              <h3>${ev.event_name}</h3>
+              <div class="row"><span class="key">Type:</span> ${ev.event_type || '—'}</div>
+              <div class="row"><span class="key">Cluster:</span> ${ev.cluster || '—'}</div>
+              <div class="row"><span class="key">Age range:</span> ${ages}</div>
+              <div class="row"><span class="key">Typical duration (days):</span> ${ev.typical_duration_days ?? '—'}</div>
+              <div class="row"><span class="key">Prerequisites:</span> ${list(val(ev.prerequisites))}</div>
+              <div class="row"><span class="key">Next states:</span> ${list(val(ev.next_states))}</div>
+              <div class="row"><span class="key">Concurrent disallowed:</span> ${listRaw(val(ev.concurrent_disallowed))}</div>
+              <div class="row"><span class="key">Frequent concurrents:</span> ${list(val(ev.frequent_concurrents))}</div>
+              <div class="row"><span class="key">Eligibility:</span> ${ev.eligibility_status || '—'}</div>
+              <div class="row"><span class="key">Evidence:</span> ${listRaw(val(ev.evidence_types))}</div>
+              <div class="row"><span class="key">Gov services:</span> ${svcs.length ? svcs.map(s=>`<span class='chip'>${s}</span>`).join('') : '—'}</div>
+            `;
+          } else {
+            detailCard.style.display = 'none';
+          }
+        }
+
+        // Filters & legend
+        const filtersEl = document.getElementById('filters');
+        const legendEl = document.getElementById('legend');
+        filtersEl.innerHTML = '';
+        legendEl.innerHTML = '';
+        LANES.forEach(l => {
+          const id = `f-${l.key}`;
+          const wrap = document.createElement('label');
+          const cb = document.createElement('input'); cb.type = 'checkbox'; cb.id = id; cb.checked = true;
+          cb.checked = !!laneEnabled[l.key];
+          cb.addEventListener('change', () => { laneEnabled[l.key] = cb.checked; render(); });
+          const swatch = document.createElement('span'); swatch.style.display = 'inline-block'; swatch.style.width = '12px'; swatch.style.height = '12px'; swatch.style.borderRadius = '3px'; swatch.style.background = l.color;
+          const txt = document.createElement('span'); txt.textContent = l.label;
+          wrap.appendChild(cb); wrap.appendChild(swatch); wrap.appendChild(txt);
+          filtersEl.appendChild(wrap);
+          // No legend chips to avoid repeating tags under filters
+        });
+
+        document.getElementById('labelsToggle').onchange = render;
+        const ls = document.getElementById('laneScale');
+        if (ls) ls.oninput = (e) => { laneScale = parseFloat(e.target.value || '1'); render(); };
+
+        const wrap = document.querySelector('.wrap');
+        const btn = document.getElementById('toggleFilters');
+        if (btn && wrap) {
+          btn.onclick = () => {
+            const collapsed = wrap.classList.toggle('filters-collapsed');
+            btn.setAttribute('aria-expanded', String(!collapsed));
+            btn.textContent = collapsed ? 'Filters ▸' : 'Filters ▾';
+          };
+        }
+
+      }
+
+      // Start when data is present
+      if (window.australianLifeEvents) {
+        render();
+      } else {
+        window.addEventListener('load', render);
+      }
+    </script>
+  </body>
+</html>

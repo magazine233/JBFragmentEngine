@@ -1839,7 +1839,6 @@
         "switch",
         "transfer",
         "transfer rego",
-        "update",
         "update details"
       ]
     },
@@ -1865,7 +1864,6 @@
       "definition": "View, confirm or verify the status or details of something.",
       "synonyms": [
         "view",
-        "verify",
         "confirm",
         "track",
         "inspect",

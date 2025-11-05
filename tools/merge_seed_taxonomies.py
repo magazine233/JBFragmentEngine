@@ -3,10 +3,10 @@ import yaml
 from pathlib import Path
 
 # Paths to source and target files
-CORE_PATH = r"JBFragmentEngine-main/data/core_verb_lexicon.yaml"
-RELS_PATH = r"JBFragmentEngine-main/data/rels_vocabulary.yaml"
-SEED_PATH = r"JBFragmentEngine-main/data/seed-taxonomies.json"
-MERGED_PATH = r"JBFragmentEngine-main/data/seed-taxonomies.merged.json"
+CORE_PATH = r"data/core_verb_lexicon.yaml"
+RELS_PATH = r"data/rels_vocabulary.yaml"
+SEED_PATH = r"data/seed-taxonomies.json"
+MERGED_PATH = r"data/seed-taxonomies.merged.json"
 
 # Load YAML file
 def load_yaml(path):

@@ -1,6 +1,6 @@
 # FragmentEngine Content Extractor
 
-A Typesense-powered content extraction and search system for government websites. This system crawls websites, extracts structured content fragments, enriches them with taxonomies, and provides a powerful search API. It then exposes this backend to produce user profiles, personalised content recommendation, retrieval augemented generation, service checklists and journey map visulaisaiton. 
+A Typesense-powered content extraction and search system for government websites. This system crawls websites, extracts structured content fragments, enriches them with taxonomies, and provides a powerful search API. It then exposes this backend to produce user profiles, personalised content recommendation, retrieval augemented generation, service checklists and journey map visualisation. 
 
 ## Features
 

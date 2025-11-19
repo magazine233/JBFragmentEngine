@@ -1,0 +1,116 @@
+{
+  "scenarios": {
+    "parental_leave_nsw": {
+      "description": "NSW resident having a baby - should find Paid Parental Leave",
+      "facets": {
+        "life_event": "Having a baby",
+        "state": "NSW",
+        "provider": "Services Australia"
+      },
+      "expected_entities": [
+        "Paid Parental Leave",
+        "Dad and Partner Pay",
+        "Family Tax Benefit"
+      ],
+      "test_claims": [
+        {
+          "claim": "Paid Parental Leave provides up to 18 weeks of payments",
+          "expected_verdict": "supported",
+          "min_confidence": 0.7
+        },
+        {
+          "claim": "Paid Parental Leave requires 10 months of work in the 13 months before birth",
+          "expected_verdict": "supported",
+          "min_confidence": 0.7
+        },
+        {
+          "claim": "Paid Parental Leave requires 12 months of continuous employment",
+          "expected_verdict": "contradicted",
+          "min_confidence": 0.5,
+          "note": "It's 10 months in 13 month period, not 12 continuous"
+        }
+      ],
+      "search_queries": [
+        {
+          "query": "parental leave",
+          "min_results": 5,
+          "must_contain_entity": "Paid Parental Leave"
+        },
+        {
+          "query": "newborn payment",
+          "min_results": 3
+        }
+      ]
+    },
+    "medicare_card_general": {
+      "description": "General Medicare card information - no specific state",
+      "facets": {
+        "category": "Health and caring"
+      },
+      "expected_entities": [
+        "Medicare card",
+        "Medicare"
+      ],
+      "test_claims": [
+        {
+          "claim": "Medicare provides access to subsidised healthcare",
+          "expected_verdict": "supported",
+          "min_confidence": 0.8
+        }
+      ],
+      "search_queries": [
+        {
+          "query": "medicare card",
+          "min_results": 3
+        }
+      ]
+    },
+    "aged_care_vic": {
+      "description": "Victorian senior seeking aged care services",
+      "facets": {
+        "life_event": "Ageing",
+        "state": "VIC",
+        "category": "Health and caring"
+      },
+      "expected_entities": [
+        "Aged Care"
+      ],
+      "search_queries": [
+        {
+          "query": "aged care",
+          "min_results": 3
+        }
+      ]
+    },
+    "jobseeker_unemployed": {
+      "description": "Unemployed person seeking job seeker payment",
+      "facets": {
+        "category": "Work and Money",
+        "life_event": "Unemployment"
+      },
+      "expected_entities": [
+        "JobSeeker Payment"
+      ],
+      "test_claims": [
+        {
+          "claim": "JobSeeker Payment is available to people looking for work",
+          "expected_verdict": "supported",
+          "min_confidence": 0.7
+        }
+      ]
+    }
+  },
+  "edge_cases": {
+    "non_existent_entity": {
+      "description": "Test that non-existent entities return exists: false",
+      "entity_name": "Unicorn Subsidy Payment",
+      "expected_exists": false
+    },
+    "ambiguous_entity": {
+      "description": "Test entity with multiple matches",
+      "entity_name": "Family Payment",
+      "expected_matches_min": 2,
+      "note": "Should match Family Tax Benefit, Family payments, etc."
+    }
+  }
+}

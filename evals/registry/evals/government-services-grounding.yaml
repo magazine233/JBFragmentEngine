@@ -1,0 +1,31 @@
+government-services-grounding:
+  id: government-services-grounding.dev.v0
+  description: "Eval for testing accuracy of government service information with MCP tool access"
+  metrics: [factual_accuracy, completeness, entity_verification, hallucination_rate]
+
+government-services-grounding.dev.v0:
+  class: FragmentEngineEval
+  args:
+    samples_jsonl: government-services-grounding/samples.jsonl
+    mcp_tools_enabled: true
+    max_tokens: 500
+
+government-services-grounding-baseline.dev.v0:
+  id: government-services-grounding-baseline.dev.v0
+  description: "Baseline without MCP tools"
+  class: FragmentEngineEval
+  args:
+    samples_jsonl: government-services-grounding/samples.jsonl
+    mcp_tools_enabled: false
+    max_tokens: 500
+
+government-services-grounding-adversarial.dev.v0:
+  id: government-services-grounding-adversarial.dev.v0
+  description: "With adversarial reviewer forcing re-generation"
+  class: FragmentEngineAdversarialEval
+  args:
+    samples_jsonl: government-services-grounding/samples.jsonl
+    mcp_tools_enabled: true
+    adversarial_review: true
+    max_iterations: 3
+    max_tokens: 500

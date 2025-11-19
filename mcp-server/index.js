@@ -884,6 +884,428 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', timestamp: new Date() });
 });
 
+// ============================================================================
+// V2 API Endpoints - New focused tools for agent-based grounding
+// ============================================================================
+
+// V2.1: search_fragments - Semantic search + facet filtering
+app.post('/v2/search', async (req, res) => {
+  try {
+    const { query = '*', facets = {}, per_page = 10, page = 1, include_html = false } = req.body;
+
+    // Build filter conditions from facets
+    const filterConditions = [];
+    const quote = (v) => `"${String(v).replace(/"/g, '\\"')}"`;
+
+    if (facets.life_event) filterConditions.push(`life_events:=[${quote(facets.life_event)}]`);
+    if (facets.category) filterConditions.push(`categories:=[${quote(facets.category)}]`);
+    if (facets.provider) filterConditions.push(`provider:=${quote(facets.provider)}`);
+    if (facets.state && facets.state !== 'National') filterConditions.push(`states:=[${quote(facets.state)}]`);
+
+    // Fields to include
+    const includeFields = [
+      'id', 'url', 'title', 'content_text',
+      'hierarchy_lvl0', 'hierarchy_lvl1', 'hierarchy_lvl2',
+      'life_events', 'categories', 'states', 'provider',
+      'component_type', 'last_modified'
+    ];
+
+    if (include_html) {
+      includeFields.push('content_html', 'styles_raw', 'classes');
+    }
+
+    const searchParams = {
+      q: query,
+      query_by: 'title,content_text,search_keywords',
+      filter_by: filterConditions.length > 0 ? filterConditions.join(' && ') : undefined,
+      per_page: parseInt(per_page, 10),
+      page: parseInt(page, 10),
+      include_fields: includeFields.join(','),
+      facet_by: 'life_events,categories,provider,states',
+      num_typos: 2
+    };
+
+    const response = await typesenseClient
+      .collections('content_fragments')
+      .documents()
+      .search(searchParams);
+
+    res.json({
+      results: response.hits?.map(h => h.document) || [],
+      found: response.found || 0,
+      page: response.page || 1,
+      facet_counts: response.facet_counts || []
+    });
+
+  } catch (error) {
+    console.error('V2 Search error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// V2.2: get_facets - Discover available filter values
+app.post('/v2/facets', async (req, res) => {
+  try {
+    const { query = '*', for_facets = {} } = req.body;
+
+    // Build filter conditions for scoped facets
+    const filterConditions = [];
+    const quote = (v) => `"${String(v).replace(/"/g, '\\"')}"`;
+
+    if (for_facets.life_event) filterConditions.push(`life_events:=[${quote(for_facets.life_event)}]`);
+    if (for_facets.category) filterConditions.push(`categories:=[${quote(for_facets.category)}]`);
+    if (for_facets.provider) filterConditions.push(`provider:=${quote(for_facets.provider)}`);
+    if (for_facets.state && for_facets.state !== 'National') filterConditions.push(`states:=[${quote(for_facets.state)}]`);
+
+    const searchParams = {
+      q: query,
+      query_by: 'title,content_text',
+      facet_by: 'life_events,categories,provider,states',
+      filter_by: filterConditions.length > 0 ? filterConditions.join(' && ') : undefined,
+      per_page: 0  // Only need facets
+    };
+
+    const response = await typesenseClient
+      .collections('content_fragments')
+      .documents()
+      .search(searchParams);
+
+    res.json({
+      life_events: response.facet_counts?.find(f => f.field_name === 'life_events')?.counts || [],
+      categories: response.facet_counts?.find(f => f.field_name === 'categories')?.counts || [],
+      providers: response.facet_counts?.find(f => f.field_name === 'provider')?.counts || [],
+      states: response.facet_counts?.find(f => f.field_name === 'states')?.counts || []
+    });
+
+  } catch (error) {
+    console.error('V2 Facets error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// V2.3: get_content_by_facets - Pure facet-based retrieval (no text search)
+app.post('/v2/content', async (req, res) => {
+  try {
+    const { facets = {}, per_page = 50, page = 1, sort_by = 'popularity_sort:asc' } = req.body;
+
+    // Build filter conditions
+    const filterConditions = [];
+    const quote = (v) => `"${String(v).replace(/"/g, '\\"')}"`;
+
+    if (facets.life_event) filterConditions.push(`life_events:=[${quote(facets.life_event)}]`);
+    if (facets.category) filterConditions.push(`categories:=[${quote(facets.category)}]`);
+    if (facets.provider) filterConditions.push(`provider:=${quote(facets.provider)}`);
+    if (facets.state && facets.state !== 'National') filterConditions.push(`states:=[${quote(facets.state)}]`);
+
+    if (filterConditions.length === 0) {
+      return res.status(400).json({ error: 'At least one facet filter is required' });
+    }
+
+    const searchParams = {
+      q: '*',
+      query_by: 'title',
+      filter_by: filterConditions.join(' && '),
+      sort_by,
+      per_page: parseInt(per_page, 10),
+      page: parseInt(page, 10),
+      include_fields: 'id,url,title,content_text,life_events,categories,states,provider,component_type'
+    };
+
+    const response = await typesenseClient
+      .collections('content_fragments')
+      .documents()
+      .search(searchParams);
+
+    res.json({
+      results: response.hits?.map(h => h.document) || [],
+      found: response.found || 0,
+      page: response.page || 1,
+      total_pages: Math.ceil((response.found || 0) / parseInt(per_page, 10))
+    });
+
+  } catch (error) {
+    console.error('V2 Content error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// V2.4: verify_entity_exists - Check if named entity exists
+app.post('/v2/verify-entity', async (req, res) => {
+  try {
+    const { entity_name, entity_type, facets = {} } = req.body;
+
+    if (!entity_name) {
+      return res.status(400).json({ error: 'entity_name is required' });
+    }
+
+    // Build filter conditions
+    const filterConditions = [];
+    const quote = (v) => `"${String(v).replace(/"/g, '\\"')}"`;
+
+    if (facets.life_event) filterConditions.push(`life_events:=[${quote(facets.life_event)}]`);
+    if (facets.category) filterConditions.push(`categories:=[${quote(facets.category)}]`);
+    if (facets.provider) filterConditions.push(`provider:=${quote(facets.provider)}`);
+    if (facets.state && facets.state !== 'National') filterConditions.push(`states:=[${quote(facets.state)}]`);
+
+    // Search for entity in title and content
+    const searchParams = {
+      q: entity_name,
+      query_by: 'title,content_text',
+      filter_by: filterConditions.length > 0 ? filterConditions.join(' && ') : undefined,
+      per_page: 10,
+      prefix: false,
+      num_typos: 1
+    };
+
+    const response = await typesenseClient
+      .collections('content_fragments')
+      .documents()
+      .search(searchParams);
+
+    const matches = response.hits?.map(hit => ({
+      id: hit.document.id,
+      title: hit.document.title,
+      provider: hit.document.provider,
+      url: hit.document.url,
+      match_type: hit.document.title?.toLowerCase().includes(entity_name.toLowerCase()) ? 'exact' : 'partial',
+      relevance_score: hit.text_match / 100000000  // Normalize Typesense score
+    })) || [];
+
+    // Extract suggested facets from top match
+    let suggested_facets = {};
+    if (matches.length > 0 && response.hits[0].document) {
+      const topDoc = response.hits[0].document;
+      if (topDoc.provider) suggested_facets.provider = topDoc.provider;
+      if (topDoc.life_events?.length > 0) suggested_facets.life_event = topDoc.life_events[0];
+      if (topDoc.categories?.length > 0) suggested_facets.category = topDoc.categories[0];
+    }
+
+    res.json({
+      exists: matches.length > 0,
+      matches,
+      suggested_facets
+    });
+
+  } catch (error) {
+    console.error('V2 Verify Entity error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// V2.5: ground_claim - Evidence-based claim verification
+app.post('/v2/ground-claim', async (req, res) => {
+  try {
+    const { claim, focus_entity, facets = {}, max_evidence = 5 } = req.body;
+
+    if (!claim) {
+      return res.status(400).json({ error: 'claim is required' });
+    }
+
+    // Build filter conditions
+    const filterConditions = [];
+    const quote = (v) => `"${String(v).replace(/"/g, '\\"')}"`;
+
+    if (facets.life_event) filterConditions.push(`life_events:=[${quote(facets.life_event)}]`);
+    if (facets.category) filterConditions.push(`categories:=[${quote(facets.category)}]`);
+    if (facets.provider) filterConditions.push(`provider:=${quote(facets.provider)}`);
+    if (facets.state && facets.state !== 'National') filterConditions.push(`states:=[${quote(facets.state)}]`);
+
+    // Extract key terms from claim for search
+    const searchQuery = focus_entity || claim;
+
+    const searchParams = {
+      q: searchQuery,
+      query_by: 'title,content_text',
+      filter_by: filterConditions.length > 0 ? filterConditions.join(' && ') : undefined,
+      per_page: Math.max(max_evidence * 2, 10),  // Get more to analyze
+      num_typos: 2,
+      include_fields: 'id,title,content_text,url,provider'
+    };
+
+    const response = await typesenseClient
+      .collections('content_fragments')
+      .documents()
+      .search(searchParams);
+
+    // Simple claim grounding logic (keyword overlap)
+    // TODO: Replace with semantic similarity when embeddings are added
+    const claimLower = claim.toLowerCase();
+    const claimTerms = claimLower.split(/\s+/).filter(t => t.length > 3);
+
+    const evidence = [];
+    let supportCount = 0;
+    let contradictCount = 0;
+
+    for (const hit of response.hits || []) {
+      const doc = hit.document;
+      const contentLower = (doc.title + ' ' + doc.content_text).toLowerCase();
+
+      // Calculate term overlap
+      const matchingTerms = claimTerms.filter(term => contentLower.includes(term));
+      const overlapRatio = matchingTerms.length / claimTerms.length;
+
+      if (overlapRatio > 0.3) {  // At least 30% overlap
+        // Extract relevant excerpt
+        const sentences = doc.content_text.split(/[.!?]+/);
+        const relevantSentences = sentences.filter(s =>
+          claimTerms.some(term => s.toLowerCase().includes(term))
+        ).slice(0, 2);
+
+        const excerpt = relevantSentences.join('. ').trim().substring(0, 300);
+
+        evidence.push({
+          fragment_id: doc.id,
+          text_excerpt: excerpt || doc.content_text.substring(0, 300),
+          url: doc.url,
+          relevance_score: overlapRatio,
+          highlights: matchingTerms
+        });
+
+        supportCount++;
+      }
+    }
+
+    // Limit evidence to max_evidence
+    evidence.sort((a, b) => b.relevance_score - a.relevance_score);
+    const topEvidence = evidence.slice(0, max_evidence);
+
+    // Determine verdict and confidence
+    let verdict = 'not_found';
+    let confidence = 0;
+    let reasoning = '';
+
+    if (topEvidence.length === 0) {
+      verdict = 'not_found';
+      confidence = 0;
+      reasoning = 'No relevant content found to verify this claim';
+    } else if (topEvidence.length >= 2 && topEvidence[0].relevance_score > 0.5) {
+      verdict = 'supported';
+      confidence = Math.min(0.95, topEvidence[0].relevance_score + (topEvidence.length * 0.1));
+      reasoning = `Found ${topEvidence.length} fragments with relevant content`;
+    } else if (topEvidence.length === 1) {
+      verdict = 'ambiguous';
+      confidence = topEvidence[0].relevance_score;
+      reasoning = 'Limited evidence found - single source';
+    } else {
+      verdict = 'ambiguous';
+      confidence = 0.5;
+      reasoning = 'Multiple sources with partial matches';
+    }
+
+    res.json({
+      verdict,
+      confidence: Math.round(confidence * 100) / 100,
+      evidence: topEvidence,
+      reasoning
+    });
+
+  } catch (error) {
+    console.error('V2 Ground Claim error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
+// V2.6: get_fragment_context - Get full context for GraphRAG
+app.post('/v2/fragment-context', async (req, res) => {
+  try {
+    const {
+      fragment_id,
+      include_hierarchy = true,
+      include_page_siblings = true,
+      include_related_pages = true
+    } = req.body;
+
+    if (!fragment_id) {
+      return res.status(400).json({ error: 'fragment_id is required' });
+    }
+
+    // Get the fragment
+    const fragment = await typesenseClient
+      .collections('content_fragments')
+      .documents(fragment_id)
+      .retrieve();
+
+    const result = {
+      fragment,
+      page_url: fragment.page_url || fragment.url,
+      hierarchy: [],
+      page_facets: {
+        life_events: fragment.life_events || [],
+        categories: fragment.categories || [],
+        states: fragment.states || []
+      },
+      siblings: [],
+      related_pages: []
+    };
+
+    // Build hierarchy from fragment
+    if (include_hierarchy) {
+      const hierarchy = [];
+      if (fragment.hierarchy_lvl0) hierarchy.push(fragment.hierarchy_lvl0);
+      if (fragment.hierarchy_lvl1) hierarchy.push(fragment.hierarchy_lvl1);
+      if (fragment.hierarchy_lvl2) hierarchy.push(fragment.hierarchy_lvl2);
+      result.hierarchy = hierarchy;
+    }
+
+    // Get siblings from same page
+    if (include_page_siblings && fragment.page_url) {
+      const siblingsResponse = await typesenseClient
+        .collections('content_fragments')
+        .documents()
+        .search({
+          q: '*',
+          query_by: 'title',
+          filter_by: `page_url:="${fragment.page_url.replace(/"/g, '\\"')}"`,
+          per_page: 20,
+          include_fields: 'id,title,hierarchy_lvl0,hierarchy_lvl1,hierarchy_lvl2'
+        });
+
+      result.siblings = siblingsResponse.hits?.map(h => h.document).filter(d => d.id !== fragment_id) || [];
+    }
+
+    // Get related pages by taxonomy overlap
+    if (include_related_pages && fragment.life_events?.length > 0) {
+      const relatedResponse = await typesenseClient
+        .collections('content_fragments')
+        .documents()
+        .search({
+          q: '*',
+          query_by: 'title',
+          filter_by: `life_events:=[${fragment.life_events[0]}]`,
+          per_page: 10,
+          include_fields: 'page_url,title,life_events,categories'
+        });
+
+      // Group by unique page URLs
+      const pageMap = new Map();
+      relatedResponse.hits?.forEach(hit => {
+        const doc = hit.document;
+        if (doc.page_url && doc.page_url !== fragment.page_url) {
+          if (!pageMap.has(doc.page_url)) {
+            pageMap.set(doc.page_url, {
+              url: doc.page_url,
+              title: doc.title,
+              shared_facets: {
+                life_events: doc.life_events?.filter(le => fragment.life_events?.includes(le)) || [],
+                categories: doc.categories?.filter(cat => fragment.categories?.includes(cat)) || []
+              },
+              similarity_score: 0.5  // Placeholder for now
+            });
+          }
+        }
+      });
+
+      result.related_pages = Array.from(pageMap.values()).slice(0, 5);
+    }
+
+    res.json(result);
+
+  } catch (error) {
+    console.error('V2 Fragment Context error:', error);
+    res.status(500).json({ error: error.message });
+  }
+});
+
 // Start the server
 async function main() {
   console.log("Starting MyGov MCP Server...");

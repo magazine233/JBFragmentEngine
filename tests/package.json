@@ -1,0 +1,13 @@
+{
+  "name": "fragmentengine-tests",
+  "version": "1.0.0",
+  "description": "Test suite for FragmentEngine MCP tools",
+  "main": "mcp-tools.test.js",
+  "scripts": {
+    "test": "node mcp-tools.test.js",
+    "test:watch": "nodemon mcp-tools.test.js"
+  },
+  "keywords": ["test", "mcp", "typesense"],
+  "author": "",
+  "license": "MIT"
+}

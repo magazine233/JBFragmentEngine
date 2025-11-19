@@ -1,0 +1,16 @@
+{
+  "name": "fragmentengine-evals",
+  "version": "1.0.0",
+  "description": "Adversarial evaluation framework for FragmentEngine with MCP tools",
+  "main": "run-eval.js",
+  "scripts": {
+    "eval": "node run-eval.js",
+    "eval:baseline": "node run-eval.js government-services-grounding --mode=baseline",
+    "eval:tools": "node run-eval.js government-services-grounding --mode=tools",
+    "eval:adversarial": "node run-eval.js government-services-grounding --mode=adversarial",
+    "eval:all": "node run-eval.js government-services-grounding --mode=all"
+  },
+  "keywords": ["evals", "llm", "adversarial", "grounding", "mcp"],
+  "author": "",
+  "license": "MIT"
+}

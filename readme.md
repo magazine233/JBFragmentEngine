@@ -13,40 +13,136 @@ A Typesense-powered content extraction and search system for government websites
 
 ## Quick Start
 
-### Prerequisites
+Follow this track to get from zero install → Typesense full of fragments → multimodal UI → agentic evals.
 
-- Docker and Docker Compose
-- Node.js 18+ (for local development)
+### 0. Prerequisites
 
-### Installation
+- Docker + Compose plugin (enable Docker and add your user to the `docker` group)
+- Node.js 18+ (needed for UI helpers + eval runner)
+- `curl` and `jq` for smoke tests
 
-0. Prep your system
-On a clean vm you'll need to install docker-compose, enable docker and add yourself to the docker group 
+### 1. Clone and configure
 
-1. Clone the repository:
 ```bash
 git clone https://github.com/p0ss/FragmentEngine
 cd FragmentEngine
-```
-
-2. Copy environment configuration:
-```bash
 cp .env-example .env
+
+# Required secrets
+# Edit .env and set TYPESENSE_API_KEY=<your key>
+
+# Optional: enable LiteLLM routing + your preferred model URLs
+echo ENABLE_LITELLM=true >> .env
+echo OLLAMA_URL=http://172.17.0.1:11434 >> .env  # host.docker.internal on Mac/Win
+# Export OPENAI_API_KEY / ANTHROPIC_API_KEY / GROQ_API_KEY if you want remote providers
 ```
 
-3. Edit `.env` with your settings:
-```bash
-TYPESENSE_API_KEY=your-secure-key-here
-# Optional: unified scraper targets (comma-separated)
-# TARGET_URLS=https://my.gov.au,https://www.servicesaustralia.gov.au
-```
+`TYPESENSE_API_KEY` must match between `.env`, UI helpers, and any scripts that talk to Typesense.
 
-4. Deploy the system:
+### 2. Bring the stack online
+
 ```bash
 chmod +x deploy.sh
-./deploy.sh --crawl  # Include --crawl to run initial scrape
+./deploy.sh --crawl   # builds images, boots Typesense + API + MCP, runs the unified scraper once
 ```
 
+- Re-run `./deploy.sh` after tweaking `.env`
+- Skip `--crawl` if you want to stage data manually
+- Health checks:
+
+```bash
+curl http://localhost:8108/health               # Typesense ready?
+curl http://localhost:3000/health               # API + MCP server ready?
+curl http://localhost:3000/api/llm/models       # Models discovered via LiteLLM/Ollama?
+```
+
+### 3. Fill Typesense with fragments
+
+```bash
+# Default crawl (my.gov.au + servicesaustralia.gov.au)
+docker-compose run --rm scraper
+
+# Target your own list
+TARGET_URLS="https://www.ato.gov.au,https://www.ndis.gov.au" \
+  docker-compose run --rm -e TARGET_URLS="$TARGET_URLS" scraper
+```
+
+Confirm ingestion:
+
+```bash
+source .env
+curl -s -H "X-TYPESENSE-API-KEY: $TYPESENSE_API_KEY" \
+  http://localhost:8108/collections/content_fragments | jq '.num_documents'
+```
+
+If you want per-page aggregates, open `pages-analyse.html` after the crawl and click **Build content_pages in Typesense** to populate the derived collection used by the overlap visualisations.
+
+### 4. Use the helper UIs to harvest facts & rubric data
+
+Serve the static tools from the repo root so they can reach `http://localhost:3000`:
+
+```bash
+python3 -m http.server 4173
+# Visit http://localhost:4173/<file>
+```
+
+- `fragments-visual.html`: Graph explorer + facet filters for grabbing fragment IDs, context, and example claims. Use this to list the facts you expect (and the hallucinations you want to forbid) before authoring eval prompts.
+- `pages-analyse.html`: Builds the `content_pages` collection, compares domains, exports CSV/JSONL, and gives you per-page evidence to cite in rubrics.
+
+Suggested workflow when designing eval samples:
+1. Filter fragments by life event/provider and copy authoritative snippets → these become your `ideal` answers.
+2. Note fragment IDs + URLs → store them in `fragment_ids` inside the eval sample for traceability.
+3. Capture “facts we never want to see” and record them as `disallowed_claims` in the sample.
+4. Use the exported CSV/JSONL as a checklist when filling the eval template.
+
+### 5. Launch the multimodal interface
+
+Using the same static server, open `http://localhost:4173/multimode-interface.html`.
+
+What you get:
+- Conversational + profile-aware assistant that calls `POST /api/llm/chat-with-context`
+- Search + journey builder panes sourced directly from Typesense fragments
+- Automatic model dropdown fed by `GET /api/llm/models` (LiteLLM, Ollama, OpenAI, Anthropic, Groq)
+- Inline diagnostics if the API or models endpoint is unreachable
+
+If the UI cannot reach the API, check Docker logs for `api`, ensure ports `3000/8108/8081` are open locally, and re-run the health commands from step 2.
+
+### 6. Run the agentic evals
+
+```bash
+cd evals
+npm install            # keeps npm scripts happy (no external deps required)
+./quick-start.sh      # optional smoke check (verifies services + sample data)
+
+# Full adversarial sweep (baseline + tool-enabled + reviewer loop)
+npm run eval:all
+
+# Focus on a single mode if needed
+npm run eval:baseline
+npm run eval:tools
+npm run eval:adversarial
+```
+
+Outputs live in `evals/results/<eval>-<mode>-TIMESTAMP.json`. Each result contains:
+- `iterations`: responder + reviewer transcripts when running adversarial
+- `score`: automatic rubric result (`factual_accuracy`, `completeness`, `entity_verification`)
+- Evidence about which claim triggered a rejection
+
+Add or edit cases in `evals/registry/data/government-services-grounding/samples.jsonl`:
+
+```jsonl
+{"input":[{"role":"system","content":"You are a helpful assistant with access to the MCP tools."},
+           {"role":"user","content":"How long is Paid Parental Leave?"}],
+ "ideal":"18 weeks",
+ "facets":{"provider":"Services Australia","life_event":"Having a baby"},
+ "fragment_ids":["servicesaustralia.gov.au::ppl-overview"],
+ "disallowed_claims":["Paid Parental Leave is 26 weeks"],
+ "eval_type":"factual_accuracy"}
+```
+
+The helper UIs make it easy to grab the fragments, acceptable facts, and forbidden claims that populate `ideal`, `fragment_ids`, and `disallowed_claims`. Run `npm run eval:adversarial` whenever you change a sample to confirm the reviewer can force the responder to stay grounded.
+
+With those steps you now have: (1) Typesense populated with fragments, (2) the multimodal UI pointing at live data, and (3) an adversarial eval harness guarding regressions.
 
 
 ## Usage
